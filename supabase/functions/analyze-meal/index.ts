@@ -3,7 +3,7 @@
  * estimada em gramas e os valores por 100 g, em JSON estruturado (Gemini).
  *
  * Segredos (Supabase → Edge Functions → Secrets):
- *   GEMINI_API_KEY   chave da API do Gemini (obrigatória)
+ *   GEMINI_API_KEY   chave da API do Gemini (obrigatória; também aceita GOOGLE_API_KEY, GEMINI_KEY…)
  *   GEMINI_MODEL     modelo a usar (opcional; padrão abaixo)
  *
  * Acesso: por enquanto qualquer chamada com a chave publicável do projeto no
@@ -47,6 +47,20 @@ function allowedKeys(): string[] {
   const anon = Deno.env.get('SUPABASE_ANON_KEY');
   if (anon) keys.push(anon);
   return keys.filter(Boolean);
+}
+
+/** Nomes que aceitamos para a chave do Gemini, em ordem de preferência. */
+const GEMINI_KEY_NAMES = ['GEMINI_API_KEY', 'GOOGLE_API_KEY', 'GEMINI_KEY', 'GOOGLE_GENERATIVE_AI_API_KEY', 'GOOGLE_AI_API_KEY'];
+
+/** Procura a chave do Gemini pelos nomes comuns, sem diferenciar maiúsculas e ignorando espaços. */
+function geminiApiKey(): string | undefined {
+  const env = Deno.env.toObject();
+  const byName = new Map(Object.entries(env).map(([k, v]) => [k.trim().toUpperCase(), v]));
+  for (const name of GEMINI_KEY_NAMES) {
+    const value = byName.get(name)?.trim();
+    if (value) return value;
+  }
+  return undefined;
 }
 
 const PROMPT = `Você é nutricionista brasileira. Analise a foto de uma refeição.
@@ -95,8 +109,12 @@ Deno.serve(async (req) => {
   const apikey = req.headers.get('apikey') ?? '';
   if (!apikey || !allowedKeys().includes(apikey)) return json(401, { error: 'nao_autorizado' });
 
-  const geminiKey = Deno.env.get('GEMINI_API_KEY');
-  if (!geminiKey) return json(503, { error: 'sem_chave' });
+  const geminiKey = geminiApiKey();
+  if (!geminiKey) {
+    // Só os NOMES dos segredos, nunca os valores — para descobrir se a chave foi salva com outro nome.
+    console.error('sem_chave', Object.keys(Deno.env.toObject()).sort().join(', '));
+    return json(503, { error: 'sem_chave' });
+  }
 
   let image = '';
   let mimeType = 'image/jpeg';
