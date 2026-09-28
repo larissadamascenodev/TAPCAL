@@ -61,10 +61,6 @@ export const colors = {
   limeHighlight: '#F7FFE0',
   gaugeDot: '#F7FFE0',
 
-  // Balão de fala do mascote
-  bubble: '#F4F5F0',
-  onBubble: '#15161A',
-
   // Neutros de apoio
   white: '#FFFFFF',
   shadow: '#000000',
@@ -96,9 +92,6 @@ export const gradients = {
   lime: [colors.limeLight, colors.lime, colors.limeDeep] as const,
   // Medidor quando passa da meta
   over: [colors.lime, '#FFB25C', '#FF7A59'] as const,
-  // Barra do dia no cartão "Total de hoje" (e quando passa da meta)
-  bar: [colors.limeLight, colors.lime] as const,
-  barOver: [colors.lime, colors.warn] as const,
   // Botão primário
   accent: [colors.limeLight, colors.lime] as const,
   // Vidro líquido: brilho diagonal por cima do desfoque
@@ -121,36 +114,6 @@ export const gradients = {
   flameOuter: ['#FF3D1F', '#FF7A1A', '#FFC23A'] as const,
   flameInner: ['#FFB02E', '#FFE27A', '#FFF6CC'] as const,
 };
-
-/**
- * Cores do Tapi, o mascote (plástico branco brilhante com detalhes verdes).
- * Ficam aqui para o desenho não ter cor solta.
- */
-export const mascotColors = {
-  shell: ['#FFFFFF', '#F7F9FA', '#E1E6EA', '#C5CDD4', '#AEB8C1'],
-  body: ['#FFFFFF', '#EEF1F4', '#C9D1D8', '#A9B3BC'],
-  occlusion: '#8A96A2',
-  rim: ['#EDFF9E', '#D1FB39', '#A9DA1E', '#86B80F'],
-  limeSoft: ['#F2FFC2', '#CFF53F', '#8FC012'],
-  face: ['#FFFFFF', '#F3F6F8', '#DCE3E8'],
-  eye: ['#1A1E23', '#07090B', '#1F3A06', '#7DBB14', '#DDFF6E'],
-  ball: ['#FFFFFF', '#EEF2F5', '#B4BEC7'],
-  cup: ['#F7FFD9', '#DDF7A0', '#B7E24A'],
-  seam: '#9AA6B1',
-  seamBody: '#9FAAB4',
-  coreFill: '#EFFBCB',
-  cupRing: '#E7FF8C',
-  eyeLine: '#F2FFB8',
-  heartEdge: '#8DBE12',
-  ink: '#16181B',
-  mouth: '#23262A',
-  tongue: '#FF8FA3',
-  blush: '#FF9FB0',
-  drop: '#8FD3FF',
-  thought: '#F4F5F0',
-  white: '#FFFFFF',
-  black: '#000000',
-} as const;
 
 /**
  * Famílias carregadas em src/app/_layout.tsx via @expo-google-fonts.
@@ -217,5 +180,5 @@ export const tabBar = {
   plusSize: 68,
 } as const;
 
-export const theme = { colors, macroColors, gradients, mascotColors, fonts, spacing, radius, typography, tabBar } as const;
+export const theme = { colors, macroColors, gradients, fonts, spacing, radius, typography, tabBar } as const;
 export default theme;

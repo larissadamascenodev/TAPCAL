@@ -2,15 +2,15 @@ import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 
+import { CalorieGauge } from '@/components/home/CalorieGauge';
 import { HOME_HEADER_H, HomeHeader } from '@/components/home/HomeHeader';
-import { MascotHero } from '@/components/home/MascotHero';
-import { TodayCard } from '@/components/home/TodayCard';
+import { MacrosCard } from '@/components/home/MacrosCard';
 import { WaterTile } from '@/components/home/WaterTile';
+import { WeekStrip } from '@/components/home/WeekStrip';
 import { WeightCard } from '@/components/home/WeightCard';
 import { WorkoutTile } from '@/components/home/WorkoutTile';
 import { EmptyState, Screen, Text, toast } from '@/components/ui';
 import { useDoubleTap } from '@/hooks/useDoubleTap';
-import { mascotMood } from '@/lib/mascot';
 import { loggedDates, streak, weightTrend } from '@/lib/progress';
 import { dayTotals } from '@/lib/totals';
 import { estimatedMinutes, planForDate, shortFocus } from '@/lib/workout';
@@ -44,7 +44,7 @@ export default function InicioScreen() {
   const eaten = dayTotals(day);
   const logged = useMemo(() => loggedDates(day, history), [day, history]);
   const trend = useMemo(() => weightTrend(weights, today), [weights, today]);
-  const cardTap = useDoubleTap(() => router.push('/scanner'));
+  const gaugeTap = useDoubleTap(() => router.push('/scanner'));
 
   if (!profile || !plan) {
     return (
@@ -57,18 +57,6 @@ export default function InicioScreen() {
   const days = streak(logged, today);
   const workout = planForDate(workoutPlans, today);
   const doneToday = sessions.some((s) => s.date === today);
-  const firstName = profile.name.trim().split(/\s+/)[0] ?? profile.name;
-  const { mood, message } = mascotMood({
-    name: firstName,
-    eatenKcal: eaten.kcal,
-    goalKcal: plan.targetKcal,
-    proteinG: eaten.proteinG,
-    proteinGoalG: plan.macros.proteinG,
-    waterMl: day.waterMl,
-    waterGoalMl: plan.waterMl,
-    streakDays: days,
-    hour: new Date().getHours(),
-  });
 
   const onWater = () => {
     const next = day.waterMl + WATER_STEP;
@@ -93,7 +81,7 @@ export default function InicioScreen() {
           }
         : { title: 'Descanso', subtitle: 'Dia de recuperar' };
 
-  const heroWidth = Math.min(340, width - spacing.lg * 2);
+  const gaugeWidth = Math.min(340, width - spacing.lg * 2);
 
   return (
     <Screen
@@ -113,12 +101,19 @@ export default function InicioScreen() {
         ))}
       </ScrollView>
 
-      <View style={styles.hero}>
-        <MascotHero eaten={eaten.kcal} goal={plan.targetKcal} mood={mood} message={message} width={heroWidth} />
+      <View style={styles.week}>
+        <WeekStrip today={today} logged={logged} />
       </View>
 
+      <Pressable
+        onPress={gaugeTap}
+        accessibilityHint="Toque duas vezes para fotografar um prato"
+        style={styles.gauge}>
+        <CalorieGauge eaten={eaten.kcal} goal={plan.targetKcal} width={gaugeWidth} />
+      </Pressable>
+
       <View style={styles.block}>
-        <TodayCard goalKcal={plan.targetKcal} eaten={eaten} goal={plan.macros} onPress={cardTap} />
+        <MacrosCard eaten={eaten} goal={plan.macros} />
       </View>
 
       <View style={[styles.block, styles.tiles]}>
@@ -169,11 +164,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.white,
   },
-  hero: {
-    marginTop: 10,
+  week: {
+    marginTop: 20,
+  },
+  gauge: {
+    marginTop: 24,
+    alignItems: 'center',
   },
   block: {
-    marginTop: 14,
+    marginTop: 20,
   },
   tiles: {
     flexDirection: 'row',

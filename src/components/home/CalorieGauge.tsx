@@ -1,7 +1,9 @@
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Path, Stop } from 'react-native-svg';
 
-import { colors, gradients } from '@/theme/theme';
+import { Text } from '@/components/ui/Text';
+import { formatInt } from '@/lib/format';
+import { colors, fonts, gradients } from '@/theme/theme';
 
 // Geometria do mockup: caixa 340 × 262, centro (170, 170), arco de 240°.
 export const GAUGE_VB_W = 340;
@@ -34,8 +36,9 @@ type Props = {
 };
 
 /**
- * Arco de 240° da Início, que enche em verde conforme come. O centro fica livre
- * para o mascote. Passou da meta: o arco fica cheio e esquenta para laranja.
+ * Velocímetro da Início: arco de 240° que enche em verde conforme come, com a
+ * meta do dia em destaque no centro e, embaixo dela, consumidas e quanto falta.
+ * Passou da meta: o arco fica cheio, esquenta para laranja e mostra o excesso.
  */
 export function CalorieGauge({ eaten, goal, width }: Props) {
   const frac = goal > 0 ? Math.min(1, Math.max(0, eaten / goal)) : 0;
@@ -44,9 +47,18 @@ export function CalorieGauge({ eaten, goal, width }: Props) {
   const height = (width / GAUGE_VB_W) * GAUGE_VB_H;
   const stops = over ? gradients.over : gradients.lime;
   const glow = over ? colors.warn : colors.lime;
+  const left = goal - eaten;
+  const k = width / GAUGE_VB_W;
+  const goalSize = Math.round(54 * k);
 
   return (
-    <View style={{ width, height }} pointerEvents="none">
+    <View
+      style={{ width, height }}
+      accessible
+      accessibilityRole="progressbar"
+      accessibilityLabel={`Meta de hoje ${formatInt(goal)} calorias. ${formatInt(eaten)} consumidas, ${
+        over ? `${formatInt(-left)} acima da meta` : `faltam ${formatInt(left)}`
+      }`}>
       <Svg width={width} height={height} viewBox={`0 0 ${GAUGE_VB_W} ${GAUGE_VB_H}`}>
         <Defs>
           <LinearGradient id="gaugeGrad" x1="0" y1="1" x2="1" y2="0">
@@ -87,6 +99,70 @@ export function CalorieGauge({ eaten, goal, width }: Props) {
         )}
         <Circle cx={dot.x} cy={dot.y} r={6} fill={colors.gaugeDot} />
       </Svg>
+
+      <View pointerEvents="none" style={[styles.center, { top: 70 * k }]}>
+        <Text variant="caption" tone="secondary">
+          Meta de hoje
+        </Text>
+        <Text style={[styles.goal, { fontSize: goalSize, lineHeight: Math.round(goalSize * 1.12) }]}>
+          {formatInt(goal)}
+        </Text>
+        <Text variant="caption" tone="muted">
+          kcal
+        </Text>
+
+        <View style={[styles.row, { marginTop: 14 * k }]}>
+          <View style={styles.col}>
+            <Text variant="caption" tone="secondary">
+              Consumidas
+            </Text>
+            <Text style={styles.value}>{formatInt(eaten)}</Text>
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.col}>
+            <Text variant="caption" tone="secondary">
+              {over ? 'Acima' : 'Faltam'}
+            </Text>
+            <Text style={[styles.value, { color: over ? colors.warnText : colors.lime }]}>
+              {formatInt(Math.abs(left))}
+            </Text>
+          </View>
+        </View>
+      </View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  center: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  goal: {
+    fontFamily: fonts.display.bold,
+    letterSpacing: -2.4,
+    fontVariant: ['tabular-nums'],
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  col: {
+    width: 104,
+    alignItems: 'center',
+  },
+  divider: {
+    width: 1,
+    height: 30,
+    backgroundColor: colors.divider,
+  },
+  value: {
+    fontFamily: fonts.display.semibold,
+    fontSize: 19,
+    lineHeight: 24,
+    letterSpacing: -0.4,
+    fontVariant: ['tabular-nums'],
+  },
+});
