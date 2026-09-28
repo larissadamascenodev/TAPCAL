@@ -9,7 +9,6 @@ import { useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Image,
-  KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
@@ -20,9 +19,9 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { MacroBars } from '@/components/nutrition/MacroBars';
+import { DishTitle, FoodRow, ItemEditSheet, LimeCta, PlateSummary, SheetBadge } from '@/components/nutrition/PlateSheet';
 import { FRAME_SIDE, ScanFrame } from '@/components/scanner/ScanFrame';
-import { Button, ChipGroup, Glass, IconButton, Text, TextField, toast } from '@/components/ui';
+import { Button, ChipGroup, Glass, IconButton, Text, toast } from '@/components/ui';
 import { formatInt } from '@/lib/format';
 import { MEAL_OPTIONS, mealByHour, mealShort, parseMeal } from '@/lib/meals';
 import { editScanItem, itemMacros, removeScanItem, scanTotals, toFoodItems, type ScanResult } from '@/lib/scan';
@@ -280,29 +279,18 @@ export default function ScannerScreen() {
 
         <GlassSheet uri={phase.uri} contentStyle={{ paddingBottom: insets.bottom + spacing.xl }}>
           {phase.example ? (
-            <View style={styles.badgeRow}>
-              <Ionicons name="information-circle" size={18} color={colors.gold} />
-              <Text style={[styles.badgeText, { color: colors.gold }]}>
-                MODO EXEMPLO · {phase.reason === 'sem_chave' ? 'FALTA A CHAVE DO GEMINI' : 'SEM CONEXÃO COM O SUPABASE'}
-              </Text>
-            </View>
+            <SheetBadge
+              icon="information-circle"
+              color={colors.gold}
+              label={`MODO EXEMPLO · ${phase.reason === 'sem_chave' ? 'FALTA A CHAVE DO GEMINI' : 'SEM CONEXÃO COM O SUPABASE'}`}
+            />
           ) : (
-            <View style={styles.badgeRow}>
-              <Ionicons name="checkmark-circle" size={18} color={colors.lime} />
-              <Text style={styles.badgeText}>IDENTIFICADO ITEM POR ITEM</Text>
-            </View>
+            <SheetBadge icon="checkmark-circle" label="IDENTIFICADO ITEM POR ITEM" />
           )}
-          <Text style={styles.dish}>{result.dish.toUpperCase()}</Text>
+          <DishTitle>{result.dish}</DishTitle>
           <ChipGroup label="Refeição" options={MEAL_OPTIONS} value={meal} onChange={setMeal} />
 
-          <View>
-            <Text style={styles.sumLabel}>CALORIAS</Text>
-            <View style={styles.kcalLine}>
-              <Text style={styles.sumValue}>{formatInt(totals.kcal)}</Text>
-              <Text style={styles.sumUnit}>KCAL</Text>
-            </View>
-            <MacroBars value={totals} goal={dayGoal} style={styles.barRow} />
-          </View>
+          <PlateSummary value={totals} goal={dayGoal} />
           {lowConfidence && (
             <Text variant="caption" style={styles.warn}>
               A foto deixou dúvidas. Confira os alimentos e as porções antes de continuar.
@@ -311,21 +299,14 @@ export default function ScannerScreen() {
 
           <View style={styles.list}>
             {result.items.map((i) => (
-              <Pressable
+              <FoodRow
                 key={i.id}
-                accessibilityRole="button"
-                accessibilityHint="Toque para editar o nome e a quantidade"
+                name={i.name}
+                kcal={itemMacros(i).kcal}
+                grams={i.grams}
+                off={i.grams === 0}
                 onPress={() => setEditing(i.id)}
-                style={({ pressed }) => [styles.row, i.grams === 0 && styles.rowOff, pressed && styles.pressed]}>
-                <View style={styles.flex}>
-                  <Text style={styles.rowName}>{i.name}</Text>
-                  <Text variant="caption" tone="muted">
-                    {formatInt(itemMacros(i).kcal)} kcal
-                  </Text>
-                </View>
-                <Text style={styles.rowGrams}>{formatInt(i.grams)} g</Text>
-                <Ionicons name="pencil" size={14} color={colors.ink3} />
-              </Pressable>
+              />
             ))}
             <Pressable
               accessibilityRole="button"
@@ -338,14 +319,12 @@ export default function ScannerScreen() {
             </Pressable>
           </View>
 
-          <Pressable accessibilityRole="button" onPress={save} style={({ pressed }) => [styles.cta, pressed && styles.pressed]}>
-            <Text style={styles.ctaText}>CONTINUAR</Text>
-          </Pressable>
+          <LimeCta label="Continuar" onPress={save} />
         </GlassSheet>
       </ScrollView>
 
       {editingItem && (
-        <EditItem
+        <ItemEditSheet
           key={editingItem.id}
           name={editingItem.name}
           grams={editingItem.grams}
@@ -388,55 +367,6 @@ function PhotoHeader({ uri }: { uri: string }) {
     <View pointerEvents="none" style={[styles.photo, { height: PHOTO_H }]}>
       <Image source={{ uri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
       <LinearGradient colors={gradients.photoFade} style={styles.photoFade} />
-    </View>
-  );
-}
-
-type EditProps = {
-  name: string;
-  grams: number;
-  onCancel: () => void;
-  onRemove: () => void;
-  onSave: (name: string, grams: number) => void;
-};
-
-/** Folha por cima do resultado para corrigir o nome e a quantidade de um alimento. */
-function EditItem({ name, grams, onCancel, onRemove, onSave }: EditProps) {
-  const insets = useSafeAreaInsets();
-  const [nameText, setNameText] = useState(name);
-  const [gramsText, setGramsText] = useState(String(grams));
-  const parsed = Number(gramsText.replace(',', '.'));
-
-  return (
-    <View style={styles.editRoot}>
-      <Pressable accessibilityLabel="Fechar edição" style={StyleSheet.absoluteFill} onPress={onCancel} />
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.editWrap}>
-        <Glass
-          rounded={SHEET_R - 4}
-          flush
-          style={styles.editCard}
-          contentStyle={[styles.editContent, { paddingBottom: insets.bottom + spacing.lg }]}>
-          <View style={styles.grab} />
-          <Text variant="heading">Editar alimento</Text>
-          <TextField label="Nome" value={nameText} onChangeText={setNameText} autoCapitalize="sentences" returnKeyType="next" />
-          <TextField
-            label="Quantidade"
-            unit="g"
-            value={gramsText}
-            onChangeText={setGramsText}
-            keyboardType="number-pad"
-            error={gramsText && !Number.isFinite(parsed) ? 'Use só números' : null}
-          />
-          <View style={styles.acts}>
-            <Button label="Remover" variant="secondary" onPress={onRemove} />
-            <Button
-              label="Salvar"
-              onPress={() => onSave(nameText, Number.isFinite(parsed) ? parsed : grams)}
-              style={styles.flex}
-            />
-          </View>
-        </Glass>
-      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -591,49 +521,8 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     backgroundColor: colors.handle,
   },
-  badgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  badgeText: {
-    fontFamily: fonts.body.bold,
-    fontSize: 12,
-    lineHeight: 16,
-    letterSpacing: 2,
-    color: colors.lime,
-  },
-  dish: {
-    fontFamily: fonts.display.bold,
-    fontSize: 26,
-    lineHeight: 31,
-    letterSpacing: -0.8,
-  },
   list: {
     marginTop: spacing.xs,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.hairline,
-  },
-  rowOff: {
-    opacity: 0.4,
-  },
-  rowName: {
-    fontFamily: fonts.body.semibold,
-    fontSize: 16,
-    lineHeight: 21,
-    color: colors.ink2,
-  },
-  rowGrams: {
-    fontFamily: fonts.display.semibold,
-    fontSize: 16,
-    lineHeight: 21,
-    fontVariant: ['tabular-nums'],
   },
   addRow: {
     flexDirection: 'row',
@@ -643,71 +532,6 @@ const styles = StyleSheet.create({
   },
   addRowText: {
     fontFamily: fonts.body.bold,
-  },
-  sumLabel: {
-    fontFamily: fonts.body.bold,
-    fontSize: 11,
-    lineHeight: 14,
-    letterSpacing: 2,
-    color: colors.ink3,
-  },
-  sumValue: {
-    marginTop: 2,
-    fontFamily: fonts.display.bold,
-    fontSize: 48,
-    lineHeight: 52,
-    letterSpacing: -2.4,
-    fontVariant: ['tabular-nums'],
-  },
-  sumUnit: {
-    fontFamily: fonts.body.bold,
-    fontSize: 12,
-    lineHeight: 16,
-    letterSpacing: 1.5,
-    color: colors.ink3,
-  },
-  kcalLine: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: spacing.sm,
-  },
-  barRow: {
-    marginTop: spacing.lg,
-  },
-  cta: {
-    height: 58,
-    marginTop: spacing.xs,
-    borderRadius: radius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.lime,
-  },
-  ctaText: {
-    fontFamily: fonts.display.bold,
-    fontSize: 15,
-    lineHeight: 20,
-    letterSpacing: 3,
-    color: colors.onLime,
-  },
-  editRoot: {
-    ...StyleSheet.absoluteFill,
-    justifyContent: 'flex-end',
-    backgroundColor: colors.photoScrim,
-  },
-  editWrap: {
-    width: '100%',
-  },
-  // Por cima dos itens: o mesmo vidro, mas com fundo firme para o texto de baixo não aparecer
-  editCard: {
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-    borderBottomWidth: 0,
-    backgroundColor: colors.panel,
-  },
-  editContent: {
-    gap: 14,
-    paddingTop: 12,
-    paddingHorizontal: spacing.lg,
   },
   warn: {
     color: colors.gold,
