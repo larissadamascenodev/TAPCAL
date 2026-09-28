@@ -1,34 +1,34 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { StyleSheet, View } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Circle, Path } from 'react-native-svg';
 
-import { Glass } from '@/components/ui/Glass';
 import { Text } from '@/components/ui/Text';
 import { formatInt } from '@/lib/format';
 import { proteinTip } from '@/lib/tips';
-import { colors, fonts, macroColors, radius, spacing } from '@/theme/theme';
+import { kcalSplit } from '@/lib/totals';
+import { colors, fonts, macroColors, spacing } from '@/theme/theme';
 import type { Macros } from '@/types';
 
-/** Ordem da referência: cada macro ocupa um terço do anel, no sentido horário a partir do topo. */
+/** Ordem das fatias no anel (sentido horário a partir do topo) e da lista ao lado. */
 const MACROS = [
   { key: 'carbsG', label: 'Carboidratos' },
   { key: 'proteinG', label: 'Proteínas' },
   { key: 'fatG', label: 'Gorduras' },
 ] as const;
 
-const RING = 176;
-const STROKE = 11;
+const RING = 184;
+const STROKE = 16;
 const R = (RING - STROKE) / 2;
-/** Espaço entre os três arcos, em graus. */
-const GAP = 16;
+/** Vão visível entre uma fatia e outra, em graus. */
+const GAP = 7;
+/** Quanto a ponta arredondada avança além do arco, em graus. */
+const CAP = (STROKE / 2 / R) * (180 / Math.PI);
 /** Tracinhos da régua ao lado de cada macro. */
 const RUNGS = 12;
 
 type Props = {
   eaten: Macros;
   goal: Macros;
-  /** Pílula no meio do anel (ex.: "Dia 12"). */
-  dayLabel: string;
   /** Mostra a dica do que falta (só faz sentido para hoje). */
   showTip?: boolean;
 };
@@ -36,6 +36,8 @@ type Props = {
 function frac(value: number, goal: number): number {
   return goal > 0 ? Math.min(1, Math.max(0, value / goal)) : 0;
 }
+
+type Slice = { key: string; color: string; share: number };
 
 /** Arco de `from` a `to` graus (0° = topo, sentido horário). */
 function arc(from: number, to: number): string {
@@ -48,53 +50,61 @@ function arc(from: number, to: number): string {
 }
 
 /**
- * Resumo do dia no topo das Refeições: anel dividido entre os três macros, com
- * as calorias no meio, e ao lado cada macro com a sua régua e "comido/meta".
+ * Anel de calorias: o anel inteiro é a meta; cada macro é uma fatia das calorias
+ * comidas e a fatia apagada é o que ainda falta. Fatias com pontas arredondadas e
+ * um vão entre elas.
  */
-export function DaySummary({ eaten, goal, dayLabel, showTip }: Props) {
+function KcalRing({ slices }: { slices: Slice[] }) {
+  const shown = slices.filter((s) => s.share > 0);
+  if (shown.length === 1) {
+    const c = RING / 2;
+    return <Circle cx={c} cy={c} r={R} stroke={shown[0].color} strokeWidth={STROKE} fill="none" />;
+  }
+  // Onde cada fatia começa: soma das anteriores.
+  const starts = shown.map((_, i) => shown.slice(0, i).reduce((sum, p) => sum + p.share, 0));
+  return (
+    <>
+      {shown.map((s, i) => {
+        const from = starts[i] * 360;
+        const to = (starts[i] + s.share) * 360;
+        let a = from + GAP / 2 + CAP;
+        let b = to - GAP / 2 - CAP;
+        // Fatia menor que as pontas: vira um pontinho no meio do seu espaço.
+        if (b <= a) a = b = (from + to) / 2;
+        return (
+          <Path key={s.key} d={arc(a, Math.max(b, a + 0.01))} stroke={s.color} strokeWidth={STROKE} strokeLinecap="round" fill="none" />
+        );
+      })}
+    </>
+  );
+}
+
+/**
+ * Resumo do dia no topo das Refeições: o anel de calorias (comidas de meta no
+ * meio) e, ao lado, cada macro com a sua régua e "comido/meta".
+ */
+export function DaySummary({ eaten, goal, showTip }: Props) {
   const over = eaten.kcal > goal.kcal;
   const tip = showTip ? proteinTip(goal.proteinG, eaten.proteinG) : null;
-  // A ponta arredondada avança meia espessura: desconta para o vão ficar do tamanho certo.
-  const cap = ((STROKE / 2) / R) * (180 / Math.PI);
+  const split = kcalSplit(eaten, goal.kcal);
+  const slices: Slice[] = [
+    ...MACROS.map(({ key }) => ({ key, color: macroColors[key], share: split[key] })),
+    { key: 'rest', color: colors.track, share: split.rest },
+  ];
 
   return (
-    <Glass>
+    <View>
       <View style={styles.row}>
         <View
           style={styles.ring}
           accessible
           accessibilityLabel={`${formatInt(eaten.kcal)} de ${formatInt(goal.kcal)} calorias`}>
           <Svg width={RING} height={RING}>
-            {MACROS.map(({ key }, i) => {
-              const start = i * 120 + GAP / 2 + cap;
-              const end = (i + 1) * 120 - GAP / 2 - cap;
-              const f = frac(eaten[key], goal[key]);
-              return [
-                <Path key={`${key}-t`} d={arc(start, end)} stroke={colors.track} strokeWidth={STROKE} strokeLinecap="round" fill="none" />,
-                f > 0 && (
-                  <Path
-                    key={`${key}-f`}
-                    d={arc(start, start + Math.max(0.5, (end - start) * f))}
-                    stroke={macroColors[key]}
-                    strokeWidth={STROKE}
-                    strokeLinecap="round"
-                    fill="none"
-                  />
-                ),
-              ];
-            })}
+            <KcalRing slices={slices} />
           </Svg>
           <View style={styles.center} pointerEvents="none">
-            <View style={styles.pill}>
-              <Text style={styles.pillText}>{dayLabel}</Text>
-            </View>
-            <View style={styles.kcalRow}>
-              <Ionicons name="nutrition-outline" size={22} color={over ? colors.warnText : colors.ink} />
-              <Text style={[styles.kcal, over && { color: colors.warnText }]}>{formatInt(eaten.kcal)}</Text>
-            </View>
-            <Text style={styles.goal}>
-              {over ? `${formatInt(eaten.kcal - goal.kcal)} acima` : `de ${formatInt(goal.kcal)} kcal`}
-            </Text>
+            <Text style={[styles.kcal, over && { color: colors.warnText }]}>{formatInt(eaten.kcal)}</Text>
+            <Text style={styles.goal}>de {formatInt(goal.kcal)} kcal</Text>
           </View>
         </View>
 
@@ -139,7 +149,7 @@ export function DaySummary({ eaten, goal, dayLabel, showTip }: Props) {
           </Text>
         </View>
       )}
-    </Glass>
+    </View>
   );
 }
 
@@ -158,31 +168,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  pill: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: radius.pill,
-    backgroundColor: colors.glassFill,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-  },
-  pillText: {
-    fontFamily: fonts.body.bold,
-    fontSize: 12,
-    lineHeight: 16,
-    color: colors.ink2,
-  },
-  kcalRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 10,
-  },
   kcal: {
-    fontFamily: fonts.display.semibold,
-    fontSize: 36,
-    lineHeight: 40,
-    letterSpacing: -1.2,
+    fontFamily: fonts.display.bold,
+    fontSize: 40,
+    lineHeight: 44,
+    letterSpacing: -1.6,
     fontVariant: ['tabular-nums'],
   },
   goal: {
@@ -235,7 +225,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     alignItems: 'flex-start',
-    marginTop: spacing.lg,
+    marginTop: spacing.xl,
     paddingTop: 14,
     borderTopWidth: 1,
     borderTopColor: colors.hairline,

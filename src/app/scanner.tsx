@@ -20,15 +20,16 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { MacroBars } from '@/components/nutrition/MacroBars';
 import { FRAME_SIDE, ScanFrame } from '@/components/scanner/ScanFrame';
-import { Button, ChipGroup, Glass, IconButton, ProgressBar, Text, TextField, toast } from '@/components/ui';
-import { formatDecimal, formatInt } from '@/lib/format';
+import { Button, ChipGroup, Glass, IconButton, Text, TextField, toast } from '@/components/ui';
+import { formatInt } from '@/lib/format';
 import { MEAL_OPTIONS, mealByHour, mealShort, parseMeal } from '@/lib/meals';
 import { editScanItem, itemMacros, removeScanItem, scanTotals, toFoodItems, type ScanResult } from '@/lib/scan';
 import { analyzeMeal } from '@/lib/scanClient';
 import { goalPlan } from '@/store/selectors';
 import { useAppStore } from '@/store/useAppStore';
-import { colors, fonts, gradients, macroColors, radius, spacing } from '@/theme/theme';
+import { colors, fonts, gradients, radius, spacing } from '@/theme/theme';
 import type { MealType } from '@/types';
 
 type Phase =
@@ -253,12 +254,6 @@ export default function ScannerScreen() {
   const lowConfidence = !phase.example && result.confidence < 0.6;
   const editingItem = result.items.find((i) => i.id === editing) ?? null;
 
-  const macros = [
-    { label: 'Proteína', value: totals.proteinG, goal: dayGoal?.proteinG, color: macroColors.proteinG },
-    { label: 'Carboidrato', value: totals.carbsG, goal: dayGoal?.carbsG, color: macroColors.carbsG },
-    { label: 'Gordura', value: totals.fatG, goal: dayGoal?.fatG, color: macroColors.fatG },
-  ];
-
   const setItems = (items: ScanResult['items']) => setPhase({ ...phase, result: { ...result, items } });
 
   const save = () => {
@@ -306,11 +301,7 @@ export default function ScannerScreen() {
               <Text style={styles.sumValue}>{formatInt(totals.kcal)}</Text>
               <Text style={styles.sumUnit}>KCAL</Text>
             </View>
-            <View style={styles.barRow}>
-              {macros.map((m) => (
-                <MacroBar key={m.label} {...m} />
-              ))}
-            </View>
+            <MacroBars value={totals} goal={dayGoal} style={styles.barRow} />
           </View>
           {lowConfidence && (
             <Text variant="caption" style={styles.warn}>
@@ -397,21 +388,6 @@ function PhotoHeader({ uri }: { uri: string }) {
     <View pointerEvents="none" style={[styles.photo, { height: PHOTO_H }]}>
       <Image source={{ uri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
       <LinearGradient colors={gradients.photoFade} style={styles.photoFade} />
-    </View>
-  );
-}
-
-type MacroProps = { label: string; value: number; goal?: number; color: string };
-
-/** Barrinha de um macro: nome, gramas do prato e quanto isso é da meta do dia. */
-function MacroBar({ label, value, goal, color }: MacroProps) {
-  return (
-    <View style={styles.bar} accessible accessibilityLabel={`${label}: ${formatDecimal(value, 0)} gramas`}>
-      <Text variant="caption" tone="secondary" style={styles.barLabel}>
-        {label}
-      </Text>
-      <Text style={styles.barValue}>{formatDecimal(value, 0)} g</Text>
-      <ProgressBar value={goal ? value / goal : 0} color={color} height={6} />
     </View>
   );
 }
@@ -696,23 +672,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   barRow: {
-    flexDirection: 'row',
-    gap: spacing.lg,
     marginTop: spacing.lg,
-  },
-  bar: {
-    flex: 1,
-    gap: 4,
-  },
-  barLabel: {
-    fontFamily: fonts.body.semibold,
-  },
-  barValue: {
-    marginBottom: 4,
-    fontFamily: fonts.display.semibold,
-    fontSize: 18,
-    lineHeight: 22,
-    fontVariant: ['tabular-nums'],
   },
   cta: {
     height: 58,

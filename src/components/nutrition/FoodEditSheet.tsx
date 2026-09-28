@@ -1,26 +1,30 @@
 import { BlurView } from 'expo-blur';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, Text as RNText, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, Text as RNText, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/Button';
 import { ChipGroup } from '@/components/ui/ChipGroup';
+import { confirmDestructive } from '@/components/ui/confirm';
 import { Glass } from '@/components/ui/Glass';
 import { IconButton } from '@/components/ui/IconButton';
-import { Stepper } from '@/components/ui/Stepper';
 import { Text } from '@/components/ui/Text';
 import { TextField } from '@/components/ui/TextField';
 import { editFood, MAX_EDIT_GRAMS, parseGrams, type FoodPatch } from '@/lib/foodEdit';
 import { foodEmoji } from '@/lib/foodEmoji';
 import { formatInt } from '@/lib/format';
 import { MEAL_OPTIONS, timeOf } from '@/lib/meals';
-import { colors, fonts, macroColors, radius, spacing } from '@/theme/theme';
-import type { FoodItem, MealType } from '@/types';
+import { colors, fonts, radius, spacing } from '@/theme/theme';
+import type { FoodItem, Macros, MealType } from '@/types';
+
+import { MacroBars } from './MacroBars';
 
 export type FoodEditTarget = { meal: MealType; item: FoodItem };
 
 type Props = {
   target: FoodEditTarget | null;
+  /** Meta do dia, para as barrinhas dos macros. */
+  goal?: Macros | null;
   onClose: () => void;
   onSave: (patch: FoodPatch, toMeal: MealType) => void;
   onRemove: () => void;
@@ -31,18 +35,18 @@ const STEP = 10;
 const useBlur = Platform.OS !== 'android';
 
 /**
- * Mini modal de vidro para corrigir um alimento já registrado: nome, porção
- * (os valores acompanham) e em qual refeição ele fica.
+ * Mini modal de vidro para corrigir um alimento já registrado: em qual refeição
+ * ele fica, nome e porção (as calorias e os macros acompanham).
  */
-export function FoodEditSheet({ target, onClose, onSave, onRemove }: Props) {
+export function FoodEditSheet({ target, ...rest }: Props) {
   return (
-    <Modal transparent visible={!!target} animationType="fade" onRequestClose={onClose} statusBarTranslucent>
-      {target && <EditCard key={target.item.id} target={target} onClose={onClose} onSave={onSave} onRemove={onRemove} />}
+    <Modal transparent visible={!!target} animationType="fade" onRequestClose={rest.onClose} statusBarTranslucent>
+      {target && <EditCard key={target.item.id} target={target} {...rest} />}
     </Modal>
   );
 }
 
-function EditCard({ target, onClose, onSave, onRemove }: Props & { target: FoodEditTarget }) {
+function EditCard({ target, goal, onClose, onSave, onRemove }: Props & { target: FoodEditTarget }) {
   const insets = useSafeAreaInsets();
   const { item } = target;
   const [name, setName] = useState(item.name);
@@ -55,6 +59,8 @@ function EditCard({ target, onClose, onSave, onRemove }: Props & { target: FoodE
     const base = grams ?? item.grams;
     setGramsText(String(Math.min(MAX_EDIT_GRAMS, Math.max(STEP, Math.round((base + delta) / STEP) * STEP))));
   };
+  const askRemove = () =>
+    confirmDestructive('Apagar alimento?', `${item.name} · ${formatInt(item.kcal)} kcal`, 'Apagar', onRemove);
 
   return (
     <View style={styles.root}>
@@ -80,55 +86,65 @@ function EditCard({ target, onClose, onSave, onRemove }: Props & { target: FoodE
                 Registrado às {timeOf(item.createdAt)}
               </Text>
             </View>
+            <IconButton icon="trash-outline" label="Apagar alimento" size={38} onPress={askRemove} />
             <IconButton icon="close" label="Fechar" size={38} onPress={onClose} />
           </View>
 
-          <TextField label="Nome" value={name} onChangeText={setName} autoCapitalize="sentences" returnKeyType="done" />
-
-          <View style={styles.portion}>
-            <View style={styles.flex}>
-              <TextField
-                label="Quantidade"
-                unit="g"
-                value={gramsText}
-                onChangeText={setGramsText}
-                keyboardType="number-pad"
-                error={grams == null ? `De 1 a ${formatInt(MAX_EDIT_GRAMS)} g` : null}
-              />
-            </View>
-            <View style={styles.stepper}>
-              <Stepper label="porção" size={42} onMinus={() => step(-STEP)} onPlus={() => step(STEP)} />
-            </View>
-          </View>
-
-          <View style={styles.preview} accessible accessibilityLabel={`${formatInt(preview.kcal)} calorias nessa porção`}>
-            <Text style={styles.previewKcal}>
-              {formatInt(preview.kcal)}
-              <Text style={styles.previewUnit}> kcal</Text>
-            </Text>
-            <View style={styles.previewMacros}>
-              <Text style={[styles.previewMac, { color: macroColors.proteinG }]}>P {formatInt(preview.proteinG)} g</Text>
-              <Text style={[styles.previewMac, { color: macroColors.carbsG }]}>C {formatInt(preview.carbsG)} g</Text>
-              <Text style={[styles.previewMac, { color: macroColors.fatG }]}>G {formatInt(preview.fatG)} g</Text>
-            </View>
-          </View>
-
-          <View style={styles.mealBlock}>
+          <View style={styles.block}>
             <Text variant="label" tone="muted">
               Refeição
             </Text>
             <ChipGroup label="Refeição" options={MEAL_OPTIONS} value={meal} onChange={setMeal} />
           </View>
 
-          <View style={styles.acts}>
-            <Button label="Remover" variant="secondary" onPress={onRemove} />
-            <Button
-              label="Salvar"
-              disabled={grams == null}
-              onPress={() => grams != null && onSave({ name, grams }, meal)}
-              style={styles.flex}
-            />
+          <View style={styles.nameRow}>
+            <TextField label="Nome" value={name} onChangeText={setName} autoCapitalize="sentences" returnKeyType="done" />
           </View>
+
+          <View style={styles.block}>
+            <View style={styles.qtyRow}>
+              <Text variant="label" tone="muted" style={styles.flex}>
+                Quantidade
+              </Text>
+              <IconButton icon="remove" label="Diminuir porção" size={38} onPress={() => step(-STEP)} />
+              <View style={[styles.qtyField, grams == null && styles.qtyFieldError]}>
+                <TextInput
+                  value={gramsText}
+                  onChangeText={setGramsText}
+                  keyboardType="number-pad"
+                  selectTextOnFocus
+                  selectionColor={colors.lime2}
+                  keyboardAppearance="dark"
+                  accessibilityLabel="Quantidade em gramas"
+                  style={styles.qtyInput}
+                />
+                <Text variant="caption" tone="muted">
+                  g
+                </Text>
+              </View>
+              <IconButton icon="add" label="Aumentar porção" size={38} onPress={() => step(STEP)} />
+            </View>
+            {grams == null && (
+              <Text variant="caption" style={styles.error}>
+                Use de 1 a {formatInt(MAX_EDIT_GRAMS)} g
+              </Text>
+            )}
+          </View>
+
+          <View style={styles.kcalBlock} accessible accessibilityLabel={`${formatInt(preview.kcal)} calorias nessa porção`}>
+            <Text style={styles.kcal}>{formatInt(preview.kcal)}</Text>
+            <Text style={styles.kcalUnit}>kcal</Text>
+          </View>
+
+          <MacroBars value={preview} goal={goal} />
+
+          <Button
+            label="Salvar"
+            fullWidth
+            disabled={grams == null}
+            onPress={() => grams != null && onSave({ name, grams }, meal)}
+            style={styles.save}
+          />
         </Glass>
       </KeyboardAvoidingView>
     </View>
@@ -154,7 +170,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.modalGlass,
   },
   content: {
-    gap: 14,
+    gap: 16,
   },
   flex: {
     flex: 1,
@@ -162,7 +178,7 @@ const styles = StyleSheet.create({
   head: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   thumb: {
     width: 44,
@@ -187,50 +203,69 @@ const styles = StyleSheet.create({
     fontSize: 19,
     lineHeight: 24,
   },
-  portion: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.md,
-  },
-  stepper: {
-    // alinha os botões com a caixa do campo (abaixo do rótulo)
-    marginTop: 22,
-  },
-  preview: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-  },
-  previewKcal: {
-    fontFamily: fonts.display.bold,
-    fontSize: 28,
-    lineHeight: 32,
-    letterSpacing: -1,
-    fontVariant: ['tabular-nums'],
-  },
-  previewUnit: {
-    fontFamily: fonts.body.bold,
-    fontSize: 13,
-    letterSpacing: 0,
-    color: colors.ink3,
-  },
-  previewMacros: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  previewMac: {
-    fontFamily: fonts.body.bold,
-    fontSize: 12.5,
-    lineHeight: 16,
-    fontVariant: ['tabular-nums'],
-  },
-  mealBlock: {
+  block: {
     gap: 8,
   },
-  acts: {
+  // TextField ocupa o espaço que sobra na linha; aqui a linha é só ele
+  nameRow: {
     flexDirection: 'row',
-    gap: 10,
+  },
+  qtyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  qtyField: {
+    width: 92,
+    height: 42,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    borderRadius: radius.lg,
+    backgroundColor: colors.glassFill,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  qtyFieldError: {
+    borderColor: colors.limeEdge,
+  },
+  qtyInput: {
+    flex: 1,
+    // sem isto, na web o campo não encolhe e o número some para fora da caixa
+    minWidth: 0,
+    height: '100%',
+    textAlign: 'right',
+    color: colors.ink,
+    fontFamily: fonts.display.semibold,
+    fontSize: 17,
+    fontVariant: ['tabular-nums'],
+  },
+  error: {
+    alignSelf: 'flex-end',
+    color: colors.lime2,
+  },
+  kcalBlock: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'center',
+    gap: 6,
     marginTop: 2,
+  },
+  kcalUnit: {
+    fontFamily: fonts.body.bold,
+    fontSize: 15,
+    lineHeight: 20,
+    color: colors.ink3,
+  },
+  kcal: {
+    fontFamily: fonts.display.bold,
+    fontSize: 52,
+    lineHeight: 58,
+    letterSpacing: -2.2,
+    fontVariant: ['tabular-nums'],
+  },
+  save: {
+    marginTop: 4,
   },
 });

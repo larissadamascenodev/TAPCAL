@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { addDays, ageOn, daysBetween, planDay, toDateKey } from '@/lib/dates';
+import { addDays, ageOn, daysBetween, toDateKey } from '@/lib/dates';
 
 describe('datas', () => {
   it('usa o dia local, não UTC (23h no Brasil ainda é o mesmo dia)', () => {
@@ -20,13 +20,5 @@ describe('datas', () => {
   it('calcula idade antes e depois do aniversário', () => {
     expect(ageOn('1994-10-01', '2026-09-28')).toBe(31);
     expect(ageOn('1994-09-28', '2026-09-28')).toBe(32);
-  });
-
-  it('conta o dia do plano a partir da criação do perfil', () => {
-    const criado = new Date(2026, 8, 17, 21, 40).toISOString();
-    expect(planDay(criado, '2026-09-17')).toBe(1);
-    expect(planDay(criado, '2026-09-28')).toBe(12);
-    expect(planDay(criado, '2026-09-16')).toBeNull();
-    expect(planDay('não é data', '2026-09-28')).toBeNull();
   });
 });

@@ -11,7 +11,7 @@ import { MealTimeline } from '@/components/nutrition/MealTimeline';
 import { TabPage } from '@/components/navigation/TabPage';
 import { EmptyState, Text, toast } from '@/components/ui';
 import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
-import { daysBetween, planDay } from '@/lib/dates';
+import { daysBetween } from '@/lib/dates';
 import { type FoodPatch } from '@/lib/foodEdit';
 import { emptyDay } from '@/lib/day';
 import { mealTargets } from '@/lib/goals';
@@ -37,7 +37,6 @@ export default function AlimentacaoScreen() {
   const state = useAppStore();
   const removeFood = useAppStore((s) => s.removeFood);
   const updateFood = useAppStore((s) => s.updateFood);
-  const profile = state.profile;
   const [editing, setEditing] = useState<FoodEditTarget | null>(null);
   const today = state.today.date;
   const scrollRef = useRef<ScrollView>(null);
@@ -87,8 +86,6 @@ export default function AlimentacaoScreen() {
     toast('Alimento apagado');
   };
 
-  const nthDay = profile ? planDay(profile.createdAt, shownDate) : null;
-  const dayLabel = nthDay ? `Dia ${nthDay}` : isToday ? 'Hoje' : pastLabel;
 
 
   return (
@@ -97,7 +94,7 @@ export default function AlimentacaoScreen() {
         <>
           <DateStrip today={today} past={PAST_DAYS} future={3} selected={shownDate} onSelect={setDate} />
           <View style={styles.block}>
-            <DaySummary eaten={eaten} goal={plan.macros} dayLabel={dayLabel} showTip={isToday} />
+            <DaySummary eaten={eaten} goal={plan.macros} showTip={isToday} />
           </View>
           {isToday && plan.warnings.length > 0 && (
             <View style={styles.block}>
@@ -129,7 +126,13 @@ export default function AlimentacaoScreen() {
           )}
         </>
       )}
-      <FoodEditSheet target={editing} onClose={() => setEditing(null)} onSave={saveEdit} onRemove={removeEditing} />
+      <FoodEditSheet
+        target={editing}
+        goal={plan.macros}
+        onClose={() => setEditing(null)}
+        onSave={saveEdit}
+        onRemove={removeEditing}
+      />
       {tab === 'plano' && (
         <View style={styles.pane}>
           <EmptyState
