@@ -7,10 +7,9 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Circle, G } from 'react-native-svg';
 
 import { FRAME_SIDE, ScanFrame } from '@/components/scanner/ScanFrame';
-import { Button, ChipGroup, IconButton, Text, TextField, toast } from '@/components/ui';
+import { Button, ChipGroup, IconButton, ProgressBar, Text, TextField, toast } from '@/components/ui';
 import { formatDecimal, formatInt } from '@/lib/format';
 import { MEAL_OPTIONS, mealByHour, mealShort, parseMeal } from '@/lib/meals';
 import { editScanItem, itemMacros, removeScanItem, scanTotals, toFoodItems, type ScanResult } from '@/lib/scan';
@@ -54,14 +53,28 @@ export default function ScannerScreen() {
   const state = useAppStore();
   const dayGoal = useMemo(() => goalPlan(state, state.today.date)?.macros ?? null, [state]);
 
+  // Análise em andamento: dá para cancelar pelo X enquanto espera.
+  const running = useRef<AbortController | null>(null);
+
   const analyze = async (uri: string, base64: string) => {
+    running.current?.abort();
+    const ctrl = new AbortController();
+    running.current = ctrl;
     setPhase({ step: 'analyzing', uri });
-    const outcome = await analyzeMeal(base64);
+    const outcome = await analyzeMeal(base64, undefined, ctrl.signal);
+    if (ctrl.signal.aborted || outcome.kind === 'cancelled') return;
+    running.current = null;
     if (outcome.kind === 'ok') {
       setPhase({ step: 'result', uri, result: outcome.result, example: outcome.example, reason: outcome.example ? outcome.reason : undefined });
     } else {
       setPhase({ step: 'error', uri, message: outcome.message, canRetry: outcome.canRetry, base64 });
     }
+  };
+
+  const cancelAnalysis = () => {
+    running.current?.abort();
+    running.current = null;
+    setPhase({ step: 'camera' });
   };
 
   const shoot = async () => {
@@ -170,6 +183,10 @@ export default function ScannerScreen() {
           resizeMode="contain"
         />
         <ScanFrame scanning top={frameTop} bottom={frameBottom} />
+        <View style={[styles.topBar, { top: insets.top + spacing.sm }]}>
+          <View style={styles.spacer42} />
+          <IconButton icon="close" label="Cancelar análise" dark onPress={cancelAnalysis} />
+        </View>
         <View style={[styles.analyzing, { bottom: insets.bottom + spacing.lg }]}>
           <ActivityIndicator color={colors.gold} />
           <Text variant="bodyStrong">Analisando o prato…</Text>
@@ -187,8 +204,8 @@ export default function ScannerScreen() {
       <View style={styles.root}>
         <Image source={{ uri: phase.uri }} style={[styles.photo, { height: PHOTO_H }]} resizeMode="cover" />
         <View style={[styles.topBar, { top: insets.top + spacing.sm }]}>
-          <IconButton icon="close" label="Fechar" dark onPress={() => router.back()} />
           <IconButton icon="refresh" label="Nova foto" dark onPress={() => setPhase({ step: 'camera' })} />
+          <IconButton icon="close" label="Fechar" dark onPress={() => router.back()} />
         </View>
         <View style={[styles.sheet, styles.errorSheet, { paddingBottom: insets.bottom + spacing.lg }]}>
           <View style={styles.grab} />
@@ -241,8 +258,8 @@ export default function ScannerScreen() {
         <View style={{ height: PHOTO_H }}>
           <Image source={{ uri: phase.uri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
           <View style={[styles.topBar, { top: insets.top + spacing.sm }]}>
-            <IconButton icon="close" label="Fechar" dark onPress={() => router.back()} />
             <IconButton icon="refresh" label="Refazer foto" dark onPress={() => setPhase({ step: 'camera' })} />
+            <IconButton icon="close" label="Fechar" dark onPress={() => router.back()} />
           </View>
         </View>
 
@@ -261,23 +278,26 @@ export default function ScannerScreen() {
             </View>
           )}
           <Text style={styles.dish}>{result.dish.toUpperCase()}</Text>
+          <ChipGroup label="Refeição" options={MEAL_OPTIONS} value={meal} onChange={setMeal} />
 
-          <View style={styles.bigk}>
-            <Text style={styles.sumValue}>{formatInt(totals.kcal)}</Text>
-            <Text style={styles.sumUnit}>KCAL</Text>
+
+          <View style={styles.summary}>
+            <View>
+              <Text style={styles.sumLabel}>CALORIAS</Text>
+              <Text style={styles.sumValue}>{formatInt(totals.kcal)}</Text>
+              <Text style={styles.sumUnit}>KCAL</Text>
+            </View>
+            <View style={styles.bars}>
+              <MacroBar label="Proteína" value={totals.proteinG} goal={dayGoal?.proteinG} color={macroColors.proteinG} />
+              <MacroBar label="Carboidrato" value={totals.carbsG} goal={dayGoal?.carbsG} color={macroColors.carbsG} />
+              <MacroBar label="Gordura" value={totals.fatG} goal={dayGoal?.fatG} color={macroColors.fatG} />
+            </View>
           </View>
-
           {lowConfidence && (
             <Text variant="caption" style={styles.warn}>
               A foto deixou dúvidas. Confira os alimentos e as porções antes de continuar.
             </Text>
           )}
-
-          <View style={styles.rings}>
-            <MacroRing label="Proteína" value={totals.proteinG} goal={dayGoal?.proteinG} color={macroColors.proteinG} />
-            <MacroRing label="Carboidrato" value={totals.carbsG} goal={dayGoal?.carbsG} color={macroColors.carbsG} />
-            <MacroRing label="Gordura" value={totals.fatG} goal={dayGoal?.fatG} color={macroColors.fatG} />
-          </View>
 
           <View style={styles.list}>
             {result.items.map((i) => (
@@ -308,8 +328,6 @@ export default function ScannerScreen() {
             </Pressable>
           </View>
 
-          <ChipGroup label="Refeição" options={MEAL_OPTIONS} value={meal} onChange={setMeal} />
-
           <Pressable accessibilityRole="button" onPress={save} style={({ pressed }) => [styles.cta, pressed && styles.pressed]}>
             <Text style={styles.ctaText}>CONTINUAR</Text>
           </Pressable>
@@ -336,40 +354,17 @@ export default function ScannerScreen() {
   );
 }
 
-const RING = 58;
-const RING_R = 25;
-const RING_C = 2 * Math.PI * RING_R;
-
-/** Anel de um macro: gramas do prato no meio; o anel mostra quanto isso é da meta do dia. */
-function MacroRing({ label, value, goal, color }: { label: string; value: number; goal?: number; color: string }) {
-  const frac = goal ? Math.min(1, value / goal) : 0;
+/** Barrinha de um macro: gramas do prato; a barra mostra quanto isso é da meta do dia. */
+function MacroBar({ label, value, goal, color }: { label: string; value: number; goal?: number; color: string }) {
   return (
-    <View style={styles.ring} accessible accessibilityLabel={`${label}: ${formatDecimal(value, 0)} gramas`}>
-      <View style={{ width: RING, height: RING }}>
-        <Svg width={RING} height={RING}>
-          <G rotation={-90} origin={`${RING / 2}, ${RING / 2}`}>
-            <Circle cx={RING / 2} cy={RING / 2} r={RING_R} fill="none" stroke={colors.track} strokeWidth={4.5} />
-            {frac > 0 && (
-              <Circle
-                cx={RING / 2}
-                cy={RING / 2}
-                r={RING_R}
-                fill="none"
-                stroke={color}
-                strokeWidth={4.5}
-                strokeLinecap="round"
-                strokeDasharray={`${Math.max(0.02, frac) * RING_C} ${RING_C}`}
-              />
-            )}
-          </G>
-        </Svg>
-        <View style={styles.ringCenter}>
-          <Text style={styles.ringValue}>{formatDecimal(value, 0)}</Text>
-        </View>
+    <View style={styles.bar} accessible accessibilityLabel={`${label}: ${formatDecimal(value, 0)} gramas`}>
+      <View style={styles.barHead}>
+        <Text variant="caption" tone="secondary" style={styles.barLabel}>
+          {label}
+        </Text>
+        <Text style={styles.barValue}>{formatDecimal(value, 0)} g</Text>
       </View>
-      <Text variant="caption" tone="secondary" style={styles.ringLabel}>
-        {label}
-      </Text>
+      <ProgressBar value={goal ? value / goal : 0} color={color} height={6} />
     </View>
   );
 }
@@ -605,46 +600,54 @@ const styles = StyleSheet.create({
   addRowText: {
     fontFamily: fonts.body.bold,
   },
-  bigk: {
+  summary: {
     flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: spacing.sm,
-    marginTop: -4,
+    alignItems: 'center',
+    gap: spacing.xl,
+    marginTop: spacing.xs,
+  },
+  sumLabel: {
+    fontFamily: fonts.body.bold,
+    fontSize: 11,
+    lineHeight: 14,
+    letterSpacing: 2,
+    color: colors.ink3,
   },
   sumValue: {
+    marginTop: 2,
     fontFamily: fonts.display.bold,
-    fontSize: 52,
-    lineHeight: 56,
-    letterSpacing: -2.5,
+    fontSize: 48,
+    lineHeight: 52,
+    letterSpacing: -2.4,
     fontVariant: ['tabular-nums'],
   },
   sumUnit: {
     fontFamily: fonts.body.bold,
-    fontSize: 13,
+    fontSize: 12,
+    lineHeight: 16,
     letterSpacing: 1.5,
     color: colors.ink3,
   },
-  rings: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+  bars: {
+    flex: 1,
+    gap: 12,
   },
-  ring: {
-    alignItems: 'center',
+  bar: {
     gap: 6,
   },
-  ringCenter: {
-    ...StyleSheet.absoluteFill,
-    alignItems: 'center',
-    justifyContent: 'center',
+  barHead: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
   },
-  ringValue: {
+  barLabel: {
+    fontFamily: fonts.body.semibold,
+  },
+  barValue: {
     fontFamily: fonts.display.semibold,
-    fontSize: 16,
-    lineHeight: 20,
+    fontSize: 14,
+    lineHeight: 18,
     fontVariant: ['tabular-nums'],
-  },
-  ringLabel: {
-    fontSize: 12,
   },
   cta: {
     height: 58,

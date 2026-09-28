@@ -25,6 +25,10 @@ describe('resposta da função analyze-meal', () => {
     expect(interpretResponse(422, { error: 'nao_reconhecido' })).toMatchObject({ kind: 'error', canRetry: true });
     expect(interpretResponse(401, { error: 'nao_autorizado' })).toMatchObject({ kind: 'error', canRetry: false });
     expect(interpretResponse(502, { error: 'falha_ia' })).toMatchObject({ kind: 'error', canRetry: true });
+    expect(interpretResponse(502, { error: 'falha_ia', status: 503 })).toMatchObject({
+      kind: 'error',
+      message: expect.stringContaining('sobrecarregada'),
+    });
     expect(interpretResponse(200, { items: [] })).toMatchObject({ kind: 'error' });
   });
 });
@@ -61,5 +65,18 @@ describe('chamada', () => {
     }) as unknown as typeof fetch;
     const r = await analyzeMeal('x', { url: 'https://x.supabase.co', key: 'k' });
     expect(r).toMatchObject({ kind: 'error', canRetry: true });
+  });
+
+  it('cancelar no meio devolve cancelled', async () => {
+    globalThis.fetch = jest.fn(
+      (_url: string, init: RequestInit) =>
+        new Promise((_resolve, reject) => {
+          init.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
+        }),
+    ) as unknown as typeof fetch;
+    const ctrl = new AbortController();
+    const p = analyzeMeal('x', { url: 'https://x.supabase.co', key: 'k' }, ctrl.signal);
+    ctrl.abort();
+    await expect(p).resolves.toEqual({ kind: 'cancelled' });
   });
 });

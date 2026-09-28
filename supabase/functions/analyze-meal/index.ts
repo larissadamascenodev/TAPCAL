@@ -23,9 +23,12 @@
  * gemini-2.5-flash passou a dar 404 para contas novas); se um sumir, a função
  * passa para o próximo em vez de falhar.
  */
-const MODELS = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-2.5-flash'];
+const MODELS = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-flash-lite-latest', 'gemini-2.5-flash'];
 const MAX_BASE64 = 4_000_000; // ~3 MB de imagem
-const TIMEOUT_MS = 25_000;
+const TIMEOUT_MS = 25_000; // por chamada ao Gemini
+const TOTAL_MS = 40_000; // prazo total, somando as tentativas
+/** Respostas do Gemini que valem tentar de novo (sobrecarga, limite, erro interno). */
+const RETRYABLE = new Set([429, 500, 503]);
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -151,28 +154,39 @@ Deno.serve(async (req) => {
     },
   });
 
+  // Tenta cada modelo; se o Google disser que está sobrecarregado (503/429/500),
+  // espera um pouco e tenta de novo, depois passa para o próximo modelo.
+  // 404 = modelo aposentado: pula direto. Tudo dentro de um prazo total.
+  const deadline = Date.now() + TOTAL_MS;
   let res: Response | null = null;
-  for (const model of models) {
-    try {
-      res = await fetch(`${base}/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': geminiKey },
-        signal: AbortSignal.timeout(TIMEOUT_MS),
-        body: payload,
-      });
-    } catch (e) {
-      console.error('gemini_fetch', model, e);
-      return json(502, { error: 'falha_ia' });
+  let lastStatus = 0;
+  outer: for (const model of models) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const left = deadline - Date.now();
+      if (left < 3_000) break outer;
+      try {
+        res = await fetch(`${base}/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': geminiKey },
+          signal: AbortSignal.timeout(Math.min(TIMEOUT_MS, left)),
+          body: payload,
+        });
+      } catch (e) {
+        console.error('gemini_fetch', model, e);
+        res = null;
+        continue outer;
+      }
+      if (res.ok) break outer;
+      lastStatus = res.status;
+      console.error('gemini_status', model, res.status, (await res.text()).slice(0, 300));
+      if (res.status === 404) continue outer;
+      if (!RETRYABLE.has(res.status)) break outer;
+      if (attempt === 0) await new Promise((r) => setTimeout(r, 900));
     }
-    // 404 = modelo inexistente ou aposentado: tenta o próximo da lista.
-    if (res.status !== 404) break;
-    console.error('gemini_modelo_indisponivel', model, (await res.text()).slice(0, 300));
   }
 
   if (!res || !res.ok) {
-    const status = res?.status ?? 0;
-    if (res && res.status !== 404) console.error('gemini_status', status, (await res.text()).slice(0, 500));
-    return json(502, { error: 'falha_ia', status });
+    return json(502, { error: 'falha_ia', status: lastStatus });
   }
 
   let parsed: { is_food?: boolean; dish?: string; confidence?: number; items?: unknown[] };

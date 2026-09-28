@@ -8,7 +8,8 @@ import { normalizeScan, sampleScan, type ScanResult } from '@/lib/scan';
 export type ScanOutcome =
   | { kind: 'ok'; result: ScanResult; example: false }
   | { kind: 'ok'; result: ScanResult; example: true; reason: 'sem_supabase' | 'sem_chave' }
-  | { kind: 'error'; message: string; canRetry: boolean };
+  | { kind: 'error'; message: string; canRetry: boolean }
+  | { kind: 'cancelled' };
 
 export type ScanConfig = { url?: string; key?: string };
 
@@ -53,11 +54,15 @@ export function interpretResponse(status: number, body: unknown): ScanOutcome {
   if (status === 401) {
     return { kind: 'error', message: 'O app não está autorizado a usar o scanner. Confira a chave do Supabase.', canRetry: false };
   }
+  const aiStatus = body && typeof body === 'object' ? (body as { status?: number }).status : undefined;
+  if (status === 502 && (aiStatus === 503 || aiStatus === 429)) {
+    return { kind: 'error', message: 'A IA está sobrecarregada agora. Tente de novo em alguns segundos.', canRetry: true };
+  }
   return { kind: 'error', message: 'A análise falhou agora. Tente de novo em instantes.', canRetry: true };
 }
 
-/** Envia a foto (JPEG em base64) e devolve o resultado para a tela. */
-export async function analyzeMeal(base64: string, cfg: ScanConfig = scanConfig()): Promise<ScanOutcome> {
+/** Envia a foto (JPEG em base64) e devolve o resultado para a tela. `signal` permite cancelar. */
+export async function analyzeMeal(base64: string, cfg: ScanConfig = scanConfig(), signal?: AbortSignal): Promise<ScanOutcome> {
   if (!isConfigured(cfg)) {
     // Simula o tempo da análise para a animação aparecer.
     await new Promise((r) => setTimeout(r, 1600));
@@ -65,7 +70,10 @@ export async function analyzeMeal(base64: string, cfg: ScanConfig = scanConfig()
   }
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 35_000);
+  // A função pode tentar mais de um modelo quando o Gemini está cheio: dá tempo a ela.
+  const timer = setTimeout(() => controller.abort(), 50_000);
+  const onCancel = () => controller.abort();
+  signal?.addEventListener('abort', onCancel);
   try {
     const res = await fetch(`${cfg.url}/functions/v1/analyze-meal`, {
       method: 'POST',
@@ -81,8 +89,10 @@ export async function analyzeMeal(base64: string, cfg: ScanConfig = scanConfig()
     }
     return interpretResponse(res.status, body);
   } catch {
+    if (signal?.aborted) return { kind: 'cancelled' };
     return { kind: 'error', message: 'Sem conexão com a internet. Confira e tente de novo.', canRetry: true };
   } finally {
     clearTimeout(timer);
+    signal?.removeEventListener('abort', onCancel);
   }
 }
