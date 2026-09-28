@@ -1,65 +1,133 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { StyleSheet, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 
-import { ProgressBar } from '@/components/ui/ProgressBar';
-import { SegmentCaps } from '@/components/ui/SegmentCaps';
+import { Glass } from '@/components/ui/Glass';
 import { Text } from '@/components/ui/Text';
 import { formatInt } from '@/lib/format';
 import { proteinTip } from '@/lib/tips';
 import { colors, fonts, macroColors, radius, spacing } from '@/theme/theme';
 import type { Macros } from '@/types';
 
-const COLS = [
-  { key: 'proteinG', label: 'Proteína' },
-  { key: 'carbsG', label: 'Carbo' },
-  { key: 'fatG', label: 'Gordura' },
+/** Ordem da referência: cada macro ocupa um terço do anel, no sentido horário a partir do topo. */
+const MACROS = [
+  { key: 'carbsG', label: 'Carboidratos' },
+  { key: 'proteinG', label: 'Proteínas' },
+  { key: 'fatG', label: 'Gorduras' },
 ] as const;
+
+const RING = 176;
+const STROKE = 11;
+const R = (RING - STROKE) / 2;
+/** Espaço entre os três arcos, em graus. */
+const GAP = 16;
+/** Tracinhos da régua ao lado de cada macro. */
+const RUNGS = 12;
 
 type Props = {
   eaten: Macros;
   goal: Macros;
+  /** Pílula no meio do anel (ex.: "Dia 12"). */
+  dayLabel: string;
   /** Mostra a dica do que falta (só faz sentido para hoje). */
   showTip?: boolean;
 };
 
+function frac(value: number, goal: number): number {
+  return goal > 0 ? Math.min(1, Math.max(0, value / goal)) : 0;
+}
+
+/** Arco de `from` a `to` graus (0° = topo, sentido horário). */
+function arc(from: number, to: number): string {
+  const c = RING / 2;
+  const pt = (deg: number) => {
+    const a = ((deg - 90) * Math.PI) / 180;
+    return `${(c + R * Math.cos(a)).toFixed(2)} ${(c + R * Math.sin(a)).toFixed(2)}`;
+  };
+  return `M ${pt(from)} A ${R} ${R} 0 ${to - from > 180 ? 1 : 0} 1 ${pt(to)}`;
+}
+
 /**
- * Resumo do dia no topo das Refeições: calorias comidas, quanto falta, a barra
- * de cápsulas, os três macros em colunas e a dica de proteína.
+ * Resumo do dia no topo das Refeições: anel dividido entre os três macros, com
+ * as calorias no meio, e ao lado cada macro com a sua régua e "comido/meta".
  */
-export function DaySummary({ eaten, goal, showTip }: Props) {
-  const left = goal.kcal - eaten.kcal;
-  const over = left < 0;
+export function DaySummary({ eaten, goal, dayLabel, showTip }: Props) {
+  const over = eaten.kcal > goal.kcal;
   const tip = showTip ? proteinTip(goal.proteinG, eaten.proteinG) : null;
+  // A ponta arredondada avança meia espessura: desconta para o vão ficar do tamanho certo.
+  const cap = ((STROKE / 2) / R) * (180 / Math.PI);
 
   return (
-    <View style={styles.wrap}>
-      <View style={styles.top}>
-        <Text style={styles.big}>
-          {formatInt(eaten.kcal)}
-          <Text style={styles.of}> de {formatInt(goal.kcal)} kcal</Text>
-        </Text>
-        <View style={[styles.chip, over ? styles.chipWarn : styles.chipLime]}>
-          <Text style={[styles.chipText, { color: over ? colors.warnText : colors.lime }]}>
-            {over ? `${formatInt(-left)} acima` : `faltam ${formatInt(left)}`}
-          </Text>
-        </View>
-      </View>
-
-      <SegmentCaps fraction={goal.kcal ? eaten.kcal / goal.kcal : 0} count={30} style={styles.caps} />
-
-      <View style={styles.cols}>
-        {COLS.map(({ key, label }) => (
-          <View key={key} style={styles.col} accessible accessibilityLabel={`${label}: ${formatInt(eaten[key])} de ${formatInt(goal[key])} gramas`}>
-            <Text variant="caption" tone="secondary" style={styles.colLabel}>
-              {label}
+    <Glass>
+      <View style={styles.row}>
+        <View
+          style={styles.ring}
+          accessible
+          accessibilityLabel={`${formatInt(eaten.kcal)} de ${formatInt(goal.kcal)} calorias`}>
+          <Svg width={RING} height={RING}>
+            {MACROS.map(({ key }, i) => {
+              const start = i * 120 + GAP / 2 + cap;
+              const end = (i + 1) * 120 - GAP / 2 - cap;
+              const f = frac(eaten[key], goal[key]);
+              return [
+                <Path key={`${key}-t`} d={arc(start, end)} stroke={colors.track} strokeWidth={STROKE} strokeLinecap="round" fill="none" />,
+                f > 0 && (
+                  <Path
+                    key={`${key}-f`}
+                    d={arc(start, start + Math.max(0.5, (end - start) * f))}
+                    stroke={macroColors[key]}
+                    strokeWidth={STROKE}
+                    strokeLinecap="round"
+                    fill="none"
+                  />
+                ),
+              ];
+            })}
+          </Svg>
+          <View style={styles.center} pointerEvents="none">
+            <View style={styles.pill}>
+              <Text style={styles.pillText}>{dayLabel}</Text>
+            </View>
+            <View style={styles.kcalRow}>
+              <Ionicons name="nutrition-outline" size={22} color={over ? colors.warnText : colors.ink} />
+              <Text style={[styles.kcal, over && { color: colors.warnText }]}>{formatInt(eaten.kcal)}</Text>
+            </View>
+            <Text style={styles.goal}>
+              {over ? `${formatInt(eaten.kcal - goal.kcal)} acima` : `de ${formatInt(goal.kcal)} kcal`}
             </Text>
-            <Text style={styles.colValue}>
-              {formatInt(eaten[key])}
-              <Text style={styles.colOf}> / {formatInt(goal[key])} g</Text>
-            </Text>
-            <ProgressBar value={goal[key] ? eaten[key] / goal[key] : 0} color={macroColors[key]} height={5} style={styles.colBar} />
           </View>
-        ))}
+        </View>
+
+        <View style={styles.side}>
+          {MACROS.map(({ key, label }) => {
+            const on = Math.round(frac(eaten[key], goal[key]) * RUNGS);
+            return (
+              <View
+                key={key}
+                style={styles.macro}
+                accessible
+                accessibilityLabel={`${label}: ${formatInt(eaten[key])} de ${formatInt(goal[key])} gramas`}>
+                <View style={styles.ladder}>
+                  {Array.from({ length: RUNGS }, (_, r) => (
+                    <View
+                      key={r}
+                      style={[styles.rung, { backgroundColor: RUNGS - r <= on ? macroColors[key] : colors.track }]}
+                    />
+                  ))}
+                </View>
+                <View style={styles.macroText}>
+                  <Text style={styles.amount}>
+                    {formatInt(eaten[key])}
+                    <Text style={styles.amountOf}>/{formatInt(goal[key])}g</Text>
+                  </Text>
+                  <Text style={[styles.label, { color: macroColors[key] }]} numberOfLines={1}>
+                    {label}
+                  </Text>
+                </View>
+              </View>
+            );
+          })}
+        </View>
       </View>
 
       {tip && (
@@ -71,85 +139,97 @@ export function DaySummary({ eaten, goal, showTip }: Props) {
           </Text>
         </View>
       )}
-    </View>
+    </Glass>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: {
-    paddingHorizontal: 2,
-  },
-  top: {
+  row: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    gap: spacing.sm,
+    alignItems: 'center',
+    gap: spacing.lg,
   },
-  big: {
-    flexShrink: 1,
-    fontFamily: fonts.display.bold,
-    fontSize: 38,
-    lineHeight: 42,
-    letterSpacing: -2,
+  ring: {
+    width: RING,
+    height: RING,
+  },
+  center: {
+    ...StyleSheet.absoluteFill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pill: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
+    backgroundColor: colors.glassFill,
+    borderWidth: 1,
+    borderColor: colors.hairline,
+  },
+  pillText: {
+    fontFamily: fonts.body.bold,
+    fontSize: 12,
+    lineHeight: 16,
+    color: colors.ink2,
+  },
+  kcalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 10,
+  },
+  kcal: {
+    fontFamily: fonts.display.semibold,
+    fontSize: 36,
+    lineHeight: 40,
+    letterSpacing: -1.2,
     fontVariant: ['tabular-nums'],
   },
-  of: {
-    fontFamily: fonts.body.bold,
-    fontSize: 14,
-    letterSpacing: 0,
-    color: colors.ink3,
-  },
-  chip: {
-    height: 30,
-    paddingHorizontal: 12,
-    borderRadius: radius.pill,
-    justifyContent: 'center',
-    borderWidth: 1,
-    marginBottom: 4,
-  },
-  chipLime: {
-    backgroundColor: colors.limeTint,
-    borderColor: colors.limeEdge,
-  },
-  chipWarn: {
-    backgroundColor: colors.warnTint,
-    borderColor: colors.warnEdge,
-  },
-  chipText: {
+  goal: {
+    marginTop: 2,
     fontFamily: fonts.body.bold,
     fontSize: 12.5,
     lineHeight: 16,
+    color: colors.ink3,
     fontVariant: ['tabular-nums'],
   },
-  caps: {
-    marginTop: 14,
-  },
-  cols: {
-    flexDirection: 'row',
-    gap: 14,
-    marginTop: spacing.lg,
-  },
-  col: {
+  side: {
     flex: 1,
+    gap: 16,
   },
-  colLabel: {
-    fontFamily: fonts.body.bold,
-    fontSize: 12,
+  macro: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
-  colValue: {
-    marginTop: 3,
+  ladder: {
+    gap: 2,
+  },
+  rung: {
+    width: 16,
+    height: 2,
+    borderRadius: 1,
+  },
+  macroText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  amount: {
     fontFamily: fonts.display.semibold,
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: 17,
+    lineHeight: 21,
     fontVariant: ['tabular-nums'],
   },
-  colOf: {
+  amountOf: {
     fontFamily: fonts.body.bold,
-    fontSize: 11,
+    fontSize: 12.5,
     color: colors.ink3,
   },
-  colBar: {
-    marginTop: 7,
+  label: {
+    marginTop: 2,
+    fontFamily: fonts.body.semibold,
+    fontSize: 13,
+    lineHeight: 17,
   },
   tip: {
     flexDirection: 'row',

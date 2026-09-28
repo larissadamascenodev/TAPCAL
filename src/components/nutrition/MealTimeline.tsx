@@ -93,7 +93,7 @@ export function MealTimeline({ meals, targets, onAdd, onPressItem }: Props) {
                     disabled={!onPressItem}
                     onPress={() => onPressItem?.(meal, it)}
                     accessibilityRole={onPressItem ? 'button' : undefined}
-                    accessibilityHint={onPressItem ? 'Toque para apagar' : undefined}
+                    accessibilityHint={onPressItem ? 'Toque para editar' : undefined}
                     style={({ pressed }) => [styles.item, pressed && styles.pressed]}>
                     <View style={styles.thumb}>
                       <RNText style={styles.emoji}>{foodEmoji(it.name)}</RNText>

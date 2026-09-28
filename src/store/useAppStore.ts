@@ -21,6 +21,7 @@ import {
 } from '@/data/sample';
 import { toDateKey } from '@/lib/dates';
 import { emptyDay, rolloverDay } from '@/lib/day';
+import { updateFoodInMeals, type FoodPatch } from '@/lib/foodEdit';
 import { newId } from '@/lib/id';
 import type {
   DayLog,
@@ -53,6 +54,8 @@ type Actions = {
 
   addFood: (meal: MealType, item: NewFoodItem) => string;
   removeFood: (meal: MealType, id: string) => void;
+  /** Edita nome e porção de um alimento de hoje; com `toMeal`, muda ele de refeição. */
+  updateFood: (meal: MealType, id: string, patch: FoodPatch, toMeal?: MealType) => void;
   /** Soma (ou subtrai, com valor negativo) água do dia; nunca fica abaixo de zero. */
   addWater: (ml: number) => void;
 
@@ -137,6 +140,11 @@ export const useAppStore = create<AppState>()(
               meals: { ...today.meals, [meal]: today.meals[meal].filter((f) => f.id !== id) },
             },
           });
+        },
+
+        updateFood: (meal, id, patch, toMeal) => {
+          const today = rolled();
+          set({ today: { ...today, meals: updateFoodInMeals(today.meals, meal, id, patch, toMeal) } });
         },
 
         addWater: (ml) => {

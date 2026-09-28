@@ -40,3 +40,14 @@ export function ageOn(birthDate: DateKey, on: DateKey): number {
 export function dayFraction(date: Date = new Date()): number {
   return (date.getHours() * 60 + date.getMinutes()) / 1440;
 }
+
+/**
+ * Em que dia do plano cai `date` (1 = o dia em que o perfil foi criado).
+ * Antes disso, ou com data de criação inválida, devolve null.
+ */
+export function planDay(createdAt: string, date: DateKey): number | null {
+  const start = new Date(createdAt);
+  if (Number.isNaN(start.getTime())) return null;
+  const n = daysBetween(toDateKey(start), date) + 1;
+  return n >= 1 ? n : null;
+}

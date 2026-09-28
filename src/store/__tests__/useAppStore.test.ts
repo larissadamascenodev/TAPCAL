@@ -128,3 +128,13 @@ describe('dados de exemplo', () => {
     expect(goalPlan(store())).toBeNull();
   });
 });
+
+describe('editar alimento registrado', () => {
+  it('muda a porção e move para outra refeição', () => {
+    const id = store().addFood('lanche', lanche);
+    store().updateFood('lanche', id, { name: 'Maçã fuji', grams: 260 }, 'cafe_da_manha');
+    expect(store().today.meals.lanche).toHaveLength(0);
+    expect(store().today.meals.cafe_da_manha[0]).toMatchObject({ id, name: 'Maçã fuji', grams: 260, kcal: 144 });
+  });
+});
+
