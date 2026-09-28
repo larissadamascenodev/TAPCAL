@@ -1,10 +1,11 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { BlurView } from 'expo-blur';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Image, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ScanFrame } from '@/components/scanner/ScanFrame';
@@ -119,6 +120,16 @@ export default function ScannerScreen() {
           </View>
           <View style={styles.spacer42} />
         </View>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityHint="Buscar o alimento na tabela TACO ou digitar à mão"
+          onPress={() => router.replace({ pathname: '/busca', params: { refeicao: meal } })}
+          style={({ pressed }) => [styles.manual, { bottom: insets.bottom + spacing.xl + 100 }, pressed && styles.pressed]}>
+          {Platform.OS !== 'android' && <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />}
+          <Ionicons name="create-outline" size={16} color={colors.white} />
+          <Text style={styles.manualText}>Adicionar manualmente</Text>
+        </Pressable>
 
         <View style={[styles.shutterRow, { bottom: insets.bottom + spacing.xl }]}>
           <IconButton icon="images-outline" label="Escolher da galeria" dark size={52} onPress={pickFromGallery} />
@@ -363,6 +374,27 @@ const styles = StyleSheet.create({
   },
   spacer52: {
     width: 52,
+  },
+  manual: {
+    position: 'absolute',
+    alignSelf: 'center',
+    height: 42,
+    paddingHorizontal: 18,
+    borderRadius: radius.pill,
+    overflow: 'hidden',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.glassFillStrong,
+    borderWidth: 1,
+    borderColor: colors.frostCardEdge,
+    borderTopColor: colors.frostCardEdgeTop,
+  },
+  manualText: {
+    fontFamily: fonts.body.bold,
+    fontSize: 14,
+    lineHeight: 18,
+    color: colors.white,
   },
   shutterRow: {
     position: 'absolute',

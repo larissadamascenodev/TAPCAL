@@ -27,7 +27,8 @@ function tap() {
 
 /**
  * Barra inferior flutuante: pílula de vidro só com ícones (Início, Alimentação,
- * Treino e Resultados) e o botão + no mesmo vidro ao lado (abre /adicionar).
+ * Treino e Resultados) e, ao lado, o botão de scanner no mesmo vidro: abre a
+ * câmera direto (de lá dá para adicionar à mão).
  */
 export function FloatingTabBar({ state, navigation, insets }: BottomTabBarProps) {
   const useBlur = Platform.OS !== 'android';
@@ -72,14 +73,15 @@ export function FloatingTabBar({ state, navigation, insets }: BottomTabBarProps)
 
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Adicionar"
+        accessibilityLabel="Escanear prato"
+        accessibilityHint="Abre a câmera; dá para adicionar à mão por lá"
         onPress={() => {
           if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          router.push('/adicionar');
+          router.push('/scanner');
         }}
         style={({ pressed }) => [styles.plus, pressed && styles.plusPressed]}>
         <GlassLayers useBlur={useBlur} />
-        <Ionicons name="add" size={32} color={colors.ink} />
+        <Ionicons name="scan-outline" size={28} color={colors.lime} />
       </Pressable>
     </View>
   );

@@ -99,7 +99,7 @@ export default function AlimentacaoScreen() {
           {isToday ? (
             <Pressable
               accessibilityRole="button"
-              onPress={() => router.push('/adicionar')}
+              onPress={() => router.push('/scanner')}
               style={({ pressed }) => [styles.newMeal, pressed && styles.pressed]}>
               <Ionicons name="add" size={18} color={colors.ink2} />
               <Text variant="caption" tone="secondary" style={styles.newMealText}>

@@ -65,7 +65,6 @@ export default function RootLayout() {
             contentStyle: { backgroundColor: colors.ground },
           }}>
           <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="adicionar" options={{ presentation: 'modal' }} />
           <Stack.Screen name="alimento" options={{ presentation: 'modal' }} />
           <Stack.Screen name="peso" options={{ presentation: 'modal' }} />
           <Stack.Screen

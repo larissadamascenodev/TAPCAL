@@ -93,7 +93,7 @@ export default function InicioScreen() {
         meals={day.meals}
         targets={mealTargets(plan.targetKcal)}
         onAdd={(meal) => router.push({ pathname: '/busca', params: { refeicao: meal } })}
-        onNew={() => router.push('/adicionar')}
+        onNew={() => router.push('/scanner')}
       />
 
       <View style={[styles.block, styles.tiles]}>
