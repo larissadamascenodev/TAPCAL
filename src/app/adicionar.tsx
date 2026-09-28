@@ -1,78 +1,73 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router, type Href } from 'expo-router';
+import { Pressable, StyleSheet, View } from 'react-native';
 
-import { Button, Glass, Text } from '@/components/ui';
+import { Button, Glass, Sheet, Text, toast } from '@/components/ui';
+import { formatLiters } from '@/lib/format';
+import { useAppStore } from '@/store/useAppStore';
 import { colors, radius, spacing } from '@/theme/theme';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
-const OPCOES: { icon: IconName; label: string; fase: string }[] = [
-  { icon: 'scan-outline', label: 'Escanear prato', fase: 'Fase 4' },
-  { icon: 'search-outline', label: 'Adicionar alimento', fase: 'Fase 3' },
-  { icon: 'water-outline', label: 'Registrar água', fase: 'Fase 3' },
-  { icon: 'scale-outline', label: 'Registrar peso', fase: 'Fase 3' },
-];
+type Option = {
+  icon: IconName;
+  label: string;
+  hint: string;
+  run: () => void;
+};
 
-/** Aberto pelo botão + da barra inferior. Por enquanto só mostra o que vem por aí. */
+/** Aberto pelo botão + da barra inferior: atalhos para registrar algo. */
 export default function AdicionarScreen() {
-  const insets = useSafeAreaInsets();
+  const addWater = useAppStore((s) => s.addWater);
+
+  const go = (href: Href) => router.replace(href);
+
+  const options: Option[] = [
+    {
+      icon: 'scan-outline',
+      label: 'Escanear prato',
+      hint: 'Em breve',
+      run: () => go({ pathname: '/em-breve', params: { secao: 'scanner' } }),
+    },
+    { icon: 'create-outline', label: 'Adicionar alimento', hint: 'Digitar à mão', run: () => go('/alimento') },
+    {
+      icon: 'water-outline',
+      label: 'Registrar água',
+      hint: '+250 ml',
+      run: () => {
+        addWater(250);
+        const ml = useAppStore.getState().today.waterMl;
+        toast(`${formatLiters(ml)} L de água hoje`);
+        router.back();
+      },
+    },
+    { icon: 'scale-outline', label: 'Registrar peso', hint: 'Peso de hoje', run: () => go('/peso') },
+  ];
 
   return (
-    <View style={[styles.root, { paddingBottom: insets.bottom + spacing.lg }]}>
-      <View style={styles.handle} />
-      <Text variant="title">Adicionar</Text>
-      <Text tone="secondary">Os registros rápidos chegam nas próximas fases.</Text>
-
-      <View style={styles.list}>
-        {OPCOES.map((o) => (
-          <Glass key={o.label} style={styles.row} flush>
-            <View style={styles.rowInner}>
-              <View style={styles.iconWrap}>
-                <Ionicons name={o.icon} size={20} color={colors.ember2} />
-              </View>
-              <Text variant="bodyStrong" style={styles.rowLabel}>
-                {o.label}
-              </Text>
-              <Text variant="caption" tone="muted">
-                {o.fase}
-              </Text>
+    <Sheet title="Adicionar" footer={<Button label="Fechar" variant="secondary" fullWidth onPress={() => router.back()} />}>
+      {options.map((o) => (
+        <Pressable key={o.label} accessibilityRole="button" onPress={o.run} style={({ pressed }) => pressed && styles.pressed}>
+          <Glass flush rounded={radius.lg} contentStyle={styles.row}>
+            <View style={styles.iconWrap}>
+              <Ionicons name={o.icon} size={20} color={colors.ember2} />
             </View>
+            <Text variant="bodyStrong" style={styles.label}>
+              {o.label}
+            </Text>
+            <Text variant="caption" tone="muted">
+              {o.hint}
+            </Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.ink3} />
           </Glass>
-        ))}
-      </View>
-
-      <View style={styles.spacer} />
-      <Button label="Fechar" variant="secondary" fullWidth onPress={() => router.back()} />
-    </View>
+        </Pressable>
+      ))}
+    </Sheet>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: colors.panel,
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.md,
-    gap: spacing.sm,
-  },
-  handle: {
-    alignSelf: 'center',
-    width: 40,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: colors.line2,
-    marginBottom: spacing.lg,
-  },
-  list: {
-    marginTop: spacing.lg,
-    gap: spacing.sm,
-  },
   row: {
-    borderRadius: radius.lg,
-  },
-  rowInner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
@@ -84,12 +79,12 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,106,69,0.12)',
+    backgroundColor: colors.emberTint,
   },
-  rowLabel: {
+  label: {
     flex: 1,
   },
-  spacer: {
-    flex: 1,
+  pressed: {
+    opacity: 0.7,
   },
 });

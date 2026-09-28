@@ -15,6 +15,7 @@ import {
   SAMPLE_PROFILE,
   SAMPLE_WORKOUT_PLANS,
   sampleDay,
+  sampleHistory,
   sampleSessions,
   sampleWeights,
 } from '@/data/sample';
@@ -91,7 +92,7 @@ export function sampleData(): Data {
   return {
     profile: SAMPLE_PROFILE,
     today: sampleDay(today),
-    history: [],
+    history: sampleHistory(today),
     weights: sampleWeights(today),
     workoutPlans: SAMPLE_WORKOUT_PLANS,
     sessions: sampleSessions(today),

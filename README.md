@@ -21,13 +21,20 @@ src/
     _layout.tsx           fontes, tema escuro, pilha raiz
     (tabs)/               abas: Início, Alimentação, Treino
     adicionar.tsx         aberto pelo botão + da barra
+    alimento.tsx          adicionar alimento à mão
+    peso.tsx              registrar peso do dia
+    treino-sessao.tsx     treino em andamento (cronômetro, séries, descanso)
+    em-breve.tsx          página dos atalhos que ainda não existem
   components/
-    ui/                   Glass, TopGlow, Button, Text, Screen, EmptyState
+    ui/                   Glass, TopGlow, Button, Text, Screen, Sheet, Toast…
     navigation/           FloatingTabBar (barra inferior flutuante)
+    home/                 medidor, semana, água, treino e peso da Início
+    nutrition/            anel, macros e cartão de refeição
+    workout/              divisão da semana e linha de exercício
   theme/theme.ts          cores, fontes, espaçamentos, raios, tipografia
   types/                  tipos do domínio (perfil, refeição, alimento, treino, série, peso)
   lib/goals.ts            motor de metas: IMC, TMB, gasto, calorias, macros, água, previsão
-  lib/                    datas, virada do dia, totais, treino
+  lib/                    datas, virada do dia, totais, treino, progresso, formatação
   store/                  store local (zustand + AsyncStorage) e seletores
   data/sample.ts          dados de exemplo para o app abrir preenchido
 design-reference/         mockups aprovados (design antes de código)
@@ -43,9 +50,9 @@ enquanto: tabelas e login entram na fase 5; a função do scanner, na fase 4.
 ```bash
 npm run lint        # ESLint (config do Expo)
 npm run typecheck   # TypeScript
-npm test            # testes (motor de metas, datas, store, treino)
+npm test            # testes (metas, datas, store, treino, progresso, formatação)
 ```
 
 ## Fases
 
-O plano completo está no roteiro do projeto. Status atual: **Fase 2 — dados e motor de metas**.
+O plano completo está no roteiro do projeto. Status atual: **Fase 3 — telas principais com dados locais**.

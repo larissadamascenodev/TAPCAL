@@ -1,17 +1,25 @@
 import { BlurView } from 'expo-blur';
-import { Platform, StyleSheet, View, type ViewProps } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import type { ReactNode } from 'react';
+import { Platform, StyleSheet, View, type StyleProp, type ViewProps, type ViewStyle } from 'react-native';
 
 import { colors, radius, spacing } from '@/theme/theme';
 
 export type GlassProps = ViewProps & {
   /** Força do desfoque (iOS e web). No Android fica só o preenchimento translúcido. */
   intensity?: number;
-  /** Arredondamento; padrão = radius.lg */
+  /** Arredondamento; padrão = radius.xl (28, como nos mockups) */
   rounded?: number;
   /** Tira o padding interno padrão. */
   flush?: boolean;
   /** Preenchimento um pouco mais claro, para cartões em destaque. */
   strong?: boolean;
+  /** Degradê diagonal por cima do vidro (ex.: cartão de treino). */
+  tint?: readonly [string, string, ...string[]];
+  /** Camada entre o vidro e o conteúdo (ex.: a água enchendo o cartão). */
+  underlay?: ReactNode;
+  /** Estilo do contêiner interno (o que tem o padding). */
+  contentStyle?: StyleProp<ViewStyle>;
 };
 
 /**
@@ -20,10 +28,13 @@ export type GlassProps = ViewProps & {
  */
 export function Glass({
   intensity = 30,
-  rounded = radius.lg,
+  rounded = radius.xl,
   flush = false,
   strong = false,
+  tint,
+  underlay,
   style,
+  contentStyle,
   children,
   ...rest
 }: GlassProps) {
@@ -46,7 +57,17 @@ export function Glass({
           { backgroundColor: strong ? colors.glassFillStrong : colors.glassFill },
         ]}
       />
-      <View style={!flush && styles.padding}>{children}</View>
+      {tint && (
+        <LinearGradient
+          pointerEvents="none"
+          colors={tint}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0.9, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+      )}
+      {underlay}
+      <View style={[!flush && styles.padding, contentStyle]}>{children}</View>
     </View>
   );
 }
@@ -54,8 +75,8 @@ export function Glass({
 const styles = StyleSheet.create({
   base: {
     overflow: 'hidden',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.line2,
+    borderWidth: 1,
+    borderColor: colors.line,
   },
   padding: {
     padding: spacing.lg,

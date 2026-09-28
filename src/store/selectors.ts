@@ -5,9 +5,10 @@
 
 import { toDateKey } from '@/lib/dates';
 import { computePlan, type GoalPlan } from '@/lib/goals';
+import { loggedDates, streak } from '@/lib/progress';
 import { dayTotals, remaining } from '@/lib/totals';
 import { planForDate } from '@/lib/workout';
-import type { Macros, WorkoutPlan } from '@/types';
+import type { DateKey, DayLog, Macros, WorkoutPlan } from '@/types';
 
 import type { AppState } from './useAppStore';
 
@@ -36,4 +37,15 @@ export function remainingToday(s: AppState, today = toDateKey()): Macros | null 
 
 export function workoutToday(s: AppState, today = toDateKey()): WorkoutPlan | null {
   return planForDate(s.workoutPlans, today);
+}
+
+/** Registro de um dia qualquer: hoje, um dia do histórico ou vazio. */
+export function dayLogFor(s: AppState, date: DateKey): DayLog | null {
+  if (date === s.today.date) return s.today;
+  return s.history.find((d) => d.date === date) ?? null;
+}
+
+/** Dias seguidos com comida registrada. */
+export function currentStreak(s: AppState, today = toDateKey()): number {
+  return streak(loggedDates(s.today, s.history), today);
 }

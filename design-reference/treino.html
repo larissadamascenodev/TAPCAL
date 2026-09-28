@@ -1,0 +1,262 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>TapCal Treino</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  color-scheme:dark;
+  --ground:#050507;--ink:#F6F4F1;--ink-2:rgba(246,244,241,.62);--ink-3:rgba(246,244,241,.38);
+  --glass:rgba(255,255,255,.055);--glass-2:rgba(255,255,255,.09);--edge:rgba(255,255,255,.11);--edge-hi:rgba(255,255,255,.22);
+  --ember:#FF6A45;--ember-2:#FF9A5C;--gold:#FFC56B;--iris:#9A8CFF;--ok:#8FF0BF;
+  --display:"Sora",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --body:"Manrope",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{background:var(--ground)}
+body{color:var(--ink);font-family:var(--body);padding-inline:16px;padding-block:32px 48px}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+button:focus-visible{outline:2px solid var(--ember-2);outline-offset:3px;border-radius:14px}
+.row{display:flex;flex-wrap:wrap;gap:36px;justify-content:center;align-items:flex-start}
+.col{width:100%;max-width:392px}
+.cap{margin:0 0 14px;text-align:center;font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+.phone{position:relative;border-radius:52px;padding:10px;background:linear-gradient(160deg,#2a2a30,#0d0d10 40%,#1c1c21);box-shadow:0 40px 90px -30px rgba(154,140,255,.25),0 0 0 1px rgba(255,255,255,.06)}
+.screen{position:relative;overflow:hidden;border-radius:43px;background:#08080B;padding:14px 16px 112px;min-height:820px;isolation:isolate}
+.aura{position:absolute;left:0;right:0;top:0;height:460px;z-index:-1;pointer-events:none;overflow:hidden}
+.aura .f{position:absolute;inset:-60px -40px 0;filter:blur(46px);opacity:.8}
+.aura .f i{position:absolute;border-radius:50%}
+.aura .f i:nth-child(1){width:300px;height:340px;left:40px;top:-170px;background:radial-gradient(ellipse,#FF6A45,rgba(255,106,69,.3) 45%,transparent 70%)}
+.aura .f i:nth-child(2){width:240px;height:280px;right:-50px;top:-60px;background:radial-gradient(ellipse,rgba(154,140,255,.45),transparent 70%)}
+.aura::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent,rgba(8,8,11,.7) 60%,#08080B 92%)}
+.status{display:flex;justify-content:space-between;align-items:center;font-family:var(--display);font-weight:600;font-size:15px;padding:4px 14px 0}
+.island{width:110px;height:32px;border-radius:20px;background:#000}
+.glass{position:relative;background:var(--glass);border:1px solid var(--edge);border-radius:28px;backdrop-filter:blur(28px) saturate(140%);-webkit-backdrop-filter:blur(28px) saturate(140%);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+.hdr{display:flex;justify-content:space-between;align-items:center;margin-top:20px}
+.hdr h1{margin:0;font-family:var(--display);font-weight:600;font-size:30px;letter-spacing:-.035em}
+.ibtn{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:var(--glass);border:1px solid var(--edge);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.split{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:16px}
+.sd{display:grid;justify-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--ink-3)}
+.sd b{display:grid;place-items:center;width:40px;height:48px;border-radius:16px;font-family:var(--display);font-size:11px;font-weight:600;letter-spacing:0;color:var(--ink-2);background:var(--glass);border:1px solid var(--edge)}
+.sd.done b{border-color:rgba(255,106,69,.6);color:var(--ink)}
+.sd.today b{background:var(--ink);color:#0b0b0e;border-color:transparent}
+.sd.rest b{border-style:dashed;background:none}
+.hero{margin-top:16px;padding:18px;overflow:hidden;min-height:196px;background:linear-gradient(150deg,rgba(255,106,69,.2),rgba(255,255,255,.04) 55%)}
+.eyebrow{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.hero h2{margin:8px 0 0;font-family:var(--display);font-size:32px;font-weight:700;letter-spacing:-.04em;line-height:1;max-width:60%}
+.hero .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;max-width:62%}
+.tag{height:26px;padding:0 10px;border-radius:13px;display:inline-flex;align-items:center;font-size:11px;font-weight:700;background:rgba(255,255,255,.08);border:1px solid var(--edge);color:var(--ink-2)}
+.body{position:absolute;right:6px;bottom:0;width:132px;height:196px}
+.start{margin-top:16px;height:48px;padding:0 20px;border-radius:24px;display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:14px;background:linear-gradient(135deg,var(--ember),var(--ember-2));color:#2A0C02;box-shadow:0 12px 30px -10px rgba(255,106,69,.7)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.st{padding:12px;border-radius:20px;background:var(--glass);border:1px solid var(--edge)}
+.st small{font-size:11px;color:var(--ink-2);font-weight:600}
+.st b{display:block;margin-top:4px;font-family:var(--display);font-size:18px;font-weight:600;font-variant-numeric:tabular-nums}
+.sec{display:flex;justify-content:space-between;align-items:baseline;margin:22px 4px 10px}
+.sec h3{margin:0;font-family:var(--display);font-size:17px;font-weight:600;letter-spacing:-.02em}
+.sec span{font-size:12px;color:var(--ink-3)}
+.ex{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.ex li{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:22px;background:var(--glass);border:1px solid var(--edge)}
+.num{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;flex:none;background:rgba(255,255,255,.06);font-family:var(--display);font-size:13px;font-weight:600;color:var(--ink-2)}
+.ex .nm{flex:1;min-width:0}
+.ex .nm b{display:block;font-size:14px;font-weight:600}
+.ex .nm span{font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.pr{font-size:11px;font-weight:700;color:var(--gold)}
+.dock{position:absolute;left:16px;right:16px;bottom:22px;display:flex;gap:10px;align-items:center}
+.nav{flex:1;display:flex;justify-content:space-around;align-items:center;height:64px;border-radius:32px;background:rgba(28,28,34,.72);border:1px solid var(--edge-hi);backdrop-filter:blur(30px) saturate(160%);-webkit-backdrop-filter:blur(30px) saturate(160%)}
+.nav button{display:grid;place-items:center;gap:2px;min-width:72px;height:52px;padding:0 8px;border-radius:26px;color:var(--ink-3)}
+.nav button span{font-size:10px;font-weight:700}
+.nav button.on{background:rgba(255,255,255,.1);color:var(--ink)}
+.fab{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,var(--ember),var(--ember-2));color:#2A0C02;box-shadow:0 12px 30px -8px rgba(255,106,69,.7),inset 0 1px 0 rgba(255,255,255,.4)}
+.home-ind{position:absolute;left:50%;bottom:8px;width:134px;height:5px;border-radius:3px;background:rgba(255,255,255,.55);transform:translateX(-50%)}
+.toast{position:absolute;left:50%;top:60px;transform:translate(-50%,-20px);opacity:0;padding:10px 16px;border-radius:18px;font-size:13px;font-weight:600;background:rgba(30,30,36,.92);border:1px solid var(--edge-hi);transition:.35s cubic-bezier(.2,.8,.2,1);pointer-events:none;white-space:nowrap;z-index:5}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+.live{padding-bottom:28px}
+.lt{display:flex;justify-content:space-between;align-items:center;margin-top:16px}
+.clock{display:flex;align-items:center;gap:8px;height:42px;padding:0 16px;border-radius:21px;font-family:var(--display);font-weight:600;font-variant-numeric:tabular-nums;background:var(--glass);border:1px solid var(--edge)}
+.clock i{width:8px;height:8px;border-radius:50%;background:var(--ember);box-shadow:0 0 10px var(--ember);animation:blink 1.4s infinite}
+@keyframes blink{50%{opacity:.3}}
+.prog{display:flex;gap:4px;margin-top:14px}
+.prog i{flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,.1)}
+.prog i.on{background:linear-gradient(90deg,var(--ember),var(--ember-2))}
+.exname{margin-top:18px}
+.exname h2{margin:6px 0 0;font-family:var(--display);font-size:28px;font-weight:700;letter-spacing:-.04em;line-height:1.05}
+.stage{position:relative;margin-top:14px;height:210px;border-radius:28px;overflow:hidden;background:radial-gradient(circle at 50% 40%,rgba(255,255,255,.08),rgba(255,255,255,.02) 70%);border:1px solid var(--edge)}
+.stage svg{position:absolute;left:50%;top:50%;height:190px;transform:translate(-50%,-50%)}
+.watch{position:absolute;right:12px;bottom:12px;height:32px;padding:0 12px;border-radius:16px;display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;background:rgba(10,10,12,.6);border:1px solid var(--edge-hi);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.last{position:absolute;left:12px;top:12px;font-size:11px;font-weight:700;color:var(--ink-2);background:rgba(10,10,12,.55);padding:6px 10px;border-radius:12px}
+.inputs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+.in{padding:14px;text-align:center}
+.in small{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+.in output{display:block;margin:6px 0 10px;font-family:var(--display);font-size:40px;font-weight:700;letter-spacing:-.05em;line-height:1;font-variant-numeric:tabular-nums}
+.in output span{font-size:14px;color:var(--ink-3);font-weight:500;letter-spacing:0}
+.pm{display:flex;justify-content:center;gap:10px}
+.pm button{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--glass-2);border:1px solid var(--edge);font-size:20px;font-weight:700}
+.sets{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:6px}
+.sets li{display:flex;align-items:center;gap:12px;height:46px;padding:0 14px;border-radius:16px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07);font-size:14px;font-variant-numeric:tabular-nums}
+.sets li .n{width:24px;font-family:var(--display);font-weight:600;color:var(--ink-3)}
+.sets li .v{flex:1;font-weight:600}
+.sets li .s{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;border:1.5px dashed rgba(255,255,255,.2);font-size:13px}
+.sets li.done .s{border:0;background:rgba(122,230,170,.18);color:var(--ok)}
+.sets li.cur{border-color:rgba(255,106,69,.55);background:rgba(255,106,69,.08)}
+.sets li.cur .n{color:var(--ember-2)}
+.rest{display:none;align-items:center;gap:12px;margin-top:12px;padding:12px 14px;border-radius:20px;background:rgba(154,140,255,.12);border:1px solid rgba(154,140,255,.35)}
+.rest.show{display:flex}
+.rest b{font-family:var(--display);font-size:22px;font-variant-numeric:tabular-nums}
+.rest span{font-size:12px;color:var(--ink-2)}
+.rest button{margin-left:auto;height:32px;padding:0 14px;border-radius:16px;font-size:12px;font-weight:700;background:rgba(255,255,255,.1)}
+.finish{width:100%;height:58px;margin-top:14px;border-radius:29px;font-weight:700;font-size:16px;background:linear-gradient(135deg,var(--ember),var(--ember-2));color:#2A0C02;box-shadow:0 12px 30px -10px rgba(255,106,69,.7);display:flex;align-items:center;justify-content:center;gap:8px}
+.note{margin:18px auto 0;max-width:820px;font-size:12px;color:var(--ink-3);text-align:center;line-height:1.6}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:380px){.nav button{min-width:60px}.sd b{width:36px}.hero h2{font-size:28px}}
+</style>
+
+<div class="row">
+
+<div class="col">
+<p class="cap">Plano da semana</p>
+<div class="phone"><div class="screen">
+  <div class="aura" aria-hidden="true"><div class="f"><i></i><i></i></div></div>
+  <div class="toast" id="toast1" role="status" aria-live="polite"></div>
+  <div class="status" aria-hidden="true"><span>9:41</span><span class="island"></span><span>●●●</span></div>
+  <div class="hdr"><h1>Treino</h1><button class="ibtn" aria-label="Histórico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2"/></svg></button></div>
+
+  <div class="split" aria-label="Divisão da semana">
+    <div class="sd done">S<b>Peito</b></div>
+    <div class="sd done">T<b>Costas</b></div>
+    <div class="sd rest">Q<b>Off</b></div>
+    <div class="sd done">Q<b>Ombro</b></div>
+    <div class="sd done">S<b>Braço</b></div>
+    <div class="sd rest">S<b>Cardio</b></div>
+    <div class="sd today">D<b>Perna</b></div>
+  </div>
+
+  <section class="glass hero" aria-label="Treino de hoje">
+    <span class="eyebrow">Hoje · treino D</span>
+    <h2>Pernas e glúteos</h2>
+    <div class="tags"><span class="tag">6 exercícios</span><span class="tag">~55 min</span><span class="tag">~380 kcal</span></div>
+    <button class="start" id="startBtn"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4l14 8-14 8z"/></svg>Começar treino</button>
+    <svg class="body" viewBox="0 0 132 196" aria-hidden="true">
+      <g fill="rgba(255,255,255,.12)">
+        <circle cx="66" cy="18" r="13"/>
+        <path d="M44 36h44l6 48-10 6-6-30-2 32H50l-2-32-6 30-10-6z"/>
+        <path d="M50 92h32l-2 10H52z"/>
+      </g>
+      <g fill="#FF6A45" opacity=".9">
+        <path d="M52 104h13l-2 50h-10z"/>
+        <path d="M67 104h13l-1 50H69z"/>
+      </g>
+      <g fill="#FF9A5C" opacity=".75"><path d="M53 158h10l-1 32h-7z"/><path d="M69 158h10l-2 32h-7z"/></g>
+    </svg>
+  </section>
+
+  <div class="stats">
+    <div class="st"><small>Esta semana</small><b>4 / 5</b></div>
+    <div class="st"><small>Volume</small><b>18,2 t</b></div>
+    <div class="st"><small>Recordes</small><b>3</b></div>
+  </div>
+
+  <div class="sec"><h3>Exercícios de hoje</h3><span>Editar</span></div>
+  <ul class="ex">
+    <li><span class="num">01</span><div class="nm"><b>Agachamento livre</b><span>4 × 8–10 · última: 60 kg</span></div><span class="pr">PR</span></li>
+    <li><span class="num">02</span><div class="nm"><b>Leg press 45°</b><span>4 × 12 · última: 180 kg</span></div></li>
+    <li><span class="num">03</span><div class="nm"><b>Elevação pélvica</b><span>3 × 10 · última: 80 kg</span></div></li>
+    <li><span class="num">04</span><div class="nm"><b>Cadeira extensora</b><span>3 × 15 · última: 45 kg</span></div></li>
+  </ul>
+
+  <div class="dock">
+    <nav class="nav" aria-label="Navegação">
+      <button aria-label="Início"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 4l9 7v8a2 2 0 0 1-2 2h-3v-6H8v6H5a2 2 0 0 1-2-2z"/></svg><span>Início</span></button>
+      <button aria-label="Alimentação"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 3v8a2 2 0 0 0 2 2v8M11 3v8M3 3v8a2 2 0 0 0 2 2M17 21V3c2.5 0 4 2.5 4 6s-1.5 5-4 5"/></svg><span>Alimentação</span></button>
+      <button class="on" aria-label="Treino"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12"/></svg><span>Treino</span></button>
+    </nav>
+    <button class="fab" aria-label="Registrar"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+  </div>
+  <div class="home-ind" aria-hidden="true"></div>
+</div></div>
+</div>
+
+<div class="col">
+<p class="cap">Treino em andamento</p>
+<div class="phone"><div class="screen live">
+  <div class="aura" aria-hidden="true"><div class="f"><i></i><i></i></div></div>
+  <div class="toast" id="toast2" role="status" aria-live="polite"></div>
+  <div class="status" aria-hidden="true"><span>9:41</span><span class="island"></span><span>●●●</span></div>
+  <div class="lt">
+    <button class="ibtn" aria-label="Minimizar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></button>
+    <div class="clock"><i></i><span id="clock">12:34</span></div>
+    <button class="ibtn" aria-label="Opções"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
+  </div>
+  <div class="prog" aria-label="Exercício 1 de 6"><i class="on"></i><i></i><i></i><i></i><i></i><i></i></div>
+
+  <div class="exname"><span class="eyebrow">Exercício 1 de 6</span><h2>Agachamento livre</h2></div>
+
+  <div class="stage">
+    <span class="last">Última vez: 4 × 8 com 60 kg</span>
+    <svg viewBox="0 0 160 190" aria-hidden="true">
+      <rect x="6" y="40" width="148" height="7" rx="3.5" fill="rgba(255,255,255,.55)"/>
+      <rect x="6" y="28" width="12" height="31" rx="3" fill="rgba(255,255,255,.35)"/>
+      <rect x="142" y="28" width="12" height="31" rx="3" fill="rgba(255,255,255,.35)"/>
+      <g fill="rgba(255,255,255,.16)">
+        <circle cx="80" cy="24" r="13"/>
+        <path d="M62 42h36l4 44H58z"/>
+        <path d="M58 86h44l-2 12H60z"/>
+      </g>
+      <g fill="#FF6A45"><path d="M60 98h18l-26 34-12-8z"/><path d="M82 98h18l10 26-12 8z"/></g>
+      <g fill="#FF9A5C" opacity=".8"><path d="M40 124l12 8-6 44h-10z"/><path d="M110 124l-12 8 6 44h10z"/></g>
+      <g fill="rgba(255,255,255,.16)"><rect x="30" y="176" width="22" height="7" rx="3"/><rect x="108" y="176" width="22" height="7" rx="3"/></g>
+    </svg>
+    <span class="watch"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4l14 8-14 8z"/></svg>Ver execução</span>
+  </div>
+
+  <div class="inputs">
+    <div class="glass in"><small>Carga</small><output id="kg">62,5<span> kg</span></output><div class="pm"><button data-k="-2.5" aria-label="Diminuir carga">−</button><button data-k="2.5" aria-label="Aumentar carga">+</button></div></div>
+    <div class="glass in"><small>Repetições</small><output id="reps">10</output><div class="pm"><button data-r="-1" aria-label="Diminuir repetições">−</button><button data-r="1" aria-label="Aumentar repetições">+</button></div></div>
+  </div>
+
+  <ul class="sets" id="sets"></ul>
+
+  <div class="rest" id="rest"><div><b id="restT">1:30</b><br><span>Descanso · próxima série</span></div><button id="skip">Pular</button></div>
+
+  <button class="finish" id="finish"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg><span id="finishL">Concluir série 2</span></button>
+</div></div>
+</div>
+
+</div>
+<p class="note">Mockup interativo · ajuste carga e repetições e toque em Concluir série para ver o descanso começar.</p>
+
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id)};
+  function toast(el,m){el.textContent=m;el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(function(){el.classList.remove('show')},2000)}
+  $('startBtn').addEventListener('click',function(){toast($('toast1'),'Treino de pernas iniciado')});
+  var kg=62.5, reps=10, sets=[{kg:60,r:10,d:true},{kg:62.5,r:10},{kg:62.5,r:10},{kg:62.5,r:8}], cur=1, restI=null;
+  function fk(v){return (Math.round(v*10)/10).toLocaleString('pt-BR')}
+  function draw(){
+    $('kg').innerHTML=fk(kg)+'<span> kg</span>';$('reps').textContent=reps;
+    $('sets').innerHTML=sets.map(function(s,i){return '<li class="'+(s.d?'done':'')+(i===cur?' cur':'')+'"><span class="n">'+(i+1)+'</span><span class="v">'+fk(s.kg)+' kg × '+s.r+'</span><span class="s">'+(s.d?'✓':'')+'</span></li>'}).join('');
+    $('finishL').textContent=cur<sets.length?'Concluir série '+(cur+1):'Próximo exercício';
+  }
+  document.querySelectorAll('.pm button').forEach(function(b){b.addEventListener('click',function(){
+    if(b.dataset.k){kg=Math.max(0,kg+ +b.dataset.k)}else{reps=Math.max(1,reps+ +b.dataset.r)}
+    if(cur<sets.length){sets[cur].kg=kg;sets[cur].r=reps}draw();
+  })});
+  function stopRest(){clearInterval(restI);restI=null;$('rest').classList.remove('show')}
+  $('skip').addEventListener('click',stopRest);
+  $('finish').addEventListener('click',function(){
+    if(cur>=sets.length){toast($('toast2'),'Próximo: Leg press 45°');return}
+    sets[cur].kg=kg;sets[cur].r=reps;sets[cur].d=true;
+    var msg=kg>60?'Novo recorde: '+fk(kg)+' kg':'Série registrada';
+    cur++;if(cur<sets.length){kg=sets[cur].kg;reps=sets[cur].r}
+    draw();toast($('toast2'),msg);
+    if(cur<sets.length){
+      stopRest();var s=90;$('restT').textContent='1:30';$('rest').classList.add('show');
+      restI=setInterval(function(){s--;$('restT').textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');if(s<=0){stopRest();toast($('toast2'),'Hora da próxima série')}},1000);
+    }
+  });
+  var c=12*60+34;setInterval(function(){c++;$('clock').textContent=Math.floor(c/60)+':'+String(c%60).padStart(2,'0')},1000);
+  draw();
+})();
+</script>
+
+</body></html>

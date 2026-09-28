@@ -12,10 +12,14 @@ type Props = {
   glow?: boolean;
   /** Reserva espaço para a barra flutuante (padrão: sim, nas abas). */
   withTabBar?: boolean;
+  /** Cor da mancha da direita na aura. */
+  glowAccent?: 'ember' | 'iris';
+  /** Espaço entre os blocos (padrão: 12). */
+  gap?: number;
 };
 
 /** Moldura de toda tela: fundo escuro, brilho do topo, área segura e rolagem. */
-export function Screen({ children, glow = true, withTabBar = true }: Props) {
+export function Screen({ children, glow = true, withTabBar = true, glowAccent, gap = spacing.md }: Props) {
   const insets = useSafeAreaInsets();
   const bottomSpace = withTabBar
     ? insets.bottom + tabBar.bottomGap + tabBar.height + spacing.xl
@@ -23,11 +27,11 @@ export function Screen({ children, glow = true, withTabBar = true }: Props) {
 
   return (
     <View style={styles.root}>
-      {glow && <TopGlow />}
+      {glow && <TopGlow accent={glowAccent} />}
       <ScrollView
         contentContainerStyle={[
           styles.content,
-          { paddingTop: insets.top + spacing.lg, paddingBottom: bottomSpace },
+          { paddingTop: insets.top + spacing.sm, paddingBottom: bottomSpace, gap },
         ]}
         showsVerticalScrollIndicator={false}>
         {children}
@@ -42,7 +46,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.ground,
   },
   content: {
-    paddingHorizontal: spacing.lg + 4,
-    gap: spacing.lg,
+    paddingHorizontal: spacing.lg,
   },
 });

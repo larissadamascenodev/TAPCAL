@@ -66,6 +66,33 @@ export function sampleDay(date: DateKey): DayLog {
   return { date, meals, waterMl: 1250 };
 }
 
+/** Jantares que variam nos dias passados do exemplo. */
+const DINNERS: [string, number, number, number, number, number][] = [
+  ['Omelete de 2 ovos com queijo', 150, 290, 20, 2, 22],
+  ['Sopa de legumes com frango', 350, 280, 22, 28, 8],
+  ['Tapioca com queijo e tomate', 160, 330, 12, 48, 10],
+  ['Salada com atum', 250, 260, 26, 10, 12],
+  ['Arroz, feijão e carne moída', 300, 480, 30, 52, 14],
+];
+
+/**
+ * Últimos 6 dias com registro, menos um (dia 3), para a semana e a sequência
+ * de dias aparecerem como nos mockups.
+ */
+export function sampleHistory(today: DateKey): DayLog[] {
+  const days: DayLog[] = [];
+  for (let back = 1; back <= 6; back++) {
+    if (back === 3) continue;
+    const date = addDays(today, -back);
+    const day = sampleDay(date);
+    const [name, grams, kcal, p, c, f] = DINNERS[back % DINNERS.length];
+    day.meals.jantar = [food(`s-jantar-${back}`, name, grams, kcal, p, c, f, date, '20:00:00')];
+    day.waterMl = 1750 + back * 150;
+    days.push(day);
+  }
+  return days;
+}
+
 export const SAMPLE_WORKOUT_PLANS: WorkoutPlan[] = [
   {
     id: 'plano-a',
@@ -107,33 +134,51 @@ export const SAMPLE_WORKOUT_PLANS: WorkoutPlan[] = [
   },
 ];
 
-/** Um treino B concluído há 4 dias, para já existir recorde e histórico. */
-export function sampleSessions(today: DateKey): WorkoutSession[] {
-  const date = addDays(today, -4);
-  const set = (id: string, exerciseId: string, weightKg: number, reps: number, time: string) => ({
+type SetSpec = [exerciseId: string, weightKg: number, reps: number];
+
+function session(id: string, planId: string, date: DateKey, specs: SetSpec[]): WorkoutSession {
+  return {
     id,
-    exerciseId,
-    weightKg,
-    reps,
-    completedAt: `${date}T${time}`,
-  });
+    planId,
+    date,
+    startedAt: `${date}T18:00:00`,
+    finishedAt: `${date}T18:52:00`,
+    sets: specs.map(([exerciseId, weightKg, reps], i) => ({
+      id: `${id}-${i + 1}`,
+      exerciseId,
+      weightKg,
+      reps,
+      completedAt: `${date}T18:${String(4 + i * 3).padStart(2, '0')}:00`,
+    })),
+  };
+}
+
+/** Três treinos da última semana (A, B e C), para já existir recorde e histórico. */
+export function sampleSessions(today: DateKey): WorkoutSession[] {
   return [
-    {
-      id: 'sessao-exemplo',
-      planId: 'plano-b',
-      date,
-      startedAt: `${date}T18:00:00`,
-      finishedAt: `${date}T18:52:00`,
-      sets: [
-        set('s1', 'ex-puxada', 35, 12, '18:04:00'),
-        set('s2', 'ex-puxada', 40, 10, '18:07:00'),
-        set('s3', 'ex-puxada', 40, 9, '18:10:00'),
-        set('s4', 'ex-remada', 30, 12, '18:16:00'),
-        set('s5', 'ex-remada', 35, 10, '18:19:00'),
-        set('s6', 'ex-rosca', 8, 12, '18:40:00'),
-        set('s7', 'ex-rosca', 10, 10, '18:43:00'),
-      ],
-    },
+    session('sessao-c', 'plano-c', addDays(today, -2), [
+      ['ex-agachamento', 50, 10],
+      ['ex-agachamento', 55, 8],
+      ['ex-leg', 120, 12],
+      ['ex-leg', 130, 10],
+      ['ex-elevacao', 60, 12],
+    ]),
+    session('sessao-exemplo', 'plano-b', addDays(today, -4), [
+      ['ex-puxada', 35, 12],
+      ['ex-puxada', 40, 10],
+      ['ex-puxada', 40, 9],
+      ['ex-remada', 30, 12],
+      ['ex-remada', 35, 10],
+      ['ex-rosca', 8, 12],
+      ['ex-rosca', 10, 10],
+    ]),
+    session('sessao-a', 'plano-a', addDays(today, -7), [
+      ['ex-supino', 12, 10],
+      ['ex-supino', 14, 8],
+      ['ex-desenvolvimento', 8, 12],
+      ['ex-desenvolvimento', 10, 10],
+      ['ex-triceps', 20, 12],
+    ]),
   ];
 }
 

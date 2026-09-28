@@ -12,10 +12,10 @@ import { colors, fonts, gradients, radius, spacing, tabBar } from '@/theme/theme
 type IconName = keyof typeof Ionicons.glyphMap;
 
 /** Ícone e rótulo de cada aba, pelo nome do arquivo da rota em src/app/(tabs). */
-const TABS: Record<string, { label: string; icon: IconName; iconActive: IconName }> = {
-  index: { label: 'Início', icon: 'home-outline', iconActive: 'home' },
-  alimentacao: { label: 'Alimentação', icon: 'restaurant-outline', iconActive: 'restaurant' },
-  treino: { label: 'Treino', icon: 'barbell-outline', iconActive: 'barbell' },
+const TABS: Record<string, { label: string; icon: IconName }> = {
+  index: { label: 'Início', icon: 'home-outline' },
+  alimentacao: { label: 'Alimentação', icon: 'restaurant-outline' },
+  treino: { label: 'Treino', icon: 'barbell-outline' },
 };
 
 function tap() {
@@ -34,7 +34,7 @@ export function FloatingTabBar({ state, navigation, insets }: BottomTabBarProps)
       pointerEvents="box-none"
       style={[styles.wrap, { bottom: insets.bottom + tabBar.bottomGap }]}>
       <View style={styles.pill}>
-        {useBlur && <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />}
+        {useBlur && <BlurView intensity={50} tint="dark" style={StyleSheet.absoluteFill} />}
         <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.pillFill]} />
 
         {state.routes.map((route, index) => {
@@ -62,11 +62,7 @@ export function FloatingTabBar({ state, navigation, insets }: BottomTabBarProps)
               accessibilityLabel={tab.label}
               onPress={onPress}
               style={[styles.tab, focused && styles.tabActive]}>
-              <Ionicons
-                name={focused ? tab.iconActive : tab.icon}
-                size={21}
-                color={focused ? colors.ember2 : colors.ink3}
-              />
+              <Ionicons name={tab.icon} size={22} color={focused ? colors.ink : colors.ink3} />
               <Text
                 variant="caption"
                 numberOfLines={1}
@@ -87,12 +83,12 @@ export function FloatingTabBar({ state, navigation, insets }: BottomTabBarProps)
         }}
         style={({ pressed }) => [styles.plus, pressed && styles.plusPressed]}>
         <LinearGradient
-          colors={gradients.ember}
+          colors={gradients.fab}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFill}
         />
-        <Ionicons name="add" size={30} color={colors.onEmber} />
+        <Ionicons name="add" size={32} color={colors.onEmber} />
       </Pressable>
     </View>
   );
@@ -105,7 +101,7 @@ const styles = StyleSheet.create({
     right: tabBar.sideGap,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: 10,
   },
   pill: {
     flex: 1,
@@ -114,35 +110,37 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-around',
     paddingHorizontal: 6,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     borderColor: colors.line2,
     backgroundColor: Platform.OS === 'android' ? colors.panel2 : 'transparent',
     // sombra para descolar a barra do conteúdo
-    shadowColor: '#000',
+    shadowColor: colors.shadow,
     shadowOpacity: 0.45,
     shadowRadius: 24,
     shadowOffset: { width: 0, height: 10 },
     elevation: 12,
   },
   pillFill: {
-    backgroundColor: 'rgba(22,22,28,0.55)',
+    backgroundColor: colors.navFill,
   },
   tab: {
-    flex: 1,
-    height: tabBar.height - 12,
-    borderRadius: radius.pill,
+    minWidth: 72,
+    height: 52,
+    paddingHorizontal: spacing.sm,
+    borderRadius: 26,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 2,
   },
   tabActive: {
-    backgroundColor: 'rgba(255,106,69,0.14)',
+    backgroundColor: colors.navActive,
   },
   tabLabel: {
-    fontFamily: fonts.body.semibold,
-    fontSize: 11,
-    lineHeight: 14,
+    fontFamily: fonts.body.bold,
+    fontSize: 10,
+    lineHeight: 13,
   },
   plus: {
     width: tabBar.plusSize,
@@ -152,9 +150,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: colors.ember,
-    shadowOpacity: 0.5,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.6,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 12 },
     elevation: 10,
   },
   plusPressed: {

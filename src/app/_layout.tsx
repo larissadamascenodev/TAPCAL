@@ -11,6 +11,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
+import { ToastHost } from '@/components/ui/Toast';
 import { useDayRollover } from '@/hooks/useDayRollover';
 import { colors } from '@/theme/theme';
 
@@ -56,7 +57,12 @@ export default function RootLayout() {
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.ground } }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="adicionar" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="alimento" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="peso" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="treino-sessao" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
+        <Stack.Screen name="em-breve" options={{ presentation: 'modal' }} />
       </Stack>
+      <ToastHost />
     </ThemeProvider>
   );
 }

@@ -4,37 +4,89 @@
  */
 
 export const colors = {
-  // Fundos
-  ground: '#0A0A0D',
-  panel: '#111116',
+  // Fundos (valores dos mockups em design-reference/)
+  ground: '#08080B',
+  panel: '#0C0C10',
   panel2: '#16161C',
 
   // Vidro (cartões e barra flutuante)
-  glassFill: 'rgba(255,255,255,0.05)',
-  glassFillStrong: 'rgba(255,255,255,0.08)',
-  line: 'rgba(255,255,255,0.09)',
-  line2: 'rgba(255,255,255,0.16)',
+  glassFill: 'rgba(255,255,255,0.055)',
+  glassFillStrong: 'rgba(255,255,255,0.09)',
+  glassSubtle: 'rgba(255,255,255,0.035)',
+  line: 'rgba(255,255,255,0.11)',
+  line2: 'rgba(255,255,255,0.22)',
+  lineSoft: 'rgba(255,255,255,0.07)',
+  track: 'rgba(255,255,255,0.08)',
+  navFill: 'rgba(28,28,34,0.72)',
+  navActive: 'rgba(255,255,255,0.10)',
 
   // Texto
-  ink: '#F4F1EE',
-  ink2: 'rgba(244,241,238,0.66)',
-  ink3: 'rgba(244,241,238,0.42)',
+  ink: '#F6F4F1',
+  ink2: 'rgba(246,244,241,0.62)',
+  ink3: 'rgba(246,244,241,0.38)',
   onEmber: '#2A0C02',
+  onInk: '#0B0B0E',
 
   // Marca e acentos
   ember: '#FF6A45',
   ember2: '#FF9A5C',
   gold: '#FFC56B',
   iris: '#9A8CFF',
+  irisSoft: '#B9AFFF',
   ok: '#8FF0BF',
   tide: '#5CC8FF',
+
+  // Tons translúcidos dos acentos
+  emberTint: 'rgba(255,106,69,0.12)',
+  emberEdge: 'rgba(255,106,69,0.55)',
+  okTint: 'rgba(122,230,170,0.14)',
+  tideTint: 'rgba(92,200,255,0.18)',
+  tideEdge: 'rgba(92,200,255,0.35)',
+  tideText: '#CDEEFF',
+  irisTint: 'rgba(154,140,255,0.12)',
+  irisEdge: 'rgba(154,140,255,0.35)',
+  goldTint: 'rgba(255,197,107,0.06)',
+  goldEdge: 'rgba(255,197,107,0.28)',
+  emberWash: 'rgba(255,106,69,0.08)',
+  okFill: 'rgba(122,230,170,0.18)',
+  emberDeep: '#C44828',
+  emberLine: '#FF8A55',
+  emberHighlight: '#FFD9C7',
+  gaugeDot: '#FFF3EC',
+
+  // Neutros de apoio
+  white: '#FFFFFF',
+  shadow: '#000000',
+  avatarFill: '#15151A',
+  toastFill: 'rgba(30,30,36,0.94)',
+  photoScrim: 'rgba(0,0,0,0.35)',
+  handle: 'rgba(255,255,255,0.2)',
+  dashed: 'rgba(255,255,255,0.14)',
+  divider: 'rgba(255,255,255,0.10)',
+  gridLine: 'rgba(255,255,255,0.06)',
+  ticks: 'rgba(255,255,255,0.22)',
+  frostFill: 'rgba(255,255,255,0.20)',
+  frostEdge: 'rgba(255,255,255,0.45)',
+} as const;
+
+/** Cor de cada macro, igual em todas as telas. */
+export const macroColors = {
+  proteinG: colors.ember,
+  carbsG: colors.gold,
+  fatG: colors.iris,
 } as const;
 
 /** Degradê principal (botão primário, medidor, destaques). */
 export const gradients = {
   ember: [colors.gold, colors.ember2, colors.ember] as const,
-  // Brilho do topo: laranja que some no fundo escuro
-  topGlow: ['rgba(255,106,69,0.34)', 'rgba(255,154,92,0.12)', 'rgba(10,10,13,0)'] as const,
+  // Botão + e botões de ação: laranja → laranja claro, como nos mockups
+  fab: [colors.ember, colors.ember2] as const,
+  // Cartão de treino: violeta suave que some no vidro
+  workout: ['rgba(154,140,255,0.22)', 'rgba(255,255,255,0.04)'] as const,
+  // Treino de hoje: laranja suave que some no vidro
+  workoutHero: ['rgba(255,106,69,0.20)', 'rgba(255,255,255,0.04)'] as const,
+  // Água: azul que enche o cartão
+  water: ['rgba(92,200,255,0.28)', 'rgba(92,200,255,0.08)'] as const,
 };
 
 /**
@@ -70,6 +122,7 @@ export const radius = {
   md: 14,
   lg: 20,
   xl: 28,
+  xxl: 30,
   pill: 999,
 } as const;
 
@@ -96,10 +149,10 @@ export type TypographyVariant = keyof typeof typography;
 /** Medidas da barra inferior flutuante — as telas usam para não ficar atrás dela. */
 export const tabBar = {
   height: 64,
-  bottomGap: 12,
-  sideGap: 20,
-  plusSize: 56,
+  bottomGap: 8,
+  sideGap: 16,
+  plusSize: 64,
 } as const;
 
-export const theme = { colors, gradients, fonts, spacing, radius, typography, tabBar } as const;
+export const theme = { colors, macroColors, gradients, fonts, spacing, radius, typography, tabBar } as const;
 export default theme;
