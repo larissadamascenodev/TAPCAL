@@ -7,7 +7,6 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Circle, G } from 'react-native-svg';
 
 import { FRAME_SIDE, ScanFrame } from '@/components/scanner/ScanFrame';
 import { Button, ChipGroup, IconButton, ProgressBar, Text, TextField, toast } from '@/components/ui';
@@ -27,8 +26,6 @@ type Phase =
   | { step: 'error'; uri: string; message: string; canRetry: boolean; base64: string };
 
 const PHOTO_H = 370;
-/** Duas versões do bloco de macros para escolher: barrinhas embaixo ou anéis ao lado das calorias. */
-const MACRO_STYLE: 'barras' | 'aneis' = 'barras';
 /** Altura do botão "Adicionar manualmente" acima da linha do disparador. */
 const MANUAL_OFFSET = 100;
 /** Diâmetro do disparador (a linha mais alta de baixo). */
@@ -289,33 +286,18 @@ export default function ScannerScreen() {
           <Text style={styles.dish}>{result.dish.toUpperCase()}</Text>
           <ChipGroup label="Refeição" options={MEAL_OPTIONS} value={meal} onChange={setMeal} />
 
-          {MACRO_STYLE === 'barras' ? (
-            <View>
-              <Text style={styles.sumLabel}>CALORIAS</Text>
-              <View style={styles.kcalLine}>
-                <Text style={styles.sumValue}>{formatInt(totals.kcal)}</Text>
-                <Text style={styles.sumUnit}>KCAL</Text>
-              </View>
-              <View style={styles.barRow}>
-                {macros.map((m) => (
-                  <MacroBar key={m.label} {...m} />
-                ))}
-              </View>
+          <View>
+            <Text style={styles.sumLabel}>CALORIAS</Text>
+            <View style={styles.kcalLine}>
+              <Text style={styles.sumValue}>{formatInt(totals.kcal)}</Text>
+              <Text style={styles.sumUnit}>KCAL</Text>
             </View>
-          ) : (
-            <View style={styles.summary}>
-              <View>
-                <Text style={styles.sumLabel}>CALORIAS</Text>
-                <Text style={styles.sumValue}>{formatInt(totals.kcal)}</Text>
-                <Text style={styles.sumUnit}>KCAL</Text>
-              </View>
-              <View style={styles.ringRow}>
-                {macros.map((m) => (
-                  <MacroRing key={m.label} {...m} />
-                ))}
-              </View>
+            <View style={styles.barRow}>
+              {macros.map((m) => (
+                <MacroBar key={m.label} {...m} />
+              ))}
             </View>
-          )}
+          </View>
           {lowConfidence && (
             <Text variant="caption" style={styles.warn}>
               A foto deixou dúvidas. Confira os alimentos e as porções antes de continuar.
@@ -388,44 +370,6 @@ function MacroBar({ label, value, goal, color }: MacroProps) {
       </Text>
       <Text style={styles.barValue}>{formatDecimal(value, 0)} g</Text>
       <ProgressBar value={goal ? value / goal : 0} color={color} height={6} />
-    </View>
-  );
-}
-
-const RING = 54;
-const RING_R = 23;
-const RING_C = 2 * Math.PI * RING_R;
-
-/** Anel de um macro: gramas do prato no meio; o anel mostra quanto isso é da meta do dia. */
-function MacroRing({ label, value, goal, color }: MacroProps) {
-  const frac = goal ? Math.min(1, value / goal) : 0;
-  return (
-    <View style={styles.ring} accessible accessibilityLabel={`${label}: ${formatDecimal(value, 0)} gramas`}>
-      <View style={{ width: RING, height: RING }}>
-        <Svg width={RING} height={RING}>
-          <G rotation={-90} origin={`${RING / 2}, ${RING / 2}`}>
-            <Circle cx={RING / 2} cy={RING / 2} r={RING_R} fill="none" stroke={colors.track} strokeWidth={4.5} />
-            {frac > 0 && (
-              <Circle
-                cx={RING / 2}
-                cy={RING / 2}
-                r={RING_R}
-                fill="none"
-                stroke={color}
-                strokeWidth={4.5}
-                strokeLinecap="round"
-                strokeDasharray={`${Math.max(0.02, frac) * RING_C} ${RING_C}`}
-              />
-            )}
-          </G>
-        </Svg>
-        <View style={styles.ringCenter}>
-          <Text style={styles.ringValue}>{formatDecimal(value, 0)}</Text>
-        </View>
-      </View>
-      <Text variant="caption" tone="secondary" style={styles.ringLabel}>
-        {label}
-      </Text>
     </View>
   );
 }
@@ -661,12 +605,6 @@ const styles = StyleSheet.create({
   addRowText: {
     fontFamily: fonts.body.bold,
   },
-  summary: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.lg,
-    marginTop: spacing.xs,
-  },
   sumLabel: {
     fontFamily: fonts.body.bold,
     fontSize: 11,
@@ -712,29 +650,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 22,
     fontVariant: ['tabular-nums'],
-  },
-  ringRow: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  ring: {
-    alignItems: 'center',
-    gap: 6,
-  },
-  ringCenter: {
-    ...StyleSheet.absoluteFill,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ringValue: {
-    fontFamily: fonts.display.semibold,
-    fontSize: 15,
-    lineHeight: 19,
-    fontVariant: ['tabular-nums'],
-  },
-  ringLabel: {
-    fontSize: 11.5,
   },
   cta: {
     height: 58,
