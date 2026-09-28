@@ -13,7 +13,8 @@ import {
   Text,
   toast,
 } from '@/components/ui';
-import { ExerciseAnim } from '@/components/workout/ExerciseAnim';
+import { MapaMuscular } from '@/components/workout/MapaMuscular';
+import { exercicioPorId } from '@/lib/exercicios';
 import { formatDecimal, formatDuration } from '@/lib/format';
 import {
   beatsRecord,
@@ -50,6 +51,7 @@ function suggestion(ex: Exercise, session: WorkoutSession, past: WorkoutSession[
 export default function TreinoSessaoScreen() {
   const { activeSession: session, workoutPlans, sessions: past } = useAppStore();
   const { logSet, removeSet, finishSession, cancelSession } = useAppStore();
+  const sexo = useAppStore((s) => s.profile?.sex);
   const plan = session ? workoutPlans.find((p) => p.id === session.planId) : undefined;
   const now = useNow();
 
@@ -150,7 +152,16 @@ export default function TreinoSessaoScreen() {
         <Text style={styles.exName}>{exercise.name}</Text>
       </View>
 
-      {exercise.catalogId && <ExerciseAnim key={exercise.catalogId} id={exercise.catalogId} style={styles.anim} />}
+      {exercicioPorId(exercise.catalogId) && (
+        <View style={styles.anim}>
+          <MapaMuscular
+            principal={exercicioPorId(exercise.catalogId)!.musculoPrincipal}
+            secundarios={exercicioPorId(exercise.catalogId)!.musculosSecundarios}
+            sexo={sexo}
+            altura={180}
+          />
+        </View>
+      )}
 
       <Glass flush contentStyle={styles.stage}>
         <Info
@@ -312,9 +323,10 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   anim: {
-    width: '100%',
-    aspectRatio: 16 / 10,
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
     borderRadius: radius.xl,
+    backgroundColor: colors.glassSubtle,
   },
   exName: {
     fontFamily: fonts.display.bold,

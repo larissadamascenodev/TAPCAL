@@ -71,6 +71,11 @@ export const colors = {
   avatarFill: '#15161A',
   toastFill: 'rgba(30,30,36,0.94)',
   photoScrim: 'rgba(0,0,0,0.35)',
+  // Mapa muscular: corpo apagado, músculo principal em verde neon, secundários em verde mais claro
+  bodyFill: 'rgba(255,255,255,0.10)',
+  bodyEdge: 'rgba(255,255,255,0.22)',
+  musclePrimary: '#D1FB39',
+  muscleSecondary: 'rgba(209,251,57,0.40)',
   // Miolo do botão neon: vidro escuro quase fechado, para a luz aparecer só na borda
   neonInner: 'rgba(12,12,15,0.9)',
   // Fundo atrás da folha de edição: leve sobre o desfoque; sem desfoque (Android), bem mais fechado

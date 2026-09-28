@@ -76,8 +76,8 @@ Mockup interativo em `v4.html`; `v4.png` mostra as seis telas.
 
 ## Treino (etapa 1: central, treino personalizado e biblioteca)
 
-- `treino-central.png` — calendário normal, treino do dia em destaque (miniaturas dos exercícios e botão neon), atalhos Novo treino / Exercícios / Aeróbico, divisão da semana (A, B, C…).
+- `treino-central.png` — calendário normal, treino do dia em destaque (miniaturas com o mapa muscular e botão neon), atalhos Novo treino / Exercícios / Aeróbico, divisão da semana (A, B, C…).
 - `treino-semana.png` — números da semana, volume dos últimos 7 dias, próximos treinos e concluídos.
-- `treino-biblioteca.png` — biblioteca com busca, mapa do corpo (frente/costas) e filtros por músculo.
-- `treino-exercicio.png` — detalhe do exercício com a animação (fotos de início e fim alternando).
+- `treino-biblioteca.png` — biblioteca (SPEC etapa 1): busca por nome e nomes alternativos, filtros por músculo e equipamento, corpo tocável para filtrar e miniatura com o mapa muscular.
+- `treino-exercicio.png` — detalhe do exercício: mapa muscular (principal em verde neon, secundários em verde claro, botão de virar), músculos, equipamento, "Como fazer" e histórico. Quando houver GIF licenciado, ele entra no lugar do mapa.
 - `treino-novo-dias.png` / `treino-novo-revisao.png` — criar treino personalizado: dias → divisão → foco → revisão com os exercícios de cada treino.

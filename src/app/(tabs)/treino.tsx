@@ -7,8 +7,9 @@ import { DateStrip } from '@/components/home/DateStrip';
 import { TabPage } from '@/components/navigation/TabPage';
 import { EmptyState, Glass, NeonButton, SectionHeader, Text } from '@/components/ui';
 import { StatTile } from '@/components/ui/StatTile';
-import { ExerciseAnim } from '@/components/workout/ExerciseAnim';
+import { MapaMuscular } from '@/components/workout/MapaMuscular';
 import { daysBetween, fromDateKey } from '@/lib/dates';
+import { exercicioPorId } from '@/lib/exercicios';
 import { formatDayMonth, formatInt, formatTons, WEEKDAY_SHORT } from '@/lib/format';
 import {
   estimatedMinutes,
@@ -41,6 +42,7 @@ function dayLabel(date: DateKey, today: DateKey): string {
  */
 export default function TreinoScreen() {
   const { today: day, workoutPlans, sessions, activeSession, startSession } = useAppStore();
+  const profileSex = useAppStore((s) => s.profile?.sex);
   const today = day.date;
   const [date, setDate] = useState(today);
   const shown = date > today && daysBetween(today, date) > 30 ? today : date;
@@ -103,9 +105,14 @@ export default function TreinoScreen() {
               <Tag text={`~${estimatedMinutes(plan)} min`} />
             </View>
             <View style={styles.thumbs}>
-              {plan.exercises.slice(0, 5).map((e) =>
-                e.catalogId ? <ExerciseAnim key={e.id} id={e.catalogId} still style={styles.heroThumb} /> : null,
-              )}
+              {plan.exercises.slice(0, 5).map((e) => {
+                const ex = exercicioPorId(e.catalogId);
+                return ex ? (
+                  <View key={e.id} style={styles.heroThumb}>
+                    <MapaMuscular principal={ex.musculoPrincipal} altura={40} podeVirar={false} sexo={profileSex} />
+                  </View>
+                ) : null;
+              })}
             </View>
             {sessionOfDay ? (
               <View style={styles.doneRow}>
@@ -343,9 +350,13 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   heroThumb: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 48,
     borderRadius: 12,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.glassFill,
   },
   heroBtn: {
     marginTop: spacing.lg,

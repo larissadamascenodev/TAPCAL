@@ -8,6 +8,8 @@
 
 import type { Equipamento, Exercicio, Musculo, RegiaoArticular } from '@/types/treino';
 
+import { INSTRUCOES } from './instrucoes';
+
 type Nivel = Exercicio['nivel'];
 type Tipo = Exercicio['tipo'];
 type Local = Exercicio['locais'][number];
@@ -230,8 +232,7 @@ export const EXERCICIOS: readonly Exercicio[] = LINHAS.map(
     nivel,
     tipo,
     estresseArticular: estresse(est),
-    // Escritas depois da revisão da tabela.
-    instrucoes: [],
+    instrucoes: INSTRUCOES[id] ?? [],
     origem: 'tapcal',
   }),
 );

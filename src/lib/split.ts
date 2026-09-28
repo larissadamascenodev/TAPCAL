@@ -3,13 +3,14 @@
  * ABC…) e foco viram os treinos da semana com exercícios sugeridos.
  */
 
-import { EXERCISES, type MuscleKey } from '@/data/exercises';
-import { MUSCLE_LABELS } from '@/lib/exercises';
+import { EXERCICIOS } from '@/data/exercicios';
+import { MUSCULO_LABELS } from '@/lib/exercicios';
+import type { Musculo } from '@/types/treino';
 import type { Exercise, WorkoutPlan } from '@/types';
 
 export type SplitKey = 'fullbody' | 'ab' | 'abc' | 'ppl' | 'abcd' | 'abcde';
 
-type DayTemplate = { muscles: MuscleKey[] };
+type DayTemplate = { muscles: Musculo[] };
 
 export type SplitDef = {
   key: SplitKey;
@@ -27,8 +28,8 @@ export const SPLITS: readonly SplitDef[] = [
     description: 'Corpo todo em cada treino. Ótimo para começar ou para quem treina pouco.',
     days: [2, 3],
     templates: [
-      { muscles: ['quadriceps', 'peito', 'costas', 'ombros', 'abdomen'] },
-      { muscles: ['posterior', 'gluteos', 'costas', 'peito', 'biceps', 'triceps'] },
+      { muscles: ['quadriceps', 'chest', 'upper-back', 'deltoids', 'abs'] },
+      { muscles: ['hamstring', 'gluteal', 'upper-back', 'chest', 'biceps', 'triceps'] },
     ],
   },
   {
@@ -37,8 +38,8 @@ export const SPLITS: readonly SplitDef[] = [
     description: 'Um dia de parte de cima, outro de pernas e glúteos.',
     days: [2, 4],
     templates: [
-      { muscles: ['peito', 'costas', 'ombros', 'biceps', 'triceps'] },
-      { muscles: ['quadriceps', 'posterior', 'gluteos', 'panturrilha', 'abdomen'] },
+      { muscles: ['chest', 'upper-back', 'deltoids', 'biceps', 'triceps'] },
+      { muscles: ['quadriceps', 'hamstring', 'gluteal', 'calves', 'abs'] },
     ],
   },
   {
@@ -47,9 +48,9 @@ export const SPLITS: readonly SplitDef[] = [
     description: 'Empurrar, puxar e pernas: cada grupo uma ou duas vezes por semana.',
     days: [3, 6],
     templates: [
-      { muscles: ['peito', 'ombros', 'triceps'] },
-      { muscles: ['costas', 'biceps', 'trapezio', 'abdomen'] },
-      { muscles: ['quadriceps', 'posterior', 'gluteos', 'panturrilha'] },
+      { muscles: ['chest', 'deltoids', 'triceps'] },
+      { muscles: ['upper-back', 'biceps', 'trapezius', 'abs'] },
+      { muscles: ['quadriceps', 'hamstring', 'gluteal', 'calves'] },
     ],
   },
   {
@@ -58,9 +59,9 @@ export const SPLITS: readonly SplitDef[] = [
     description: 'Clássico de 6 dias: cada grupo duas vezes por semana.',
     days: [6],
     templates: [
-      { muscles: ['peito', 'ombros', 'triceps'] },
-      { muscles: ['costas', 'biceps', 'trapezio'] },
-      { muscles: ['quadriceps', 'posterior', 'gluteos', 'panturrilha'] },
+      { muscles: ['chest', 'deltoids', 'triceps'] },
+      { muscles: ['upper-back', 'biceps', 'trapezius'] },
+      { muscles: ['quadriceps', 'hamstring', 'gluteal', 'calves'] },
     ],
   },
   {
@@ -69,10 +70,10 @@ export const SPLITS: readonly SplitDef[] = [
     description: 'Quatro treinos: peito e tríceps, costas e bíceps, pernas, ombros e abdômen.',
     days: [4],
     templates: [
-      { muscles: ['peito', 'triceps'] },
-      { muscles: ['costas', 'biceps'] },
-      { muscles: ['quadriceps', 'posterior', 'gluteos', 'panturrilha'] },
-      { muscles: ['ombros', 'trapezio', 'abdomen'] },
+      { muscles: ['chest', 'triceps'] },
+      { muscles: ['upper-back', 'biceps'] },
+      { muscles: ['quadriceps', 'hamstring', 'gluteal', 'calves'] },
+      { muscles: ['deltoids', 'trapezius', 'abs'] },
     ],
   },
   {
@@ -81,11 +82,11 @@ export const SPLITS: readonly SplitDef[] = [
     description: 'Um grupo grande por dia, para quem treina 5 vezes.',
     days: [5],
     templates: [
-      { muscles: ['peito', 'abdomen'] },
-      { muscles: ['costas', 'trapezio'] },
-      { muscles: ['quadriceps', 'posterior', 'panturrilha'] },
-      { muscles: ['ombros', 'gluteos'] },
-      { muscles: ['biceps', 'triceps', 'antebraco'] },
+      { muscles: ['chest', 'abs'] },
+      { muscles: ['upper-back', 'trapezius'] },
+      { muscles: ['quadriceps', 'hamstring', 'calves'] },
+      { muscles: ['deltoids', 'gluteal'] },
+      { muscles: ['biceps', 'triceps', 'forearm'] },
     ],
   },
 ];
@@ -110,36 +111,42 @@ export function suggestedWeekdays(days: number): number[] {
 }
 
 /** Grupos grandes ganham dois exercícios; os pequenos, um. */
-const BIG: ReadonlySet<MuscleKey> = new Set(['peito', 'costas', 'quadriceps', 'posterior', 'gluteos', 'ombros']);
+const BIG: ReadonlySet<Musculo> = new Set(['chest', 'upper-back', 'quadriceps', 'hamstring', 'gluteal', 'deltoids']);
 /** Limites de exercícios por treino. */
 const MAX_PER_DAY = 8;
 const MIN_PER_DAY = 5;
 
 /** "Peito, ombros e tríceps". */
-export function focusLabel(muscles: readonly MuscleKey[]): string {
-  const names = muscles.map((m, i) => (i === 0 ? MUSCLE_LABELS[m] : MUSCLE_LABELS[m].toLowerCase()));
+export function focusLabel(muscles: readonly Musculo[]): string {
+  const names = muscles.map((m, i) => (i === 0 ? MUSCULO_LABELS[m] : MUSCULO_LABELS[m].toLowerCase()));
   if (names.length <= 1) return names[0] ?? '';
   return `${names.slice(0, -1).join(', ')} e ${names[names.length - 1]}`;
 }
 
 /** Exercício do plano a partir do catálogo, com séries e descanso padrão. */
 export function planExercise(planId: string, catalogId: string, compound: boolean): Exercise {
-  const ex = EXERCISES.find((e) => e.id === catalogId);
+  const ex = EXERCICIOS.find((e) => e.id === catalogId);
   return {
     id: `${planId}-${catalogId}`,
     catalogId,
-    name: ex?.name ?? catalogId,
-    muscleGroup: ex ? MUSCLE_LABELS[ex.muscle] : '',
+    name: ex?.nome ?? catalogId,
+    muscleGroup: ex ? MUSCULO_LABELS[ex.musculoPrincipal] : '',
     targetSets: compound ? 4 : 3,
     targetReps: compound ? '8-12' : '10-15',
     restSeconds: compound ? 90 : 60,
   };
 }
 
+/** Básicos de academia do músculo: compostos primeiro, na ordem da biblioteca. */
+function basicos(m: Musculo) {
+  const doMusculo = EXERCICIOS.filter((e) => e.musculoPrincipal === m && e.locais.includes('academia'));
+  return [...doMusculo.filter((e) => e.tipo === 'composto'), ...doMusculo.filter((e) => e.tipo === 'isolado')];
+}
+
 /** Sugestões do dia: básicos de cada grupo, um a mais nos grupos em foco, e no
  * mínimo MIN_PER_DAY exercícios (completando pelos grupos do dia, em rodízio). */
-export function suggestExercises(planId: string, muscles: readonly MuscleKey[], focus: readonly MuscleKey[] = []): Exercise[] {
-  const staples = muscles.map((m) => EXERCISES.filter((e) => e.muscle === m && e.staple));
+export function suggestExercises(planId: string, muscles: readonly Musculo[], focus: readonly Musculo[] = []): Exercise[] {
+  const staples = muscles.map((m) => basicos(m));
   const counts = muscles.map((m, i) => Math.min(staples[i].length, (BIG.has(m) ? 2 : 1) + (focus.includes(m) ? 1 : 0)));
   const total = () => counts.reduce((a, b) => a + b, 0);
   for (let round = 0; total() < MIN_PER_DAY && round < 6; round++) {
@@ -149,7 +156,7 @@ export function suggestExercises(planId: string, muscles: readonly MuscleKey[], 
   }
   const out: Exercise[] = [];
   muscles.forEach((m, i) =>
-    staples[i].slice(0, counts[i]).forEach((e, j) => out.push(planExercise(planId, e.id, BIG.has(m) && j === 0))),
+    staples[i].slice(0, counts[i]).forEach((e) => out.push(planExercise(planId, e.id, e.tipo === 'composto'))),
   );
   return out.slice(0, MAX_PER_DAY);
 }
@@ -157,7 +164,7 @@ export function suggestExercises(planId: string, muscles: readonly MuscleKey[], 
 export type BuildInput = {
   weekdays: readonly number[];
   split: SplitKey;
-  focus?: readonly MuscleKey[];
+  focus?: readonly Musculo[];
 };
 
 /**
@@ -186,7 +193,7 @@ export function buildPlans({ weekdays, split, focus = [] }: BuildInput): Workout
 export function toggleExercise(plan: WorkoutPlan, catalogId: string): WorkoutPlan {
   const has = plan.exercises.some((e) => e.catalogId === catalogId);
   if (has) return { ...plan, exercises: plan.exercises.filter((e) => e.catalogId !== catalogId) };
-  const ex = EXERCISES.find((e) => e.id === catalogId);
-  const compound = !!ex && BIG.has(ex.muscle) && ex.equipment !== 'maquina' && ex.equipment !== 'polia';
+  const ex = EXERCICIOS.find((e) => e.id === catalogId);
+  const compound = ex?.tipo === 'composto';
   return { ...plan, exercises: [...plan.exercises, planExercise(plan.id, catalogId, compound)] };
 }

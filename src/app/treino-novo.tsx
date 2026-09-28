@@ -6,9 +6,10 @@ import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import { DishTitle, SheetBadge } from '@/components/nutrition/PlateSheet';
 import { confirmDestructive, Glass, GlassModal, IconButton, NeonButton, Text, toast } from '@/components/ui';
 import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
-import { ExerciseAnim } from '@/components/workout/ExerciseAnim';
+import { MapaMuscular } from '@/components/workout/MapaMuscular';
 import { ExerciseLibrary } from '@/components/workout/ExerciseLibrary';
-import type { MuscleKey } from '@/data/exercises';
+import type { Musculo } from '@/types/treino';
+import { exercicioPorId } from '@/lib/exercicios';
 import { WEEKDAY_LETTERS, WEEKDAY_SHORT } from '@/lib/format';
 import { buildPlans, SPLITS, splitsFor, suggestedWeekdays, toggleExercise, type SplitKey } from '@/lib/split';
 import { useAppStore } from '@/store/useAppStore';
@@ -19,28 +20,29 @@ type Step = 'tipo' | 'dias' | 'divisao' | 'foco' | 'revisao';
 const ORDER: Step[] = ['tipo', 'dias', 'divisao', 'foco', 'revisao'];
 
 /** Ênfases que a pessoa pode escolher (viram um exercício a mais no grupo). */
-const FOCUS: { key: MuscleKey; label: string }[] = [
-  { key: 'peito', label: 'Peito' },
-  { key: 'costas', label: 'Costas' },
-  { key: 'ombros', label: 'Ombros' },
+const FOCUS: { key: Musculo; label: string }[] = [
+  { key: 'chest', label: 'Peito' },
+  { key: 'upper-back', label: 'Costas' },
+  { key: 'deltoids', label: 'Ombros' },
   { key: 'biceps', label: 'Bíceps' },
   { key: 'triceps', label: 'Tríceps' },
   { key: 'quadriceps', label: 'Quadríceps' },
-  { key: 'posterior', label: 'Posterior' },
-  { key: 'gluteos', label: 'Glúteos' },
-  { key: 'panturrilha', label: 'Panturrilha' },
-  { key: 'abdomen', label: 'Abdômen' },
+  { key: 'hamstring', label: 'Posterior' },
+  { key: 'gluteal', label: 'Glúteos' },
+  { key: 'calves', label: 'Panturrilha' },
+  { key: 'abs', label: 'Abdômen' },
 ];
 
 /** Criar um treino novo: personalizado (dias → divisão → foco → exercícios) ou com IA. */
 export default function TreinoNovoScreen() {
   const hasPlans = useAppStore((s) => s.workoutPlans.length > 0);
   const setWorkoutPlans = useAppStore((s) => s.setWorkoutPlans);
+  const sexo = useAppStore((s) => s.profile?.sex);
 
   const [step, setStep] = useState<Step>('tipo');
   const [weekdays, setWeekdays] = useState<number[]>(suggestedWeekdays(3));
   const [split, setSplit] = useState<SplitKey>('abc');
-  const [focus, setFocus] = useState<MuscleKey[]>([]);
+  const [focus, setFocus] = useState<Musculo[]>([]);
   const [plans, setPlans] = useState<WorkoutPlan[]>([]);
   const [tab, setTab] = useState('plano-a');
   const [picking, setPicking] = useState(false);
@@ -221,7 +223,11 @@ export default function TreinoNovoScreen() {
           <View>
             {plan.exercises.map((e) => (
               <View key={e.id} style={styles.exRow}>
-                {e.catalogId ? <ExerciseAnim id={e.catalogId} still style={styles.thumb} /> : <View style={styles.thumb} />}
+                <View style={styles.thumb}>
+                  {exercicioPorId(e.catalogId) && (
+                    <MapaMuscular principal={exercicioPorId(e.catalogId)!.musculoPrincipal} altura={48} podeVirar={false} sexo={sexo} />
+                  )}
+                </View>
                 <View style={styles.flex}>
                   <Text style={styles.exName}>{e.name}</Text>
                   <Text variant="caption" tone="muted">
@@ -420,9 +426,12 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.hairline,
   },
   thumb: {
-    width: 52,
-    height: 52,
+    width: 48,
+    height: 56,
     borderRadius: 14,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: colors.glassFill,
   },
   exName: {

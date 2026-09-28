@@ -1,6 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 
 import { EXERCICIOS } from '@/data/exercicios';
+import { INSTRUCOES } from '@/data/instrucoes';
 
 /** Lista mínima do SPEC-TREINOS, com os nomes exatos do app. */
 const MINIMOS = [
@@ -51,5 +52,13 @@ describe('biblioteca de exercícios (SPEC)', () => {
       expect(e.nomesAlternativos.length).toBeGreaterThan(0);
       expect(e.musculosSecundarios).not.toContain(e.musculoPrincipal);
     }
+  });
+
+  it('todos com 3 a 5 passos de instrução, e nenhuma instrução sobrando', () => {
+    const semOk = EXERCICIOS.filter((e) => e.instrucoes.length < 3 || e.instrucoes.length > 5).map((e) => e.id);
+    expect(semOk).toEqual([]);
+    const ids = new Set(EXERCICIOS.map((e) => e.id));
+    expect(Object.keys(INSTRUCOES).filter((id) => !ids.has(id))).toEqual([]);
+    for (const e of EXERCICIOS) for (const passo of e.instrucoes) expect(passo).toMatch(/^[A-ZÁÉÍÓÚÂÊÔ].*\.$/);
   });
 });

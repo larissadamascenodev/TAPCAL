@@ -100,11 +100,11 @@ export const SAMPLE_WORKOUT_PLANS: WorkoutPlan[] = [
     focus: 'Peito, ombro e tríceps',
     weekdays: [1, 4],
     exercises: [
-      { id: 'ex-supino', catalogId: 'Dumbbell_Bench_Press', name: 'Supino reto com halteres', muscleGroup: 'Peito', targetSets: 4, targetReps: '8-12', restSeconds: 90 },
-      { id: 'ex-crucifixo', catalogId: 'Incline_Dumbbell_Flyes', name: 'Crucifixo inclinado', muscleGroup: 'Peito', targetSets: 3, targetReps: '10-12', restSeconds: 60 },
-      { id: 'ex-desenvolvimento', catalogId: 'Dumbbell_Shoulder_Press', name: 'Desenvolvimento com halteres', muscleGroup: 'Ombro', targetSets: 4, targetReps: '8-12', restSeconds: 90 },
-      { id: 'ex-lateral', catalogId: 'Side_Lateral_Raise', name: 'Elevação lateral', muscleGroup: 'Ombro', targetSets: 3, targetReps: '12-15', restSeconds: 60 },
-      { id: 'ex-triceps', catalogId: 'Triceps_Pushdown', name: 'Tríceps na polia', muscleGroup: 'Tríceps', targetSets: 3, targetReps: '10-12', restSeconds: 60 },
+      { id: 'ex-supino', catalogId: 'supino-reto-halteres', name: 'Supino reto com halteres', muscleGroup: 'Peito', targetSets: 4, targetReps: '8-12', restSeconds: 90 },
+      { id: 'ex-crucifixo', catalogId: 'crucifixo-inclinado-halteres', name: 'Crucifixo inclinado', muscleGroup: 'Peito', targetSets: 3, targetReps: '10-12', restSeconds: 60 },
+      { id: 'ex-desenvolvimento', catalogId: 'desenvolvimento-halteres', name: 'Desenvolvimento com halteres', muscleGroup: 'Ombro', targetSets: 4, targetReps: '8-12', restSeconds: 90 },
+      { id: 'ex-lateral', catalogId: 'elevacao-lateral-halteres', name: 'Elevação lateral', muscleGroup: 'Ombro', targetSets: 3, targetReps: '12-15', restSeconds: 60 },
+      { id: 'ex-triceps', catalogId: 'triceps-polia-barra', name: 'Tríceps na polia', muscleGroup: 'Tríceps', targetSets: 3, targetReps: '10-12', restSeconds: 60 },
     ],
   },
   {
@@ -113,10 +113,10 @@ export const SAMPLE_WORKOUT_PLANS: WorkoutPlan[] = [
     focus: 'Costas e bíceps',
     weekdays: [2, 5],
     exercises: [
-      { id: 'ex-puxada', catalogId: 'Wide-Grip_Lat_Pulldown', name: 'Puxada frontal', muscleGroup: 'Costas', targetSets: 4, targetReps: '8-12', restSeconds: 90 },
-      { id: 'ex-remada', catalogId: 'Seated_Cable_Rows', name: 'Remada baixa', muscleGroup: 'Costas', targetSets: 4, targetReps: '8-12', restSeconds: 90 },
-      { id: 'ex-pulldown', catalogId: 'Rope_Straight-Arm_Pulldown', name: 'Pulldown com corda', muscleGroup: 'Costas', targetSets: 3, targetReps: '12-15', restSeconds: 60 },
-      { id: 'ex-rosca', catalogId: 'Barbell_Curl', name: 'Rosca direta', muscleGroup: 'Bíceps', targetSets: 3, targetReps: '10-12', restSeconds: 60 },
+      { id: 'ex-puxada', catalogId: 'puxada-frontal-aberta', name: 'Puxada frontal', muscleGroup: 'Costas', targetSets: 4, targetReps: '8-12', restSeconds: 90 },
+      { id: 'ex-remada', catalogId: 'remada-baixa-triangulo', name: 'Remada baixa', muscleGroup: 'Costas', targetSets: 4, targetReps: '8-12', restSeconds: 90 },
+      { id: 'ex-pulldown', catalogId: 'pulldown-bracos-estendidos', name: 'Pulldown com corda', muscleGroup: 'Costas', targetSets: 3, targetReps: '12-15', restSeconds: 60 },
+      { id: 'ex-rosca', catalogId: 'rosca-direta-barra', name: 'Rosca direta', muscleGroup: 'Bíceps', targetSets: 3, targetReps: '10-12', restSeconds: 60 },
     ],
   },
   {
@@ -125,11 +125,11 @@ export const SAMPLE_WORKOUT_PLANS: WorkoutPlan[] = [
     focus: 'Pernas e glúteos',
     weekdays: [3, 6],
     exercises: [
-      { id: 'ex-agachamento', catalogId: 'Barbell_Squat', name: 'Agachamento livre', muscleGroup: 'Quadríceps', targetSets: 4, targetReps: '8-10', restSeconds: 120 },
-      { id: 'ex-leg', catalogId: 'Leg_Press', name: 'Leg press 45°', muscleGroup: 'Quadríceps', targetSets: 4, targetReps: '10-12', restSeconds: 90 },
-      { id: 'ex-stiff', catalogId: 'Stiff-Legged_Barbell_Deadlift', name: 'Stiff', muscleGroup: 'Posterior', targetSets: 3, targetReps: '10-12', restSeconds: 90 },
-      { id: 'ex-elevacao', catalogId: 'Barbell_Hip_Thrust', name: 'Elevação pélvica', muscleGroup: 'Glúteos', targetSets: 4, targetReps: '10-12', restSeconds: 90 },
-      { id: 'ex-panturrilha', catalogId: 'Standing_Calf_Raises', name: 'Panturrilha em pé', muscleGroup: 'Panturrilha', targetSets: 4, targetReps: '12-15', restSeconds: 45 },
+      { id: 'ex-agachamento', catalogId: 'agachamento-livre-barra', name: 'Agachamento livre', muscleGroup: 'Quadríceps', targetSets: 4, targetReps: '8-10', restSeconds: 120 },
+      { id: 'ex-leg', catalogId: 'leg-press-45', name: 'Leg press 45°', muscleGroup: 'Quadríceps', targetSets: 4, targetReps: '10-12', restSeconds: 90 },
+      { id: 'ex-stiff', catalogId: 'stiff-barra', name: 'Stiff', muscleGroup: 'Posterior', targetSets: 3, targetReps: '10-12', restSeconds: 90 },
+      { id: 'ex-elevacao', catalogId: 'elevacao-pelvica-barra', name: 'Elevação pélvica', muscleGroup: 'Glúteos', targetSets: 4, targetReps: '10-12', restSeconds: 90 },
+      { id: 'ex-panturrilha', catalogId: 'panturrilha-em-pe-maquina', name: 'Panturrilha em pé', muscleGroup: 'Panturrilha', targetSets: 4, targetReps: '12-15', restSeconds: 45 },
     ],
   },
 ];
