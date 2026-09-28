@@ -18,6 +18,11 @@ export type GlassProps = ViewProps & {
   tint?: readonly [string, string, ...string[]];
   /** Camada entre o vidro e o conteúdo (ex.: a água enchendo o cartão). */
   underlay?: ReactNode;
+  /**
+   * Vidro fosco "limpo": desfoque médio, preenchimento branco de 7%, borda fina
+   * clara e sem os brilhos em degradê. Usado nos cartões da Início.
+   */
+  frost?: boolean;
   /** Estilo do contêiner interno (o que tem o padding). */
   contentStyle?: StyleProp<ViewStyle>;
 };
@@ -33,12 +38,33 @@ export function Glass({
   strong = false,
   tint,
   underlay,
+  frost = false,
   style,
   contentStyle,
   children,
   ...rest
 }: GlassProps) {
   const useBlur = Platform.OS !== 'android';
+
+  if (frost) {
+    return (
+      <View style={[styles.base, styles.frost, { borderRadius: rounded }, style]} {...rest}>
+        {useBlur && <BlurView intensity={FROST_BLUR} tint="dark" style={StyleSheet.absoluteFill} />}
+        <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.frostFill]} />
+        {tint && (
+          <LinearGradient
+            pointerEvents="none"
+            colors={tint}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0.9, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+        )}
+        {underlay}
+        <View style={[!flush && styles.padding, contentStyle]}>{children}</View>
+      </View>
+    );
+  }
 
   return (
     <View
@@ -80,7 +106,17 @@ export function Glass({
   );
 }
 
+/** Desfoque médio do vidro fosco (a escala do expo-blur vai de 0 a 100). */
+const FROST_BLUR = 50;
+
 const styles = StyleSheet.create({
+  frost: {
+    borderColor: colors.frostCardEdge,
+    borderTopColor: colors.frostCardEdgeTop,
+  },
+  frostFill: {
+    backgroundColor: colors.frostCardFill,
+  },
   base: {
     overflow: 'hidden',
     borderWidth: 1,

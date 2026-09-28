@@ -14,6 +14,10 @@ export const colors = {
   glassFillStrong: 'rgba(255,255,255,0.12)',
   glassSubtle: 'rgba(255,255,255,0.035)',
   glassHighlight: 'rgba(255,255,255,0.22)',
+  // Vidro fosco dos cartões da Início: 7% de branco, borda de 14% (22% em cima)
+  frostCardFill: 'rgba(255,255,255,0.07)',
+  frostCardEdge: 'rgba(255,255,255,0.14)',
+  frostCardEdgeTop: 'rgba(255,255,255,0.22)',
   line: 'rgba(255,255,255,0.14)',
   line2: 'rgba(255,255,255,0.24)',
   lineSoft: 'rgba(255,255,255,0.07)',

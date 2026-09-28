@@ -31,6 +31,8 @@ export function WaterTile({ ml, goalMl, onAdd }: Props) {
   const cups = Math.floor(ml / CUP_ML);
   return (
     <Glass
+      frost
+      rounded={26}
       flush
       style={styles.tile}
       contentStyle={styles.content}
