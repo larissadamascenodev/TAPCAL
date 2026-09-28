@@ -64,3 +64,11 @@ Mockup interativo em `v4.html`; `v4.png` mostra as seis telas.
 - **Desfoque do topo ao rolar** é feito com três camadas de desfoque cada vez mais
   fracas + degradê, porque o React Native não tem máscara de desfoque; no
   Android fica só o degradê.
+
+## Adicionar e editar alimento (vidro premium)
+
+- `manual-busca.png` — busca na tabela TACO: selo, título em maiúsculas, campo de vidro, lista com linhas finas, "Digitar à mão" no rodapé.
+- `manual-porcao.png` — porção do alimento escolhido: refeição, cartão de porção, CALORIAS grandes com barrinhas e o botão neon.
+- `manual-digitar.png` — digitar à mão: campos de vidro e prévia ao vivo das calorias e macros.
+- `editar-alimento.png` — editar alimento registrado, na folha de vidro do resultado do scanner.
+- Botão principal (CONTINUAR, SALVAR): pílula de vidro escuro com borda neon (verde neon e menta) girando.

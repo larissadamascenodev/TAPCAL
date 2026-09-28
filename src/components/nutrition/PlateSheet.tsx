@@ -13,7 +13,7 @@ import { Glass } from '@/components/ui/Glass';
 import { Text } from '@/components/ui/Text';
 import { TextField } from '@/components/ui/TextField';
 import { formatInt } from '@/lib/format';
-import { colors, fonts, radius, spacing } from '@/theme/theme';
+import { colors, fonts, spacing } from '@/theme/theme';
 import type { Macros } from '@/types';
 
 import { MacroBars } from './MacroBars';
@@ -84,15 +84,6 @@ export function FoodRow({
       </View>
       <Text style={styles.rowGrams}>{formatInt(grams)} g</Text>
       <Ionicons name="pencil" size={14} color={colors.ink3} />
-    </Pressable>
-  );
-}
-
-/** Botão verde grande do rodapé da folha (CONTINUAR, SALVAR). */
-export function LimeCta({ label, onPress }: { label: string; onPress: () => void }) {
-  return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.cta, pressed && styles.pressed]}>
-      <Text style={styles.ctaText}>{label.toUpperCase()}</Text>
     </Pressable>
   );
 }
@@ -226,21 +217,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 21,
     fontVariant: ['tabular-nums'],
-  },
-  cta: {
-    height: 58,
-    marginTop: spacing.xs,
-    borderRadius: radius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.lime,
-  },
-  ctaText: {
-    fontFamily: fonts.display.bold,
-    fontSize: 15,
-    lineHeight: 20,
-    letterSpacing: 3,
-    color: colors.onLime,
   },
   editRoot: {
     ...StyleSheet.absoluteFill,

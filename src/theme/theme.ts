@@ -71,6 +71,8 @@ export const colors = {
   avatarFill: '#15161A',
   toastFill: 'rgba(30,30,36,0.94)',
   photoScrim: 'rgba(0,0,0,0.35)',
+  // Miolo do botão neon: vidro escuro quase fechado, para a luz aparecer só na borda
+  neonInner: 'rgba(12,12,15,0.9)',
   // Fundo atrás da folha de edição: leve sobre o desfoque; sem desfoque (Android), bem mais fechado
   modalScrim: 'rgba(5,5,6,0.45)',
   modalScrimSolid: 'rgba(5,5,6,0.85)',
@@ -134,6 +136,8 @@ export const gradients = {
   water: ['rgba(87,184,255,0.30)', 'rgba(87,184,255,0.06)'] as const,
   // Base da foto do prato no resultado: escurece até o tom do fundo, sob o vidro
   photoFade: ['rgba(5,5,6,0)', 'rgba(5,5,6,1)'] as const,
+  // Borda do botão neon: verde neon e menta girando em volta do vidro, com um trecho mais fraco
+  neonRing: ['#D1FB39', '#2ED3A0', 'rgba(46,211,160,0.28)', 'rgba(209,251,57,0.28)', '#D1FB39'] as const,
   // Véu sobre a foto desfocada atrás da folha de vidro: fechado no topo (emenda
   // com a foto), depois deixa passar a cor do prato
   ambientVeil: ['rgba(5,5,6,1)', 'rgba(5,5,6,0.72)', 'rgba(5,5,6,0.72)'] as const,

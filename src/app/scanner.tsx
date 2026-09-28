@@ -19,9 +19,9 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { DishTitle, FoodRow, ItemEditSheet, LimeCta, PlateSummary, SheetBadge } from '@/components/nutrition/PlateSheet';
+import { DishTitle, FoodRow, ItemEditSheet, PlateSummary, SheetBadge } from '@/components/nutrition/PlateSheet';
 import { FRAME_SIDE, ScanFrame } from '@/components/scanner/ScanFrame';
-import { Button, ChipGroup, Glass, IconButton, Text, toast } from '@/components/ui';
+import { Button, ChipGroup, Glass, IconButton, NeonButton, Text, toast } from '@/components/ui';
 import { formatInt } from '@/lib/format';
 import { MEAL_OPTIONS, mealByHour, mealShort, parseMeal } from '@/lib/meals';
 import { editScanItem, itemMacros, removeScanItem, scanTotals, toFoodItems, type ScanResult } from '@/lib/scan';
@@ -319,7 +319,7 @@ export default function ScannerScreen() {
             </Pressable>
           </View>
 
-          <LimeCta label="Continuar" onPress={save} />
+          <NeonButton label="Continuar" onPress={save} style={styles.cta} />
         </GlassSheet>
       </ScrollView>
 
@@ -372,6 +372,9 @@ function PhotoHeader({ uri }: { uri: string }) {
 }
 
 const styles = StyleSheet.create({
+  cta: {
+    marginTop: spacing.xs,
+  },
   root: {
     flex: 1,
     backgroundColor: colors.ground,

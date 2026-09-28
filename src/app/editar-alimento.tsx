@@ -5,8 +5,8 @@ import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { SlideInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { DishTitle, FoodRow, ItemEditSheet, LimeCta, PlateSummary, SheetBadge } from '@/components/nutrition/PlateSheet';
-import { ChipGroup, confirmDestructive, Glass, IconButton, toast } from '@/components/ui';
+import { DishTitle, FoodRow, ItemEditSheet, PlateSummary, SheetBadge } from '@/components/nutrition/PlateSheet';
+import { ChipGroup, confirmDestructive, Glass, IconButton, NeonButton, toast } from '@/components/ui';
 import { editFood, parseGrams } from '@/lib/foodEdit';
 import { formatInt } from '@/lib/format';
 import { MEAL_OPTIONS, parseMeal } from '@/lib/meals';
@@ -96,7 +96,7 @@ export default function EditarAlimentoScreen() {
             <FoodRow name={preview.name} kcal={preview.kcal} grams={preview.grams} onPress={() => setEditing(true)} />
           </View>
 
-          <LimeCta label="Salvar" onPress={save} />
+          <NeonButton label="Salvar" onPress={save} style={styles.cta} />
         </Glass>
       </Animated.View>
 
@@ -118,6 +118,9 @@ export default function EditarAlimentoScreen() {
 }
 
 const styles = StyleSheet.create({
+  cta: {
+    marginTop: spacing.xs,
+  },
   root: {
     flex: 1,
     justifyContent: 'flex-end',

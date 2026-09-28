@@ -1,24 +1,27 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { Button, ChipGroup, Sheet, Text, TextField, toast } from '@/components/ui';
-import { validateFoodForm, type FoodFormField, type FoodFormInput } from '@/lib/foodForm';
+import { DishTitle, PlateSummary, SheetBadge } from '@/components/nutrition/PlateSheet';
+import { ChipGroup, GlassModal, NeonButton, Text, TextField, toast } from '@/components/ui';
+import { previewFoodForm, validateFoodForm, type FoodFormField, type FoodFormInput } from '@/lib/foodForm';
 import { formatInt } from '@/lib/format';
+import { goalPlan } from '@/store/selectors';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing } from '@/theme/theme';
 import { MEAL_OPTIONS, mealByHour, mealShort, parseMeal } from '@/lib/meals';
 import type { MealType } from '@/types';
 
-
 const EMPTY: FoodFormInput = { name: '', grams: '', kcal: '', proteinG: '', carbsG: '', fatG: '' };
 
-/** Adicionar alimento à mão (até o scanner e a busca chegarem na fase 4). */
+/** Adicionar alimento à mão: nome, porção, calorias e macros, com prévia ao vivo. */
 export default function AlimentoScreen() {
   const params = useLocalSearchParams<{ refeicao?: string }>();
   const initial = parseMeal(params.refeicao) ?? mealByHour();
 
   const addFood = useAppStore((s) => s.addFood);
+  const state = useAppStore();
+  const dayGoal = useMemo(() => goalPlan(state, state.today.date)?.macros ?? null, [state]);
   const [meal, setMeal] = useState<MealType>(initial);
   const [form, setForm] = useState<FoodFormInput>(EMPTY);
   const [errors, setErrors] = useState<Partial<Record<FoodFormField, string>>>({});
@@ -40,19 +43,13 @@ export default function AlimentoScreen() {
   };
 
   return (
-    <Sheet
-      title="Adicionar alimento"
-      subtitle="Digite o que comeu. A foto e a busca na tabela TACO chegam em breve."
-      footer={
-        <>
-          <Button label="Cancelar" variant="secondary" onPress={() => router.back()} />
-          <Button
-            label={`Salvar no ${mealShort(meal).toLowerCase()}`}
-            onPress={save}
-            style={styles.save}
-          />
-        </>
-      }>
+    <GlassModal
+      badge={<SheetBadge icon="create-outline" label="DIGITAR À MÃO" />}
+      onClose={() => router.back()}
+      footer={<NeonButton label={`Salvar no ${mealShort(meal).toLowerCase()}`} onPress={save} />}>
+      <DishTitle>{form.name.trim() || 'Novo alimento'}</DishTitle>
+      <ChipGroup label="Refeição" options={MEAL_OPTIONS} value={meal} onChange={setMeal} />
+
       <TextField
         label="Alimento"
         placeholder="Ex.: Arroz branco"
@@ -95,11 +92,10 @@ export default function AlimentoScreen() {
         <TextField containerStyle={styles.cell} label="Gordura" unit="g" placeholder="0" keyboardType="decimal-pad" value={form.fatG} onChangeText={set('fatG')} error={errors.fatG} />
       </View>
 
-      <Text variant="label" tone="muted" style={styles.hint}>
-        Refeição
-      </Text>
-      <ChipGroup label="Refeição" options={MEAL_OPTIONS} value={meal} onChange={setMeal} />
-    </Sheet>
+      <View style={styles.preview}>
+        <PlateSummary value={previewFoodForm(form)} goal={dayGoal} />
+      </View>
+    </GlassModal>
   );
 }
 
@@ -114,7 +110,7 @@ const styles = StyleSheet.create({
   hint: {
     marginTop: spacing.xs,
   },
-  save: {
-    flex: 1,
+  preview: {
+    marginTop: spacing.sm,
   },
 });

@@ -1,22 +1,25 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
-import { MacroChips } from '@/components/nutrition/MacroChips';
+import { DishTitle, PlateSummary, SheetBadge } from '@/components/nutrition/PlateSheet';
 import { PortionCard } from '@/components/nutrition/PortionCard';
-import { Button, ChipGroup, Sheet, Text, TextField, toast } from '@/components/ui';
+import { ChipGroup, GlassModal, IconButton, NeonButton, Text, toast } from '@/components/ui';
 import { formatInt } from '@/lib/format';
 import { MEAL_OPTIONS, mealByHour, mealShort, parseMeal } from '@/lib/meals';
 import { displayName, portion, searchTaco, type TacoFood } from '@/lib/taco';
+import { goalPlan } from '@/store/selectors';
 import { useAppStore } from '@/store/useAppStore';
-import { colors, radius, spacing } from '@/theme/theme';
+import { colors, fonts, radius, spacing } from '@/theme/theme';
 import type { MealType } from '@/types';
 
-/** Busca de alimentos na tabela TACO, com porção em gramas. */
+/** Busca de alimentos na tabela TACO e, escolhido o alimento, a porção em gramas. */
 export default function BuscaScreen() {
   const params = useLocalSearchParams<{ refeicao?: string }>();
   const addFood = useAppStore((s) => s.addFood);
+  const state = useAppStore();
+  const dayGoal = useMemo(() => goalPlan(state, state.today.date)?.macros ?? null, [state]);
 
   const [query, setQuery] = useState('');
   const [meal, setMeal] = useState<MealType>(parseMeal(params.refeicao) ?? mealByHour());
@@ -38,58 +41,74 @@ export default function BuscaScreen() {
     router.back();
   };
 
+  const typeIt = () => router.replace({ pathname: '/alimento', params: { refeicao: meal } });
+
+  // ── Porção do alimento escolhido ──────────────────────────────────────────
   if (food && macros) {
     return (
-      <Sheet
-        title={displayName(food.name)}
-        subtitle={`${food.category} · ${formatInt(food.kcal)} kcal por 100 g (TACO)`}
+      <GlassModal
+        badge={<SheetBadge icon="leaf-outline" label="TABELA TACO" />}
+        leading={<IconButton icon="chevron-back" label="Voltar para a busca" size={38} onPress={() => setFood(null)} />}
+        onClose={() => router.back()}
         footer={
-          <>
-            <Button label="Voltar" variant="secondary" onPress={() => setFood(null)} />
-            <Button label={`Salvar no ${mealShort(meal).toLowerCase()}`} onPress={save} disabled={grams <= 0} style={styles.flex} />
-          </>
+          <NeonButton label={`Salvar no ${mealShort(meal).toLowerCase()}`} onPress={save} disabled={grams <= 0} />
         }>
-        <PortionCard grams={grams} onChange={setGrams} />
-
-        <MacroChips value={macros} />
-
-        <Text variant="label" tone="muted" style={styles.gapTop}>
-          Refeição
-        </Text>
+        <View>
+          <DishTitle>{displayName(food.name)}</DishTitle>
+          <Text variant="caption" tone="muted" style={styles.sub}>
+            {food.category} · {formatInt(food.kcal)} kcal por 100 g
+          </Text>
+        </View>
         <ChipGroup label="Refeição" options={MEAL_OPTIONS} value={meal} onChange={setMeal} />
-      </Sheet>
+        <PortionCard grams={grams} onChange={setGrams} />
+        <PlateSummary value={macros} goal={dayGoal} />
+      </GlassModal>
     );
   }
 
+  // ── Busca ─────────────────────────────────────────────────────────────────
+  const q = query.trim();
   return (
-    <Sheet
-      title="Buscar alimento"
-      subtitle="Tabela TACO: quase 600 alimentos brasileiros."
+    <GlassModal
+      badge={<SheetBadge icon="search" label="BUSCAR ALIMENTO" />}
+      onClose={() => router.back()}
       footer={
-        <Button
-          label="Não achou? Digitar à mão"
-          variant="secondary"
-          fullWidth
-          onPress={() => router.replace({ pathname: '/alimento', params: { refeicao: meal } })}
-        />
+        <Pressable accessibilityRole="button" onPress={typeIt} style={({ pressed }) => [styles.manual, pressed && styles.pressed]}>
+          <Ionicons name="create-outline" size={17} color={colors.ink} />
+          <Text style={styles.manualText}>Não achou? Digitar à mão</Text>
+        </Pressable>
       }>
-      <TextField
-        label="Alimento"
-        placeholder="Ex.: feijão, frango, banana"
-        value={query}
-        onChangeText={setQuery}
-        autoFocus
-        autoCorrect={false}
-        returnKeyType="search"
-      />
+      <DishTitle>O que você comeu?</DishTitle>
 
-      {query.trim() && !results.length ? (
-        <Text tone="secondary" style={styles.empty}>
-          Nada encontrado para “{query.trim()}”. Tente outra palavra ou digite à mão.
+      <View style={styles.search}>
+        <Ionicons name="search" size={18} color={colors.ink3} />
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Ex.: feijão, frango, banana"
+          placeholderTextColor={colors.ink3}
+          selectionColor={colors.lime2}
+          keyboardAppearance="dark"
+          autoFocus
+          autoCorrect={false}
+          returnKeyType="search"
+          accessibilityLabel="Alimento"
+          style={styles.searchInput}
+        />
+        {query ? <IconButton icon="close" label="Limpar busca" size={28} onPress={() => setQuery('')} /> : null}
+      </View>
+
+      {!q ? (
+        <Text variant="caption" tone="muted" style={styles.hint}>
+          Quase 600 alimentos da tabela TACO, com calorias e macros por 100 g.
+        </Text>
+      ) : !results.length ? (
+        <Text tone="secondary" style={styles.hint}>
+          Nada encontrado para “{q}”. Tente outra palavra ou digite à mão.
         </Text>
       ) : null}
 
-      <View style={styles.list}>
+      <View>
         {results.map((f) => (
           <Pressable
             key={f.id}
@@ -98,21 +117,23 @@ export default function BuscaScreen() {
             onPress={() => pick(f)}
             style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
             <View style={styles.flex}>
-              <Text variant="bodyStrong" style={styles.rowName}>
-                {displayName(f.name)}
-              </Text>
+              <Text style={styles.rowName}>{displayName(f.name)}</Text>
               <Text variant="caption" tone="muted">
                 {f.category}
               </Text>
             </View>
-            <Text variant="caption" tone="secondary">
-              {formatInt(f.kcal)} kcal
+            <Text style={styles.rowKcal}>
+              {formatInt(f.kcal)}
+              <Text variant="caption" tone="muted">
+                {' '}
+                kcal
+              </Text>
             </Text>
             <Ionicons name="chevron-forward" size={16} color={colors.ink3} />
           </Pressable>
         ))}
       </View>
-    </Sheet>
+    </GlassModal>
   );
 }
 
@@ -120,32 +141,68 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
   },
-  list: {
-    gap: 6,
+  sub: {
+    marginTop: 4,
+  },
+  search: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    height: 54,
+    paddingLeft: 16,
+    paddingRight: 10,
+    borderRadius: radius.pill,
+    backgroundColor: colors.glassFill,
+    borderWidth: 1,
+    borderColor: colors.frostCardEdge,
+    borderTopColor: colors.frostCardEdgeTop,
+  },
+  searchInput: {
+    flex: 1,
+    minWidth: 0,
+    height: '100%',
+    color: colors.ink,
+    fontFamily: fonts.body.semibold,
+    fontSize: 16,
+  },
+  hint: {
+    marginTop: spacing.xs,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    paddingVertical: 10,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.lg - 2,
-    backgroundColor: colors.glassSubtle,
-    borderWidth: 1,
-    borderColor: colors.lineSoft,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.hairline,
   },
   rowName: {
-    fontSize: 14,
-    lineHeight: 19,
+    fontFamily: fonts.body.semibold,
+    fontSize: 15.5,
+    lineHeight: 20,
   },
-  empty: {
-    textAlign: 'center',
-    marginTop: spacing.md,
+  rowKcal: {
+    fontFamily: fonts.display.semibold,
+    fontSize: 15,
+    fontVariant: ['tabular-nums'],
+  },
+  manual: {
+    height: 54,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderRadius: radius.pill,
+    backgroundColor: colors.glassFill,
+    borderWidth: 1,
+    borderColor: colors.frostCardEdge,
+    borderTopColor: colors.frostCardEdgeTop,
+  },
+  manualText: {
+    fontFamily: fonts.body.bold,
+    fontSize: 15,
   },
   pressed: {
-    opacity: 0.6,
-  },
-  gapTop: {
-    marginTop: spacing.xs,
+    opacity: 0.7,
   },
 });

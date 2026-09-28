@@ -3,7 +3,7 @@
  * Recebe o texto dos campos e devolve o alimento pronto ou os erros por campo.
  */
 
-import type { FoodSource } from '@/types';
+import type { FoodSource, Macros } from '@/types';
 
 export type FoodFormInput = {
   name: string;
@@ -75,5 +75,22 @@ export function validateFoodForm(input: FoodFormInput): FoodFormResult {
       fatG: Math.round(macros.fatG * 10) / 10,
       source: 'manual',
     },
+  };
+}
+
+/**
+ * Prévia ao vivo do que já foi digitado (calorias e macros), para a tela mostrar
+ * enquanto a pessoa preenche. Campo vazio ou inválido conta como 0.
+ */
+export function previewFoodForm(input: FoodFormInput): Macros {
+  const val = (text: string) => {
+    const n = num(text);
+    return n == null || Number.isNaN(n) || n < 0 ? 0 : n;
+  };
+  return {
+    kcal: Math.round(val(input.kcal)),
+    proteinG: val(input.proteinG),
+    carbsG: val(input.carbsG),
+    fatG: val(input.fatG),
   };
 }

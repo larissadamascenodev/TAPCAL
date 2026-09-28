@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { validateFoodForm } from '@/lib/foodForm';
+import { previewFoodForm, validateFoodForm } from '@/lib/foodForm';
 
 const base = { name: 'Pão de queijo', grams: '50', kcal: '180', proteinG: '', carbsG: '', fatG: '' };
 
@@ -31,5 +31,17 @@ describe('cadastro manual de alimento', () => {
       kcal: 'Calorias inválidas',
       fatG: 'Valor inválido',
     });
+  });
+});
+
+describe('prévia do cadastro manual', () => {
+  it('mostra o que já foi digitado; vazio ou inválido vira 0', () => {
+    expect(previewFoodForm({ ...base, proteinG: '12,5', carbsG: 'abc', fatG: '-2' })).toEqual({
+      kcal: 180,
+      proteinG: 12.5,
+      carbsG: 0,
+      fatG: 0,
+    });
+    expect(previewFoodForm({ name: '', grams: '', kcal: '', proteinG: '', carbsG: '', fatG: '' }).kcal).toBe(0);
   });
 });
