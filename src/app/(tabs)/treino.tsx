@@ -1,148 +1,256 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { DateStrip } from '@/components/home/DateStrip';
 import { TabPage } from '@/components/navigation/TabPage';
-import { Button, EmptyState, Glass, IconButton, SectionHeader, Text } from '@/components/ui';
+import { EmptyState, Glass, NeonButton, SectionHeader, Text } from '@/components/ui';
 import { StatTile } from '@/components/ui/StatTile';
-import { ExerciseRow } from '@/components/workout/ExerciseRow';
-import { WeekSplit } from '@/components/workout/WeekSplit';
-import { addDays } from '@/lib/dates';
-import { formatTons } from '@/lib/format';
+import { ExerciseAnim } from '@/components/workout/ExerciseAnim';
+import { daysBetween, fromDateKey } from '@/lib/dates';
+import { formatDayMonth, formatInt, formatTons, WEEKDAY_SHORT } from '@/lib/format';
 import {
   estimatedMinutes,
-  isFreshRecord,
-  lastWeightFor,
+  finishedSessions,
   planForDate,
+  sessionMinutes,
+  sessionVolume,
+  upcomingPlans,
   weekStats,
+  recentVolumeByDay,
 } from '@/lib/workout';
 import { useAppStore } from '@/store/useAppStore';
-import { colors, fonts, gradients, spacing } from '@/theme/theme';
-import type { WorkoutPlan } from '@/types';
+import { colors, fonts, gradients, radius, spacing } from '@/theme/theme';
+import type { DateKey, WorkoutPlan } from '@/types';
 
-/** Próximo treino a partir de amanhã (para os dias de descanso). */
-function nextPlan(plans: WorkoutPlan[], today: string): { plan: WorkoutPlan; inDays: number } | null {
-  for (let i = 1; i <= 7; i++) {
-    const plan = planForDate(plans, addDays(today, i));
-    if (plan) return { plan, inDays: i };
-  }
-  return null;
+/** "Hoje", "Amanhã" ou "Qui, 02/10". */
+function dayLabel(date: DateKey, today: DateKey): string {
+  const diff = daysBetween(today, date);
+  if (diff === 0) return 'Hoje';
+  if (diff === 1) return 'Amanhã';
+  if (diff === -1) return 'Ontem';
+  const wd = WEEKDAY_SHORT[fromDateKey(date).getDay()];
+  return `${wd.charAt(0)}${wd.slice(1).toLowerCase()}, ${formatDayMonth(date)}`;
 }
 
+/**
+ * Central de treino: calendário, o treino do dia em destaque, atalhos (novo
+ * treino, biblioteca, aeróbico), a divisão da semana, números da semana,
+ * próximos treinos e os concluídos.
+ */
 export default function TreinoScreen() {
   const { today: day, workoutPlans, sessions, activeSession, startSession } = useAppStore();
   const today = day.date;
+  const [date, setDate] = useState(today);
+  const shown = date > today && daysBetween(today, date) > 30 ? today : date;
+
+  const plan = planForDate(workoutPlans, shown);
+  const sessionOfDay = sessions.find((s) => s.date === shown && s.finishedAt);
+  const activePlan = activeSession ? workoutPlans.find((p) => p.id === activeSession.planId) : null;
+  const stats = useMemo(() => weekStats(sessions, workoutPlans, today), [sessions, workoutPlans, today]);
+  const volume = useMemo(() => recentVolumeByDay(sessions, today), [sessions, today]);
+  const upcoming = useMemo(() => upcomingPlans(workoutPlans, today, 3), [workoutPlans, today]);
+  const done = useMemo(() => finishedSessions(sessions, 5), [sessions]);
+  const maxVol = Math.max(1, ...volume.map((v) => v.volumeKg));
+
+  const start = (p: WorkoutPlan) => {
+    startSession(p.id);
+    router.push('/treino-sessao');
+  };
+
+  const actions = (
+    <View style={styles.actions}>
+      <Action icon="add" label="Novo treino" onPress={() => router.push('/treino-novo')} />
+      <Action icon="library-outline" label="Exercícios" onPress={() => router.push('/exercicios')} />
+      <Action icon="bicycle-outline" label="Aeróbico" soon onPress={() => router.push({ pathname: '/em-breve', params: { secao: 'aerobico' } })} />
+    </View>
+  );
 
   if (!workoutPlans.length) {
     return (
       <TabPage>
-        <Text style={styles.h1}>Treino</Text>
-        <EmptyState icon="barbell-outline" title="Nenhum treino montado" message="Monte sua divisão da semana para começar." />
+        <EmptyState
+          icon="barbell-outline"
+          title="Monte seu treino"
+          message="Escolha os dias, a divisão e os exercícios, ou deixe a IA montar para você."
+        />
+        {actions}
       </TabPage>
     );
   }
 
-  const todayPlan = planForDate(workoutPlans, today);
-  const doneToday = sessions.some((s) => s.date === today);
-  const upcoming = todayPlan ? null : nextPlan(workoutPlans, today);
-  const shown = todayPlan ?? upcoming?.plan ?? null;
-  const stats = weekStats(sessions, workoutPlans, today);
-  const activePlan = activeSession ? workoutPlans.find((p) => p.id === activeSession.planId) : null;
-
-  const start = (plan: WorkoutPlan) => {
-    startSession(plan.id);
-    router.push('/treino-sessao');
-  };
-
   return (
     <TabPage>
-      <View style={styles.header}>
-        <Text style={styles.h1}>Treino</Text>
-        <IconButton
-          icon="time-outline"
-          label="Histórico"
-          onPress={() => router.push({ pathname: '/em-breve', params: { secao: 'historico' } })}
-        />
-      </View>
+      <DateStrip today={today} past={6} future={13} selected={shown} onSelect={setDate} />
 
-      <WeekSplit today={today} plans={workoutPlans} sessions={sessions} />
-
+      {/* Treino do dia escolhido, em destaque */}
       <Glass flush tint={gradients.workoutHero} contentStyle={styles.hero}>
-        <Ionicons name="barbell" size={120} color={colors.lineSoft} style={styles.heroArt} />
-        {activeSession && activePlan ? (
+        {activeSession && activePlan && shown === today ? (
           <>
-            <Text variant="label" tone="muted">
-              Em andamento
-            </Text>
+            <Text style={styles.kicker}>EM ANDAMENTO · {activePlan.name.toUpperCase()}</Text>
             <Text style={styles.heroTitle}>{activePlan.focus}</Text>
-            <Button label="Continuar treino" icon={<Ionicons name="play" size={12} color={colors.onLime} />} onPress={() => router.push('/treino-sessao')} style={styles.heroBtn} size="md" />
+            <NeonButton label="Continuar treino" onPress={() => router.push('/treino-sessao')} style={styles.heroBtn} />
           </>
-        ) : todayPlan ? (
+        ) : plan ? (
           <>
-            <Text variant="label" tone="muted">
-              Hoje · {todayPlan.name}
+            <Text style={styles.kicker}>
+              {dayLabel(shown, today).toUpperCase()} · {plan.name.toUpperCase()}
             </Text>
-            <Text style={styles.heroTitle}>{todayPlan.focus}</Text>
+            <Text style={styles.heroTitle}>{plan.focus}</Text>
             <View style={styles.tags}>
-              <Tag text={`${todayPlan.exercises.length} exercícios`} />
-              <Tag text={`~${estimatedMinutes(todayPlan)} min`} />
+              <Tag text={`${plan.exercises.length} exercícios`} />
+              <Tag text={`~${estimatedMinutes(plan)} min`} />
             </View>
-            {doneToday ? (
+            <View style={styles.thumbs}>
+              {plan.exercises.slice(0, 5).map((e) =>
+                e.catalogId ? <ExerciseAnim key={e.id} id={e.catalogId} still style={styles.heroThumb} /> : null,
+              )}
+            </View>
+            {sessionOfDay ? (
               <View style={styles.doneRow}>
                 <Ionicons name="checkmark-circle" size={18} color={colors.ok} />
                 <Text variant="bodyStrong" style={{ color: colors.ok }}>
-                  Treino de hoje concluído
+                  Concluído · {sessionMinutes(sessionOfDay)} min · {formatTons(sessionVolume(sessionOfDay))} t
                 </Text>
               </View>
+            ) : shown === today ? (
+              <NeonButton label="Começar treino" onPress={() => start(plan)} style={styles.heroBtn} />
+            ) : shown > today ? (
+              <Text tone="secondary" style={styles.heroNote}>
+                Planejado
+              </Text>
             ) : (
-              <Button
-                label="Começar treino"
-                icon={<Ionicons name="play" size={12} color={colors.onLime} />}
-                onPress={() => start(todayPlan)}
-                style={styles.heroBtn}
-                size="md"
-              />
+              <Text tone="secondary" style={styles.heroNote}>
+                Não registrado
+              </Text>
             )}
           </>
         ) : (
           <>
-            <Text variant="label" tone="muted">
-              Hoje · descanso
-            </Text>
+            <Text style={styles.kicker}>{dayLabel(shown, today).toUpperCase()} · DESCANSO</Text>
             <Text style={styles.heroTitle}>Dia de recuperar</Text>
-            {upcoming && (
+            {upcoming[0] && (
               <Text tone="secondary" style={styles.heroNote}>
-                {upcoming.inDays === 1 ? 'Amanhã' : `Em ${upcoming.inDays} dias`}: {upcoming.plan.focus.toLowerCase()}
+                Próximo: {dayLabel(upcoming[0].date, today).toLowerCase()} · {upcoming[0].plan.focus.toLowerCase()}
               </Text>
             )}
           </>
         )}
       </Glass>
 
+      {actions}
+
+      {/* Divisão da semana */}
+      <SectionHeader title="Sua divisão" action="Refazer" onAction={() => router.push('/treino-novo')} />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.splitRow}>
+        {workoutPlans.map((p) => (
+          <Glass key={p.id} contentStyle={styles.splitCard} style={styles.splitWrap}>
+            <Text style={styles.splitLetter}>{p.name.replace('Treino ', '')}</Text>
+            <Text style={styles.splitFocus} numberOfLines={2}>
+              {p.focus}
+            </Text>
+            <Text variant="caption" tone="muted">
+              {p.weekdays.map((d) => WEEKDAY_SHORT[d]).join(' · ')}
+            </Text>
+            <Text variant="caption" tone="muted">
+              {p.exercises.length} exercícios
+            </Text>
+          </Glass>
+        ))}
+      </ScrollView>
+
+      {/* Números da semana */}
+      <SectionHeader title="Esta semana" />
       <View style={styles.stats}>
-        <StatTile label="Esta semana" value={`${stats.done} / ${stats.planned}`} />
+        <StatTile label="Treinos" value={`${stats.done} / ${stats.planned}`} />
         <StatTile label="Volume" value={`${formatTons(stats.volumeKg)} t`} />
         <StatTile label="Recordes" value={String(stats.records)} />
       </View>
+      <Glass contentStyle={styles.chart}>
+        <Text variant="caption" tone="secondary" style={styles.chartTitle}>
+          Volume nos últimos 7 dias (kg × repetições)
+        </Text>
+        <View style={styles.bars}>
+          {volume.map((v) => {
+            const isToday = v.date === today;
+            return (
+              <View key={v.date} style={styles.barCol} accessible accessibilityLabel={`${WEEKDAY_SHORT[fromDateKey(v.date).getDay()]}: ${formatInt(v.volumeKg)} kg`}>
+                <View style={styles.barTrack}>
+                  <View
+                    style={[
+                      styles.barFill,
+                      { height: `${Math.max(v.volumeKg ? 6 : 0, (v.volumeKg / maxVol) * 100)}%` },
+                      isToday && styles.barToday,
+                    ]}
+                  />
+                </View>
+                <Text style={[styles.barLabel, isToday && { color: colors.ink }]}>
+                  {WEEKDAY_SHORT[fromDateKey(v.date).getDay()].charAt(0)}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+      </Glass>
 
-      {shown && (
+      {/* Próximos */}
+      {upcoming.length > 0 && (
         <>
-          <SectionHeader
-            title={todayPlan ? 'Exercícios de hoje' : 'Próximo treino'}
-            aside={shown.name}
-          />
-          <View style={styles.list}>
-            {shown.exercises.map((ex, i) => (
-              <ExerciseRow
-                key={ex.id}
-                index={i}
-                exercise={ex}
-                lastWeightKg={lastWeightFor(sessions, ex.id)}
-                freshRecord={isFreshRecord(sessions, ex.id)}
-              />
+          <SectionHeader title="Próximos treinos" />
+          <View>
+            {upcoming.map((u) => (
+              <Pressable
+                key={u.date}
+                accessibilityRole="button"
+                onPress={() => setDate(u.date)}
+                style={({ pressed }) => [styles.listRow, pressed && styles.pressed]}>
+                <View style={styles.dateBox}>
+                  <Text style={styles.dateBoxDay}>{WEEKDAY_SHORT[fromDateKey(u.date).getDay()]}</Text>
+                  <Text style={styles.dateBoxNum}>{u.date.slice(8)}</Text>
+                </View>
+                <View style={styles.flex}>
+                  <Text style={styles.listTitle}>{u.plan.focus}</Text>
+                  <Text variant="caption" tone="muted">
+                    {dayLabel(u.date, today)} · {u.plan.name} · {u.plan.exercises.length} exercícios
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={colors.ink3} />
+              </Pressable>
             ))}
           </View>
         </>
+      )}
+
+      {/* Concluídos */}
+      <SectionHeader title="Concluídos" />
+      {done.length ? (
+        <View>
+          {done.map((s) => {
+            const p = workoutPlans.find((x) => x.id === s.planId);
+            return (
+              <Pressable
+                key={s.id}
+                accessibilityRole="button"
+                onPress={() => setDate(s.date)}
+                style={({ pressed }) => [styles.listRow, pressed && styles.pressed]}>
+                <View style={[styles.dateBox, styles.dateBoxDone]}>
+                  <Ionicons name="checkmark" size={18} color={colors.ok} />
+                </View>
+                <View style={styles.flex}>
+                  <Text style={styles.listTitle}>{p?.focus ?? 'Treino'}</Text>
+                  <Text variant="caption" tone="muted">
+                    {dayLabel(s.date, today)} · {sessionMinutes(s)} min · {s.sets.length} séries · {formatTons(sessionVolume(s))} t
+                  </Text>
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : (
+        <Text variant="caption" tone="muted">
+          Os treinos terminados aparecem aqui.
+        </Text>
       )}
     </TabPage>
   );
@@ -158,39 +266,57 @@ function Tag({ text }: { text: string }) {
   );
 }
 
+function Action({
+  icon,
+  label,
+  soon,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  soon?: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={styles.actionWrap}>
+      {({ pressed }) => (
+        <Glass contentStyle={styles.action} style={pressed && styles.pressed}>
+          <View style={styles.actionIcon}>
+            <Ionicons name={icon} size={20} color={colors.lime} />
+          </View>
+          <Text style={styles.actionText}>{label}</Text>
+          {soon && <Text style={styles.soon}>EM BREVE</Text>}
+        </Glass>
+      )}
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: spacing.md,
-  },
-  h1: {
-    fontFamily: fonts.display.semibold,
-    fontSize: 30,
-    lineHeight: 36,
-    letterSpacing: -1,
+  flex: {
+    flex: 1,
+    minWidth: 0,
   },
   hero: {
     padding: 18,
-    minHeight: 196,
+    minHeight: 210,
   },
-  heroArt: {
-    position: 'absolute',
-    right: -10,
-    bottom: -18,
-    transform: [{ rotate: '-20deg' }],
+  kicker: {
+    fontFamily: fonts.body.bold,
+    fontSize: 11.5,
+    letterSpacing: 1.8,
+    color: colors.lime,
   },
   heroTitle: {
     marginTop: spacing.sm,
-    maxWidth: '75%',
+    maxWidth: '85%',
     fontFamily: fonts.display.bold,
-    fontSize: 30,
+    fontSize: 28,
     lineHeight: 32,
-    letterSpacing: -1.2,
+    letterSpacing: -1,
   },
   heroNote: {
-    marginTop: spacing.sm,
+    marginTop: spacing.md,
   },
   tags: {
     flexDirection: 'row',
@@ -211,9 +337,18 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body.bold,
     fontSize: 11,
   },
+  thumbs: {
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: spacing.md,
+  },
+  heroThumb: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+  },
   heroBtn: {
     marginTop: spacing.lg,
-    height: 48,
   },
   doneRow: {
     flexDirection: 'row',
@@ -221,11 +356,144 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginTop: spacing.lg,
   },
+  actions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  actionWrap: {
+    flex: 1,
+  },
+  action: {
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: 6,
+  },
+  actionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.limeWash,
+    borderWidth: 1,
+    borderColor: colors.limeEdge,
+  },
+  actionText: {
+    fontFamily: fonts.body.bold,
+    fontSize: 13,
+  },
+  soon: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    fontFamily: fonts.body.bold,
+    fontSize: 8.5,
+    letterSpacing: 1,
+    color: colors.lime,
+  },
+  splitRow: {
+    gap: spacing.sm,
+  },
+  splitWrap: {
+    width: 150,
+  },
+  splitCard: {
+    gap: 4,
+    minHeight: 150,
+  },
+  splitLetter: {
+    fontFamily: fonts.display.bold,
+    fontSize: 34,
+    lineHeight: 38,
+    color: colors.lime,
+  },
+  splitFocus: {
+    fontFamily: fonts.body.bold,
+    fontSize: 14,
+    lineHeight: 18,
+    marginBottom: 4,
+  },
   stats: {
     flexDirection: 'row',
     gap: spacing.sm,
   },
-  list: {
-    gap: spacing.sm,
+  chart: {
+    gap: spacing.md,
+  },
+  chartTitle: {
+    fontFamily: fonts.body.semibold,
+  },
+  bars: {
+    flexDirection: 'row',
+    height: 110,
+    gap: 10,
+  },
+  barCol: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 6,
+  },
+  barTrack: {
+    flex: 1,
+    width: '100%',
+    justifyContent: 'flex-end',
+    borderRadius: radius.sm,
+    backgroundColor: colors.track,
+    overflow: 'hidden',
+  },
+  barFill: {
+    width: '100%',
+    borderRadius: radius.sm,
+    backgroundColor: colors.mint,
+  },
+  barToday: {
+    backgroundColor: colors.lime,
+  },
+  barLabel: {
+    fontFamily: fonts.body.bold,
+    fontSize: 11,
+    color: colors.ink3,
+  },
+  listRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.hairline,
+  },
+  dateBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.glassFill,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  dateBoxDone: {
+    backgroundColor: colors.okTint,
+    borderColor: 'transparent',
+  },
+  dateBoxDay: {
+    fontFamily: fonts.body.bold,
+    fontSize: 9.5,
+    letterSpacing: 1,
+    color: colors.ink3,
+  },
+  dateBoxNum: {
+    fontFamily: fonts.display.semibold,
+    fontSize: 17,
+    lineHeight: 20,
+  },
+  listTitle: {
+    fontFamily: fonts.body.bold,
+    fontSize: 15,
+    lineHeight: 20,
+  },
+  pressed: {
+    opacity: 0.75,
   },
 });

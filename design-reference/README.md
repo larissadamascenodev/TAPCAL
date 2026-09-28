@@ -73,3 +73,11 @@ Mockup interativo em `v4.html`; `v4.png` mostra as seis telas.
 - `manual-digitar-ia.png` — valores prontos (da tabela ou estimados pela IA), com "Trocar", porção e resumo.
 - `editar-alimento.png` — editar alimento registrado, na folha de vidro do resultado do scanner.
 - Botão principal (CONTINUAR, SALVAR): pílula de vidro escuro com borda neon (verde neon e menta) girando.
+
+## Treino (etapa 1: central, treino personalizado e biblioteca)
+
+- `treino-central.png` — calendário normal, treino do dia em destaque (miniaturas dos exercícios e botão neon), atalhos Novo treino / Exercícios / Aeróbico, divisão da semana (A, B, C…).
+- `treino-semana.png` — números da semana, volume dos últimos 7 dias, próximos treinos e concluídos.
+- `treino-biblioteca.png` — biblioteca com busca, mapa do corpo (frente/costas) e filtros por músculo.
+- `treino-exercicio.png` — detalhe do exercício com a animação (fotos de início e fim alternando).
+- `treino-novo-dias.png` / `treino-novo-revisao.png` — criar treino personalizado: dias → divisão → foco → revisão com os exercícios de cada treino.

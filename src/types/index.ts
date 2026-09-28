@@ -80,6 +80,8 @@ export type DayLog = {
 
 export type Exercise = {
   id: string;
+  /** Exercício da biblioteca (para mostrar a animação). Treinos antigos não têm. */
+  catalogId?: string;
   name: string;
   muscleGroup: string;
   targetSets: number;

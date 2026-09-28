@@ -153,3 +153,44 @@ export function sessionsThisMonth(sessions: readonly WorkoutSession[], today: Da
   const month = today.slice(0, 7);
   return sessions.filter((s) => s.date.startsWith(month) && s.finishedAt).length;
 }
+
+/** Próximos dias com treino, a partir de amanhã (até `count`, olhando 3 semanas). */
+export function upcomingPlans(
+  plans: readonly WorkoutPlan[],
+  today: DateKey,
+  count = 3,
+): { date: DateKey; plan: WorkoutPlan }[] {
+  const out: { date: DateKey; plan: WorkoutPlan }[] = [];
+  for (let i = 1; i <= 21 && out.length < count; i++) {
+    const date = addDays(today, i);
+    const plan = planForDate(plans, date);
+    if (plan) out.push({ date, plan });
+  }
+  return out;
+}
+
+/** Treinos terminados, do mais recente para o mais antigo. */
+export function finishedSessions(sessions: readonly WorkoutSession[], count = 5): WorkoutSession[] {
+  return sessions
+    .filter((s) => s.finishedAt)
+    .sort((a, b) => (b.finishedAt ?? '').localeCompare(a.finishedAt ?? ''))
+    .slice(0, count);
+}
+
+/** Duração do treino em minutos (0 se não terminou). */
+export function sessionMinutes(session: WorkoutSession): number {
+  if (!session.finishedAt) return 0;
+  return Math.max(0, Math.round((Date.parse(session.finishedAt) - Date.parse(session.startedAt)) / 60_000));
+}
+
+/** Volume (kg × repetições) de cada um dos últimos `days` dias, terminando hoje. */
+export function recentVolumeByDay(
+  sessions: readonly WorkoutSession[],
+  today: DateKey,
+  days = 7,
+): { date: DateKey; volumeKg: number }[] {
+  return Array.from({ length: days }, (_, i) => addDays(today, i - days + 1)).map((date) => ({
+    date,
+    volumeKg: sessions.filter((s) => s.date === date).reduce((sum, s) => sum + sessionVolume(s), 0),
+  }));
+}

@@ -4,17 +4,21 @@ import { SAMPLE_WORKOUT_PLANS } from '@/data/sample';
 import {
   beatsRecord,
   estimatedMinutes,
+  finishedSessions,
   isFreshRecord,
   lastWeightFor,
   nextExerciseIndex,
   personalRecord,
   planForDate,
+  sessionMinutes,
   sessionVolume,
   shortFocus,
   startOfWeek,
+  upcomingPlans,
   weekStats,
+  recentVolumeByDay,
 } from '@/lib/workout';
-import type { WorkoutSession } from '@/types';
+import type { WorkoutPlan, WorkoutSession } from '@/types';
 
 type Spec = [exerciseId: string, weightKg: number, reps: number];
 
@@ -131,5 +135,42 @@ describe('treino em andamento', () => {
   it('estima a duração em múltiplos de 5 min', () => {
     expect(estimatedMinutes(plan) % 5).toBe(0);
     expect(estimatedMinutes(plan)).toBeGreaterThan(20);
+  });
+});
+
+describe('tela de treino', () => {
+  const plans: WorkoutPlan[] = [
+    { id: 'a', name: 'Treino A', focus: 'Peito', weekdays: [1, 4], exercises: [] },
+    { id: 'b', name: 'Treino B', focus: 'Costas', weekdays: [2], exercises: [] },
+  ];
+  const set = (w: number, r: number) => ({ id: `${w}${r}`, exerciseId: 'x', weightKg: w, reps: r, completedAt: '2026-09-28T10:00:00.000Z' });
+
+  it('próximos treinos a partir de amanhã', () => {
+    // 2026-09-28 é segunda
+    const next = upcomingPlans(plans, '2026-09-28', 3);
+    expect(next.map((n) => [n.date, n.plan.id])).toEqual([
+      ['2026-09-29', 'b'],
+      ['2026-10-01', 'a'],
+      ['2026-10-05', 'a'],
+    ]);
+  });
+
+  it('concluídos do mais recente, com duração', () => {
+    const s1 = { id: '1', planId: 'a', date: '2026-09-21', startedAt: '2026-09-21T10:00:00.000Z', finishedAt: '2026-09-21T10:52:00.000Z', sets: [] };
+    const s2 = { id: '2', planId: 'b', date: '2026-09-22', startedAt: '2026-09-22T10:00:00.000Z', finishedAt: '2026-09-22T11:05:00.000Z', sets: [] };
+    const open = { id: '3', planId: 'a', date: '2026-09-28', startedAt: '2026-09-28T10:00:00.000Z', finishedAt: null, sets: [] };
+    expect(finishedSessions([s1, open, s2]).map((s) => s.id)).toEqual(['2', '1']);
+    expect(sessionMinutes(s1)).toBe(52);
+    expect(sessionMinutes(open)).toBe(0);
+  });
+
+  it('volume dos últimos 7 dias, terminando hoje', () => {
+    const s = { id: '1', planId: 'a', date: '2026-09-28', startedAt: '', finishedAt: null, sets: [set(50, 10), set(50, 8)] };
+    const days = recentVolumeByDay([s], '2026-09-30');
+    expect(days).toHaveLength(7);
+    expect(days[0].date).toBe('2026-09-24');
+    expect(days[6].date).toBe('2026-09-30');
+    expect(days.find((d) => d.date === '2026-09-28')?.volumeKg).toBe(900);
+    expect(days.reduce((sum, d) => sum + d.volumeKg, 0)).toBe(900);
   });
 });

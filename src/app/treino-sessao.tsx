@@ -13,6 +13,7 @@ import {
   Text,
   toast,
 } from '@/components/ui';
+import { ExerciseAnim } from '@/components/workout/ExerciseAnim';
 import { formatDecimal, formatDuration } from '@/lib/format';
 import {
   beatsRecord,
@@ -148,6 +149,8 @@ export default function TreinoSessaoScreen() {
         </Text>
         <Text style={styles.exName}>{exercise.name}</Text>
       </View>
+
+      {exercise.catalogId && <ExerciseAnim key={exercise.catalogId} id={exercise.catalogId} style={styles.anim} />}
 
       <Glass flush contentStyle={styles.stage}>
         <Info
@@ -307,6 +310,11 @@ const styles = StyleSheet.create({
   titleBlock: {
     marginTop: spacing.sm,
     gap: 6,
+  },
+  anim: {
+    width: '100%',
+    aspectRatio: 16 / 10,
+    borderRadius: radius.xl,
   },
   exName: {
     fontFamily: fonts.display.bold,

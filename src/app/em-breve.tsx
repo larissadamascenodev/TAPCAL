@@ -20,6 +20,12 @@ const SECTIONS: Record<string, Section> = {
     description: 'Todos os treinos feitos, com cargas, volume e a evolução de cada exercício.',
     when: 'Em breve',
   },
+  aerobico: {
+    title: 'Aeróbico e corrida',
+    icon: 'bicycle-outline',
+    description: 'Esteira, bicicleta, elíptico e os outros aparelhos, e corrida com GPS mostrando o trajeto no mapa.',
+    when: 'Próxima etapa',
+  },
   jornada: {
     title: 'Jornada',
     icon: 'images-outline',
