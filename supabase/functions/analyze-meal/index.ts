@@ -52,10 +52,15 @@ function allowedKeys(): string[] {
 /** Nomes que aceitamos para a chave do Gemini, em ordem de preferência. */
 const GEMINI_KEY_NAMES = ['GEMINI_API_KEY', 'GOOGLE_API_KEY', 'GEMINI_KEY', 'GOOGLE_GENERATIVE_AI_API_KEY', 'GOOGLE_AI_API_KEY'];
 
-/** Procura a chave do Gemini pelos nomes comuns, sem diferenciar maiúsculas e ignorando espaços. */
+/** "Gemini API Key", "gemini-api-key" e "GEMINI_API_KEY" viram o mesmo nome. */
+function normalizeName(name: string): string {
+  return name.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_');
+}
+
+/** Procura a chave do Gemini pelos nomes comuns, sem diferenciar maiúsculas, espaços ou hífens. */
 function geminiApiKey(): string | undefined {
   const env = Deno.env.toObject();
-  const byName = new Map(Object.entries(env).map(([k, v]) => [k.trim().toUpperCase(), v]));
+  const byName = new Map(Object.entries(env).map(([k, v]) => [normalizeName(k), v]));
   for (const name of GEMINI_KEY_NAMES) {
     const value = byName.get(name)?.trim();
     if (value) return value;
