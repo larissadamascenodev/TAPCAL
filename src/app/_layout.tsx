@@ -72,6 +72,7 @@ export default function RootLayout() {
           <Stack.Screen name="em-breve" options={{ presentation: 'modal' }} />
           <Stack.Screen name="busca" options={{ presentation: 'modal' }} />
           <Stack.Screen name="scanner" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
+          <Stack.Screen name="atalho/[acao]" options={{ animation: 'none' }} />
         </Stack>
         <ToastHost />
       </WebFrame>
