@@ -1,5 +1,3 @@
-import { BlurView } from 'expo-blur';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Platform, StyleSheet, View } from 'react-native';
 import Animated, { useReducedMotion } from 'react-native-reanimated';
 import Svg, { Circle, Defs, G, LinearGradient as SvgGradient, Path, RadialGradient, Stop } from 'react-native-svg';
@@ -8,8 +6,8 @@ import { Text } from '@/components/ui/Text';
 import { STREAK_MILESTONE, streakMilestoneFraction } from '@/lib/progress';
 import { colors, fonts, gradients, radius } from '@/theme/theme';
 
-const RING = 42;
-const R = 19.4;
+const RING = 32;
+const R = 14.6;
 const C = 2 * Math.PI * R;
 
 /** A chama tremula de leve: a de fora devagar, o miolo mais rápido. */
@@ -36,8 +34,8 @@ const PULSE = {
 };
 
 /**
- * Selo da sequência no topo da Início: a chama dentro de um anel que enche
- * até fechar 7 dias seguidos, com o número de dias ao lado.
+ * Selo da sequência no topo da Início: pílula de vidro com a chama dentro de
+ * um anel que enche até fechar 7 dias seguidos e o número de dias ao lado.
  */
 export function StreakBadge({ days }: { days: number }) {
   const reduce = useReducedMotion();
@@ -54,8 +52,6 @@ export function StreakBadge({ days }: { days: number }) {
       accessible
       accessibilityRole="text"
       accessibilityLabel={`${days} ${days === 1 ? 'dia seguido' : 'dias seguidos'} registrando${toWeek > 0 ? `; faltam ${toWeek} para fechar a semana` : ''}`}>
-      {Platform.OS !== 'android' && <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />}
-      <LinearGradient colors={[colors.flameTint, colors.glassSubtle]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
 
       <View style={styles.ring}>
         <Svg width={RING} height={RING} style={StyleSheet.absoluteFill}>
@@ -71,7 +67,7 @@ export function StreakBadge({ days }: { days: number }) {
           </Defs>
           <Circle cx={RING / 2} cy={RING / 2} r={RING / 2} fill="url(#stGlow)" />
           <G rotation={-90} origin={`${RING / 2}, ${RING / 2}`}>
-            <Circle cx={RING / 2} cy={RING / 2} r={R} fill="none" stroke={colors.line} strokeWidth={2.6} />
+            <Circle cx={RING / 2} cy={RING / 2} r={R} fill="none" stroke={colors.line} strokeWidth={2.2} />
             {fraction > 0 && (
               <Circle
                 cx={RING / 2}
@@ -79,7 +75,7 @@ export function StreakBadge({ days }: { days: number }) {
                 r={R}
                 fill="none"
                 stroke="url(#stRing)"
-                strokeWidth={2.6}
+                strokeWidth={2.2}
                 strokeLinecap="round"
                 strokeDasharray={`${fraction * C} ${C}`}
               />
@@ -89,7 +85,7 @@ export function StreakBadge({ days }: { days: number }) {
 
         <View style={styles.flame}>
           <Animated.View style={[StyleSheet.absoluteFill, styles.flameOrigin, !reduce && FLICKER]}>
-            <Svg width={20} height={25} viewBox="0 0 24 30">
+            <Svg width={15} height={19} viewBox="0 0 24 30">
               <Defs>
                 <SvgGradient id="stO" x1="0" y1="1" x2="0" y2="0">
                   <Stop offset="0" stopColor={o0} />
@@ -113,7 +109,7 @@ export function StreakBadge({ days }: { days: number }) {
             </Svg>
           </Animated.View>
           <Animated.View style={[StyleSheet.absoluteFill, styles.flameOrigin, !reduce && PULSE]}>
-            <Svg width={20} height={25} viewBox="0 0 24 30">
+            <Svg width={15} height={19} viewBox="0 0 24 30">
               <Defs>
                 <RadialGradient id="stC" cx="50%" cy="70%" r="60%">
                   <Stop offset="0" stopColor={c0} />
@@ -127,27 +123,24 @@ export function StreakBadge({ days }: { days: number }) {
         </View>
       </View>
 
-      <View>
-        <Text style={styles.days}>{days}</Text>
-        <Text style={styles.unit}>{days === 1 ? 'DIA' : 'DIAS'}</Text>
-      </View>
+      <Text style={styles.days}>{days}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   pill: {
-    height: 50,
+    height: 40,
     paddingLeft: 4,
-    paddingRight: 16,
+    paddingRight: 13,
     borderRadius: radius.pill,
-    overflow: 'hidden',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 7,
+    backgroundColor: colors.glassFill,
     borderWidth: 1,
-    borderColor: colors.flameEdge,
-    backgroundColor: Platform.OS === 'android' ? colors.panel2 : 'transparent',
+    borderColor: colors.line,
+    borderTopColor: colors.frostCardEdgeTop,
   },
   ring: {
     width: RING,
@@ -156,14 +149,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   flame: {
-    width: 20,
-    height: 25,
+    width: 15,
+    height: 19,
     // No iPhone a sombra segue o desenho da chama; na web ela viraria um quadrado.
     ...Platform.select({
       ios: {
         shadowColor: gradients.flameOuter[1],
         shadowOpacity: 0.7,
-        shadowRadius: 6,
+        shadowRadius: 5,
         shadowOffset: { width: 0, height: 0 },
       },
     }),
@@ -173,16 +166,9 @@ const styles = StyleSheet.create({
   },
   days: {
     fontFamily: fonts.display.bold,
-    fontSize: 18,
+    fontSize: 16,
     lineHeight: 20,
-    letterSpacing: -0.4,
+    letterSpacing: -0.3,
     fontVariant: ['tabular-nums'],
-  },
-  unit: {
-    fontFamily: fonts.body.bold,
-    fontSize: 10,
-    lineHeight: 12,
-    letterSpacing: 0.6,
-    color: colors.flameText,
   },
 });

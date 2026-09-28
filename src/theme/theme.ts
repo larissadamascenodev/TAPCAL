@@ -91,9 +91,6 @@ export const colors = {
 
 
   // Chama da sequência
-  flameText: '#FFB788',
-  flameTint: 'rgba(255,138,60,0.16)',
-  flameEdge: 'rgba(255,160,90,0.28)',
   flameGlow: 'rgba(255,120,40,0.38)',
 
   // Prato de vidro das refeições e receitas

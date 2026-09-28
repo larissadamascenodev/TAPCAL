@@ -78,7 +78,7 @@ export function HomeHeader({ name, streakDays, scrolled }: Props) {
           <IconButton
             icon="notifications-outline"
             label="Notificações"
-            size={46}
+            size={40}
             onPress={() => toast('Em breve as notificações aparecem aqui')}
           />
         </View>
