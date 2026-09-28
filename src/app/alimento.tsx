@@ -65,6 +65,7 @@ export default function AlimentoScreen() {
       />
       <View style={styles.row}>
         <TextField
+          containerStyle={styles.cell}
           label="Porção"
           unit="g"
           placeholder="100"
@@ -74,6 +75,7 @@ export default function AlimentoScreen() {
           error={errors.grams}
         />
         <TextField
+          containerStyle={styles.cell}
           label="Calorias"
           unit="kcal"
           placeholder="130"
@@ -88,9 +90,9 @@ export default function AlimentoScreen() {
         Macros da porção (opcional)
       </Text>
       <View style={styles.row}>
-        <TextField label="Proteína" unit="g" placeholder="0" keyboardType="decimal-pad" value={form.proteinG} onChangeText={set('proteinG')} error={errors.proteinG} />
-        <TextField label="Carbo" unit="g" placeholder="0" keyboardType="decimal-pad" value={form.carbsG} onChangeText={set('carbsG')} error={errors.carbsG} />
-        <TextField label="Gordura" unit="g" placeholder="0" keyboardType="decimal-pad" value={form.fatG} onChangeText={set('fatG')} error={errors.fatG} />
+        <TextField containerStyle={styles.cell} label="Proteína" unit="g" placeholder="0" keyboardType="decimal-pad" value={form.proteinG} onChangeText={set('proteinG')} error={errors.proteinG} />
+        <TextField containerStyle={styles.cell} label="Carbo" unit="g" placeholder="0" keyboardType="decimal-pad" value={form.carbsG} onChangeText={set('carbsG')} error={errors.carbsG} />
+        <TextField containerStyle={styles.cell} label="Gordura" unit="g" placeholder="0" keyboardType="decimal-pad" value={form.fatG} onChangeText={set('fatG')} error={errors.fatG} />
       </View>
 
       <Text variant="label" tone="muted" style={styles.hint}>
@@ -105,6 +107,9 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     gap: 10,
+  },
+  cell: {
+    flex: 1,
   },
   hint: {
     marginTop: spacing.xs,

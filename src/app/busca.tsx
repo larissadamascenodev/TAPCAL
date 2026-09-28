@@ -3,16 +3,15 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { Button, ChipGroup, Glass, Sheet, Stepper, Text, TextField, toast } from '@/components/ui';
-import { formatDecimal, formatInt } from '@/lib/format';
+import { MacroChips } from '@/components/nutrition/MacroChips';
+import { PortionCard } from '@/components/nutrition/PortionCard';
+import { Button, ChipGroup, Sheet, Text, TextField, toast } from '@/components/ui';
+import { formatInt } from '@/lib/format';
 import { MEAL_OPTIONS, mealByHour, mealShort, parseMeal } from '@/lib/meals';
 import { displayName, portion, searchTaco, type TacoFood } from '@/lib/taco';
 import { useAppStore } from '@/store/useAppStore';
-import { colors, fonts, macroColors, radius, spacing } from '@/theme/theme';
+import { colors, radius, spacing } from '@/theme/theme';
 import type { MealType } from '@/types';
-
-const QUICK_GRAMS = [50, 100, 150, 200];
-const STEP = 10;
 
 /** Busca de alimentos na tabela TACO, com porção em gramas. */
 export default function BuscaScreen() {
@@ -50,41 +49,9 @@ export default function BuscaScreen() {
             <Button label={`Salvar no ${mealShort(meal).toLowerCase()}`} onPress={save} disabled={grams <= 0} style={styles.flex} />
           </>
         }>
-        <Glass contentStyle={styles.portionCard}>
-          <Text variant="label" tone="muted">
-            Porção
-          </Text>
-          <Text style={styles.grams} accessibilityLiveRegion="polite">
-            {formatInt(grams)}
-            <Text variant="caption" tone="muted">
-              {' '}g
-            </Text>
-          </Text>
-          <Stepper
-            label="porção"
-            size={44}
-            onMinus={() => setGrams((g) => Math.max(0, g - STEP))}
-            onPlus={() => setGrams((g) => Math.min(2000, g + STEP))}
-          />
-          <View style={styles.quick}>
-            {QUICK_GRAMS.map((g) => (
-              <Pressable
-                key={g}
-                accessibilityRole="button"
-                onPress={() => setGrams(g)}
-                style={[styles.quickChip, grams === g && styles.quickOn]}>
-                <Text style={[styles.quickText, { color: grams === g ? colors.onInk : colors.ink2 }]}>{g} g</Text>
-              </Pressable>
-            ))}
-          </View>
-        </Glass>
+        <PortionCard grams={grams} onChange={setGrams} />
 
-        <View style={styles.macros}>
-          <MacroChip label="Calorias" value={`${formatInt(macros.kcal)}`} unit="kcal" />
-          <MacroChip label="Proteína" value={formatDecimal(macros.proteinG)} unit="g" color={macroColors.proteinG} />
-          <MacroChip label="Carbo" value={formatDecimal(macros.carbsG)} unit="g" color={macroColors.carbsG} />
-          <MacroChip label="Gordura" value={formatDecimal(macros.fatG)} unit="g" color={macroColors.fatG} />
-        </View>
+        <MacroChips value={macros} />
 
         <Text variant="label" tone="muted" style={styles.gapTop}>
           Refeição
@@ -149,26 +116,6 @@ export default function BuscaScreen() {
   );
 }
 
-function MacroChip({ label, value, unit, color }: { label: string; value: string; unit: string; color?: string }) {
-  return (
-    <View style={styles.chip}>
-      <View style={styles.chipLabel}>
-        {color && <View style={[styles.dot, { backgroundColor: color }]} />}
-        <Text variant="caption" tone="secondary" style={styles.chipLabelText}>
-          {label}
-        </Text>
-      </View>
-      <Text style={styles.chipValue}>
-        {value}
-        <Text variant="caption" tone="muted">
-          {' '}
-          {unit}
-        </Text>
-      </Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   flex: {
     flex: 1,
@@ -197,73 +144,6 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.6,
-  },
-  portionCard: {
-    alignItems: 'center',
-    paddingVertical: spacing.xl,
-  },
-  grams: {
-    marginTop: spacing.sm,
-    marginBottom: spacing.md,
-    fontFamily: fonts.display.bold,
-    fontSize: 52,
-    lineHeight: 58,
-    letterSpacing: -2.2,
-    fontVariant: ['tabular-nums'],
-  },
-  quick: {
-    flexDirection: 'row',
-    gap: 6,
-    marginTop: spacing.lg,
-  },
-  quickChip: {
-    height: 32,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    justifyContent: 'center',
-    backgroundColor: colors.glassFill,
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  quickOn: {
-    backgroundColor: colors.ink,
-    borderColor: 'transparent',
-  },
-  quickText: {
-    fontFamily: fonts.body.semibold,
-    fontSize: 12,
-  },
-  macros: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  chip: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    borderRadius: radius.lg - 2,
-    backgroundColor: colors.glassFill,
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  chipLabel: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  chipLabelText: {
-    fontFamily: fonts.body.semibold,
-    fontSize: 11,
-  },
-  dot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-  },
-  chipValue: {
-    marginTop: 4,
-    fontFamily: fonts.display.semibold,
-    fontSize: 16,
   },
   gapTop: {
     marginTop: spacing.xs,

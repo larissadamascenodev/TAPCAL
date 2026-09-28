@@ -5,21 +5,19 @@ import { Pressable, StyleSheet, View, type ScrollView } from 'react-native';
 
 import { DateStrip } from '@/components/home/DateStrip';
 import { DaySummary } from '@/components/nutrition/DaySummary';
-import { FoodEditSheet, type FoodEditTarget } from '@/components/nutrition/FoodEditSheet';
 import { GoalWarnings } from '@/components/nutrition/GoalWarnings';
 import { MealTimeline } from '@/components/nutrition/MealTimeline';
 import { TabPage } from '@/components/navigation/TabPage';
-import { EmptyState, Text, toast } from '@/components/ui';
+import { EmptyState, Text } from '@/components/ui';
 import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
 import { daysBetween } from '@/lib/dates';
-import { type FoodPatch } from '@/lib/foodEdit';
 import { emptyDay } from '@/lib/day';
 import { mealTargets } from '@/lib/goals';
 import { dayTotals } from '@/lib/totals';
 import { dayLogFor, goalPlan } from '@/store/selectors';
 import { useAppStore } from '@/store/useAppStore';
 import { colors, fonts, spacing } from '@/theme/theme';
-import { MEAL_LABELS, type MealType } from '@/types';
+import type { FoodItem, MealType } from '@/types';
 
 type Tab = 'refeicoes' | 'plano';
 
@@ -35,9 +33,6 @@ const PAST_DAYS = 13;
 
 export default function AlimentacaoScreen() {
   const state = useAppStore();
-  const removeFood = useAppStore((s) => s.removeFood);
-  const updateFood = useAppStore((s) => s.updateFood);
-  const [editing, setEditing] = useState<FoodEditTarget | null>(null);
   const today = state.today.date;
   const scrollRef = useRef<ScrollView>(null);
   const [tab, setTab] = useState<Tab>('refeicoes');
@@ -62,6 +57,8 @@ export default function AlimentacaoScreen() {
   );
 
   const addTo = (meal: MealType) => router.push({ pathname: '/busca', params: { refeicao: meal } });
+  const editItem = (meal: MealType, item: FoodItem) =>
+    router.push({ pathname: '/editar-alimento', params: { refeicao: meal, id: item.id } });
   const pastLabel = daysBetween(shownDate, today) === 1 ? 'Ontem' : 'Este dia';
 
   if (!plan) {
@@ -71,22 +68,6 @@ export default function AlimentacaoScreen() {
       </TabPage>
     );
   }
-
-  const saveEdit = (patch: FoodPatch, toMeal: MealType) => {
-    if (!editing) return;
-    updateFood(editing.meal, editing.item.id, patch, toMeal);
-    setEditing(null);
-    toast(toMeal === editing.meal ? 'Alimento atualizado' : `Movido para ${MEAL_LABELS[toMeal].toLowerCase()}`);
-  };
-
-  const removeEditing = () => {
-    if (!editing) return;
-    removeFood(editing.meal, editing.item.id);
-    setEditing(null);
-    toast('Alimento apagado');
-  };
-
-
 
   return (
     <TabPage scrollRef={scrollRef} below={tabsBar} belowHeight={TABS_H} gap={0}>
@@ -106,7 +87,7 @@ export default function AlimentacaoScreen() {
               meals={day.meals}
               targets={mealTargets(plan.targetKcal)}
               onAdd={isToday ? addTo : undefined}
-              onPressItem={isToday ? (meal, item) => setEditing({ meal, item }) : undefined}
+              onPressItem={isToday ? editItem : undefined}
             />
           </View>
           {isToday ? (
@@ -126,13 +107,6 @@ export default function AlimentacaoScreen() {
           )}
         </>
       )}
-      <FoodEditSheet
-        target={editing}
-        goal={plan.macros}
-        onClose={() => setEditing(null)}
-        onSave={saveEdit}
-        onRemove={removeEditing}
-      />
       {tab === 'plano' && (
         <View style={styles.pane}>
           <EmptyState

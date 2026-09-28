@@ -71,11 +71,6 @@ export const colors = {
   avatarFill: '#15161A',
   toastFill: 'rgba(30,30,36,0.94)',
   photoScrim: 'rgba(0,0,0,0.35)',
-  // Fundo atrás dos mini modais: leve sobre o desfoque; sem desfoque (Android), bem mais fechado
-  modalScrim: 'rgba(5,5,6,0.45)',
-  modalScrimSolid: 'rgba(5,5,6,0.85)',
-  // Vidro dos mini modais: um véu escuro por baixo para os campos ficarem legíveis
-  modalGlass: 'rgba(12,12,15,0.55)',
   handle: 'rgba(255,255,255,0.2)',
   dashed: 'rgba(255,255,255,0.14)',
   divider: 'rgba(255,255,255,0.10)',

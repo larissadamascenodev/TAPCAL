@@ -1,4 +1,4 @@
-import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
+import { StyleSheet, TextInput, View, type StyleProp, type TextInputProps, type ViewStyle } from 'react-native';
 
 import { colors, fonts, radius, spacing } from '@/theme/theme';
 
@@ -9,12 +9,14 @@ type Props = TextInputProps & {
   /** Unidade mostrada à direita (g, kcal). */
   unit?: string;
   error?: string | null;
+  /** Estilo do bloco todo (rótulo + campo), ex.: flex: 1 para dividir uma linha. */
+  containerStyle?: StyleProp<ViewStyle>;
 };
 
 /** Campo de texto no visual de vidro, com rótulo em cima e unidade à direita. */
-export function TextField({ label, unit, error, style, ...rest }: Props) {
+export function TextField({ label, unit, error, style, containerStyle, ...rest }: Props) {
   return (
-    <View style={styles.wrap}>
+    <View style={[styles.wrap, containerStyle]}>
       <Text variant="label" tone="muted">
         {label}
       </Text>
@@ -43,8 +45,9 @@ export function TextField({ label, unit, error, style, ...rest }: Props) {
 }
 
 const styles = StyleSheet.create({
+  // Sem flex aqui: dentro de uma coluna rolável, flex: 1 esmagava o campo.
+  // Para dividir uma linha, quem usa passa containerStyle={{ flex: 1 }}.
   wrap: {
-    flex: 1,
     gap: 6,
   },
   field: {
@@ -63,6 +66,8 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
+    // na web o campo tem largura mínima própria e empurrava a unidade para fora
+    minWidth: 0,
     height: '100%',
     color: colors.ink,
     fontFamily: fonts.body.semibold,

@@ -12,13 +12,15 @@ type Props = {
   children: ReactNode;
   /** Botões fixos no rodapé (salvar, cancelar). */
   footer?: ReactNode;
+  /** Ação pequena ao lado do título (ex.: lixeira). */
+  headerRight?: ReactNode;
 };
 
 /**
  * Moldura das telas que abrem por cima (modal): alça no topo, título,
  * conteúdo rolável e rodapé fixo que sobe junto com o teclado.
  */
-export function Sheet({ title, subtitle, children, footer }: Props) {
+export function Sheet({ title, subtitle, children, footer, headerRight }: Props) {
   const insets = useSafeAreaInsets();
   return (
     <KeyboardAvoidingView
@@ -30,7 +32,12 @@ export function Sheet({ title, subtitle, children, footer }: Props) {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}>
-        <Text variant="title">{title}</Text>
+        <View style={styles.titleRow}>
+          <Text variant="title" style={styles.title}>
+            {title}
+          </Text>
+          {headerRight}
+        </View>
         {subtitle ? <Text tone="secondary">{subtitle}</Text> : null}
         <View style={styles.body}>{children}</View>
       </ScrollView>
@@ -60,6 +67,14 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
     paddingBottom: spacing.xl,
     gap: spacing.xs,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  title: {
+    flex: 1,
   },
   body: {
     marginTop: spacing.lg,
