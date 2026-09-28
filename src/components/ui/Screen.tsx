@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, RefObject } from 'react';
 import { ScrollView, StyleSheet, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -16,10 +16,12 @@ type Props = {
   topOffset?: number;
   /** Posição da rolagem, em pontos a partir do topo. */
   onScrollY?: (y: number) => void;
+  /** Para a tela poder voltar a rolagem ao topo (ex.: ao trocar de aba). */
+  scrollRef?: RefObject<ScrollView | null>;
 };
 
 /** Moldura de toda tela: fundo escuro, área segura e rolagem. */
-export function Screen({ children, withTabBar = true, gap = spacing.md, overlay, topOffset = 0, onScrollY }: Props) {
+export function Screen({ children, withTabBar = true, gap = spacing.md, overlay, topOffset = 0, onScrollY, scrollRef }: Props) {
   const insets = useSafeAreaInsets();
   const bottomSpace = withTabBar
     ? insets.bottom + tabBar.bottomGap + tabBar.height + spacing.xl
@@ -32,6 +34,7 @@ export function Screen({ children, withTabBar = true, gap = spacing.md, overlay,
   return (
     <View style={styles.root}>
       <ScrollView
+        ref={scrollRef}
         onScroll={onScroll}
         scrollEventThrottle={onScroll ? 32 : undefined}
         contentContainerStyle={[

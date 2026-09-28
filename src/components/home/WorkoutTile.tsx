@@ -25,6 +25,7 @@ export function WorkoutTile({ title, subtitle, action, onPress }: Props) {
           Treino
         </Text>
       </View>
+      <View>
       <Text style={styles.big} numberOfLines={1} adjustsFontSizeToFit>
         {title}
       </Text>
@@ -40,6 +41,7 @@ export function WorkoutTile({ title, subtitle, action, onPress }: Props) {
           <Text style={styles.goText}>{action}</Text>
         </Pressable>
       )}
+      </View>
     </Glass>
   );
 }
@@ -47,11 +49,12 @@ export function WorkoutTile({ title, subtitle, action, onPress }: Props) {
 const styles = StyleSheet.create({
   tile: {
     flex: 1,
-    minHeight: 176,
+    aspectRatio: 1,
   },
   content: {
     padding: 16,
     flex: 1,
+    justifyContent: 'space-between',
   },
   head: {
     flexDirection: 'row',
@@ -69,18 +72,17 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
   },
   big: {
-    marginTop: 16,
-    fontFamily: fonts.display.semibold,
-    fontSize: 26,
+    fontFamily: fonts.display.bold,
+    fontSize: 28,
     lineHeight: 32,
-    letterSpacing: -0.8,
+    letterSpacing: -1,
   },
   go: {
     alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginTop: 12,
+    marginTop: 10,
     height: 32,
     paddingHorizontal: 14,
     borderRadius: radius.pill,

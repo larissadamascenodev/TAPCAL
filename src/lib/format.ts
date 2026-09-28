@@ -46,6 +46,8 @@ export function formatDuration(totalSeconds: number): string {
 
 const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 export const WEEKDAY_LETTERS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+/** Dia da semana abreviado, de domingo a sábado. */
+export const WEEKDAY_SHORT = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
 
 /** 'AAAA-MM-DD' → "28 set". */
 export function formatDayMonth(key: string): string {

@@ -6,16 +6,16 @@ import { router } from 'expo-router';
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
-import { Text } from '@/components/ui/Text';
-import { colors, fonts, gradients, radius, spacing, tabBar } from '@/theme/theme';
+import { colors, gradients, radius, tabBar } from '@/theme/theme';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
 /** Ícone e rótulo de cada aba, pelo nome do arquivo da rota em src/app/(tabs). */
-const TABS: Record<string, { label: string; icon: IconName }> = {
-  index: { label: 'Início', icon: 'home-outline' },
-  alimentacao: { label: 'Alimentação', icon: 'restaurant-outline' },
-  treino: { label: 'Treino', icon: 'barbell-outline' },
+const TABS: Record<string, { label: string; icon: IconName; iconOn: IconName }> = {
+  index: { label: 'Início', icon: 'home-outline', iconOn: 'home' },
+  alimentacao: { label: 'Alimentação', icon: 'restaurant-outline', iconOn: 'restaurant' },
+  treino: { label: 'Treino', icon: 'barbell-outline', iconOn: 'barbell' },
+  resultados: { label: 'Resultados', icon: 'bar-chart-outline', iconOn: 'bar-chart' },
 };
 
 function tap() {
@@ -23,8 +23,8 @@ function tap() {
 }
 
 /**
- * Barra inferior flutuante: pílula de vidro com Início, Alimentação e Treino,
- * e o botão + no mesmo vidro ao lado (abre /adicionar).
+ * Barra inferior flutuante: pílula de vidro só com ícones (Início, Alimentação,
+ * Treino e Resultados) e o botão + no mesmo vidro ao lado (abre /adicionar).
  */
 export function FloatingTabBar({ state, navigation, insets }: BottomTabBarProps) {
   const useBlur = Platform.OS !== 'android';
@@ -61,13 +61,7 @@ export function FloatingTabBar({ state, navigation, insets }: BottomTabBarProps)
               accessibilityLabel={tab.label}
               onPress={onPress}
               style={[styles.tab, focused && styles.tabActive]}>
-              <Ionicons name={tab.icon} size={22} color={focused ? colors.lime : colors.ink2} />
-              <Text
-                variant="caption"
-                numberOfLines={1}
-                style={[styles.tabLabel, { color: focused ? colors.lime : colors.ink2 }]}>
-                {tab.label}
-              </Text>
+              <Ionicons name={focused ? tab.iconOn : tab.icon} size={23} color={focused ? colors.lime : colors.ink2} />
             </Pressable>
           );
         })}
@@ -138,21 +132,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.navFill,
   },
   tab: {
-    minWidth: 72,
+    flex: 1,
     height: 52,
-    paddingHorizontal: spacing.sm,
     borderRadius: 26,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 2,
   },
   tabActive: {
     backgroundColor: colors.navActive,
-  },
-  tabLabel: {
-    fontFamily: fonts.body.bold,
-    fontSize: 10,
-    lineHeight: 13,
+    borderWidth: 1,
+    borderColor: colors.lineSoft,
+    borderTopColor: colors.line,
   },
   plus: {
     width: tabBar.plusSize,

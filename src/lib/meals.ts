@@ -1,4 +1,4 @@
-import { MEAL_LABELS, MEAL_TYPES, type MealType } from '@/types';
+import { MEAL_LABELS, MEAL_TYPES, type FoodItem, type MealType } from '@/types';
 
 /** Refeição mais provável pela hora, quando a pessoa não escolheu uma. */
 export function mealByHour(date: Date = new Date()): MealType {
@@ -20,3 +20,22 @@ export function parseMeal(value: unknown): MealType | null {
 }
 
 export const MEAL_OPTIONS = MEAL_TYPES.map((m) => ({ value: m, label: mealShort(m) }));
+
+/** Horário de referência de cada refeição, quando ainda não há registro. */
+export const DEFAULT_MEAL_TIMES: Record<MealType, string> = {
+  cafe_da_manha: '07:30',
+  almoco: '12:30',
+  lanche: '16:00',
+  jantar: '20:00',
+};
+
+/** "HH:MM" no horário do aparelho. */
+export function timeOf(iso: string): string {
+  const d = new Date(iso);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+/** Horário da refeição: o do primeiro alimento registrado ou o de referência. */
+export function mealTime(meal: MealType, items: readonly FoodItem[]): string {
+  return items.length ? timeOf(items[0].createdAt) : DEFAULT_MEAL_TIMES[meal];
+}

@@ -76,6 +76,28 @@ export const colors = {
   frostEdge: 'rgba(255,255,255,0.38)',
   frostActive: 'rgba(244,245,240,0.92)',
   tagFill: 'rgba(10,10,12,0.62)',
+  tagGlass: 'rgba(5,5,6,0.5)',
+
+  // Abas em pílula (Alimentação, dias do plano)
+  segTrack: 'rgba(20,20,23,0.8)',
+  segEdge: 'rgba(255,255,255,0.10)',
+  hairline: 'rgba(255,255,255,0.08)',
+  railLine: 'rgba(255,255,255,0.12)',
+  capOff: 'rgba(255,255,255,0.08)',
+
+  // Chama da sequência
+  flameText: '#FFB788',
+  flameTint: 'rgba(255,138,60,0.16)',
+  flameEdge: 'rgba(255,160,90,0.28)',
+  flameGlow: 'rgba(255,120,40,0.38)',
+
+  // Prato de vidro das refeições e receitas
+  plateHi: 'rgba(255,255,255,0.34)',
+  plateLo: 'rgba(255,255,255,0.06)',
+  plateEdge: 'rgba(255,255,255,0.4)',
+
+  onMint: '#04261B',
+  heart: '#FF5C7A',
   headerFill: 'rgba(5,5,6,0.72)',
 } as const;
 
@@ -110,9 +132,21 @@ export const gradients = {
   water: ['rgba(87,184,255,0.30)', 'rgba(87,184,255,0.06)'] as const,
   // Linha verde que varre a foto durante a análise
   sweep: ['rgba(209,251,57,0)', colors.lime, 'rgba(209,251,57,0)'] as const,
-  // Chama da sequência de dias
-  flameOuter: ['#FF3D1F', '#FF7A1A', '#FFC23A'] as const,
-  flameInner: ['#FFB02E', '#FFE27A', '#FFF6CC'] as const,
+  // Chama da sequência de dias: camada de fora, do meio, miolo e o anel da semana
+  flameOuter: ['#E8321A', '#FF6A1F', '#FFB23A'] as const,
+  flameMid: ['#FF8A1F', '#FFC43D', '#FFE38A'] as const,
+  flameCore: ['#FFFFFF', '#FFF6CF', '#FFE38A'] as const,
+  flameRing: ['#FFC23A', '#FF5A2A'] as const,
+  // Fundo das refeições e receitas (atrás do prato de vidro)
+  visual: {
+    cafe_da_manha: ['#8A5A2E', '#3A2412', '#1A120B'],
+    almoco: ['#5E7A1E', '#2A3810', '#12170A'],
+    lanche: ['#9A3F4E', '#44202A', '#1C0F13'],
+    jantar: ['#3E3C8C', '#1E1D45', '#0E0E1E'],
+    verde: ['#2F7A5C', '#153A2C', '#0A1813'],
+    sol: ['#A0762A', '#4A3614', '#1E160A'],
+  } satisfies Record<string, readonly [string, string, string]>,
+  visualScrim: ['rgba(5,5,6,0)', 'rgba(5,5,6,0.78)'] as const,
 };
 
 /**

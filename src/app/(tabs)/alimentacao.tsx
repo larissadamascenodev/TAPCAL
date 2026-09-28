@@ -1,42 +1,50 @@
-import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
+import { useMemo, useRef, useState } from 'react';
+import { Pressable, StyleSheet, View, type ScrollView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { CalorieRing } from '@/components/nutrition/CalorieRing';
+import { DateStrip } from '@/components/home/DateStrip';
+import { DaySummary } from '@/components/nutrition/DaySummary';
 import { GoalWarnings } from '@/components/nutrition/GoalWarnings';
-import { MacroBars } from '@/components/nutrition/MacroBars';
-import { MealCard } from '@/components/nutrition/MealCard';
-import {
-  confirmDestructive,
-  EmptyState,
-  Glass,
-  IconButton,
-  Screen,
-  SectionHeader,
-  Text,
-  toast,
-} from '@/components/ui';
-import { addDays, daysBetween } from '@/lib/dates';
-import { emptyDay, HISTORY_DAYS } from '@/lib/day';
-import { formatDayMonth, formatInt } from '@/lib/format';
+import { MarketPane } from '@/components/nutrition/MarketPane';
+import { MealTimeline } from '@/components/nutrition/MealTimeline';
+import { PlanPane } from '@/components/nutrition/PlanPane';
+import { RecipesPane } from '@/components/nutrition/RecipesPane';
+import { confirmDestructive, EmptyState, Screen, Text, toast } from '@/components/ui';
+import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
+import { daysBetween } from '@/lib/dates';
+import { emptyDay } from '@/lib/day';
+import { formatInt } from '@/lib/format';
+import { mealTargets } from '@/lib/goals';
 import { dayTotals } from '@/lib/totals';
 import { dayLogFor, goalPlan } from '@/store/selectors';
 import { useAppStore } from '@/store/useAppStore';
-import { colors, fonts, spacing } from '@/theme/theme';
-import { MEAL_TYPES, type FoodItem, type MealType } from '@/types';
+import { colors, fonts, gradients, spacing } from '@/theme/theme';
+import type { FoodItem, MealType } from '@/types';
 
-function dayLabel(date: string, today: string): string {
-  const diff = daysBetween(date, today);
-  if (diff === 0) return `Hoje, ${formatDayMonth(date)}`;
-  if (diff === 1) return `Ontem, ${formatDayMonth(date)}`;
-  return formatDayMonth(date);
-}
+type Tab = 'refeicoes' | 'plano' | 'receitas' | 'mercado';
+
+const TABS = [
+  { key: 'refeicoes', label: 'Refeições' },
+  { key: 'plano', label: 'Plano' },
+  { key: 'receitas', label: 'Receitas' },
+  { key: 'mercado', label: 'Mercado' },
+] as const;
+
+/** Altura da faixa das abas fixa no topo (sem a área segura). */
+const TABS_H = 52 + spacing.md;
+/** Quantos dias para trás a faixa de datas mostra. */
+const PAST_DAYS = 13;
 
 export default function AlimentacaoScreen() {
   const state = useAppStore();
   const removeFood = useAppStore((s) => s.removeFood);
   const today = state.today.date;
+  const insets = useSafeAreaInsets();
+  const scrollRef = useRef<ScrollView>(null);
+  const [tab, setTab] = useState<Tab>('refeicoes');
   const [date, setDate] = useState(today);
 
   // Se o dia virou com a tela aberta, volta para o novo "hoje".
@@ -45,13 +53,22 @@ export default function AlimentacaoScreen() {
   const day = dayLogFor(state, shownDate) ?? emptyDay(shownDate);
   const plan = useMemo(() => goalPlan(state, today), [state, today]);
   const eaten = dayTotals(day);
-  const filled = MEAL_TYPES.filter((m) => day.meals[m].length > 0).length;
-  const canGoBack = daysBetween(shownDate, today) < HISTORY_DAYS;
+
+  const changeTab = (next: Tab) => {
+    setTab(next);
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+  };
+
+  const tabsBar = (
+    <View pointerEvents="box-none" style={[styles.tabsWrap, { paddingTop: insets.top + spacing.sm }]}>
+      <LinearGradient pointerEvents="none" colors={gradients.header} locations={[0, 0.45, 0.75, 1]} style={styles.tabsFade} />
+      <SegmentedTabs options={TABS} value={tab} onChange={changeTab} />
+    </View>
+  );
 
   if (!plan) {
     return (
       <Screen>
-        <Text style={styles.h1}>Alimentação</Text>
         <EmptyState icon="person-outline" title="Crie seu perfil" message="As metas do dia aparecem aqui depois do cadastro." />
       </Screen>
     );
@@ -63,152 +80,110 @@ export default function AlimentacaoScreen() {
       toast('Alimento apagado');
     });
 
-  const adjustment = plan.dailyAdjustmentKcal;
-  const adjustmentLabel = adjustment < 0 ? 'Déficit' : adjustment > 0 ? 'Superávit' : 'Ajuste';
+  const addTo = (meal: MealType) => router.push({ pathname: '/busca', params: { refeicao: meal } });
+  const pastLabel = daysBetween(shownDate, today) === 1 ? 'Ontem' : 'Este dia';
 
   return (
-    <Screen>
-      <View style={styles.header}>
-        <Text style={styles.h1}>Alimentação</Text>
-        <IconButton
-          icon="search"
-          label="Buscar alimento"
-          onPress={() => router.push('/busca')}
-        />
-      </View>
-
-      <Glass flush rounded={22} contentStyle={styles.dates}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Dia anterior"
-          disabled={!canGoBack}
-          hitSlop={6}
-          onPress={() => setDate(addDays(shownDate, -1))}
-          style={[styles.dateBtn, !canGoBack && styles.disabled]}>
-          <Ionicons name="chevron-back" size={16} color={colors.ink2} />
-        </Pressable>
-        <Text style={styles.dateLabel}>{dayLabel(shownDate, today)}</Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Próximo dia"
-          disabled={isToday}
-          hitSlop={6}
-          onPress={() => setDate(addDays(shownDate, 1))}
-          style={[styles.dateBtn, isToday && styles.disabled]}>
-          <Ionicons name="chevron-forward" size={16} color={colors.ink2} />
-        </Pressable>
-      </Glass>
-
-      <Glass flush contentStyle={styles.summary}>
-        <View style={styles.summaryTop}>
-          <CalorieRing eaten={eaten.kcal} goal={plan.targetKcal} />
-          <View style={styles.facts}>
-            <Fact label="Meta" value={`${formatInt(plan.targetKcal)} kcal`} />
-            <Fact label="Consumidas" value={`${formatInt(eaten.kcal)} kcal`} />
-            <Fact
-              label={adjustmentLabel}
-              value={adjustment === 0 ? 'manutenção' : `${adjustment > 0 ? '+' : '−'}${formatInt(Math.abs(adjustment))} kcal`}
+    <Screen scrollRef={scrollRef} topOffset={TABS_H} overlay={tabsBar} gap={0}>
+      {tab === 'refeicoes' && (
+        <>
+          <DateStrip today={today} past={PAST_DAYS} future={3} selected={shownDate} onSelect={setDate} />
+          <View style={styles.block}>
+            <DaySummary eaten={eaten} goal={plan.macros} showTip={isToday} />
+          </View>
+          {isToday && plan.warnings.length > 0 && (
+            <View style={styles.block}>
+              <GoalWarnings warnings={plan.warnings} />
+            </View>
+          )}
+          <View style={styles.timeline}>
+            <MealTimeline
+              meals={day.meals}
+              targets={mealTargets(plan.targetKcal)}
+              onAdd={isToday ? addTo : undefined}
+              onPressItem={isToday ? onDelete : undefined}
             />
           </View>
+          {isToday ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push('/adicionar')}
+              style={({ pressed }) => [styles.newMeal, pressed && styles.pressed]}>
+              <Ionicons name="add" size={18} color={colors.ink2} />
+              <Text variant="caption" tone="secondary" style={styles.newMealText}>
+                Nova refeição
+              </Text>
+            </Pressable>
+          ) : (
+            <Text variant="caption" tone="muted" style={styles.readonly}>
+              {pastLabel} fica só para consulta.
+            </Text>
+          )}
+        </>
+      )}
+      {tab === 'plano' && (
+        <View style={styles.pane}>
+          <PlanPane today={today} goal={state.profile?.goal ?? 'manter'} macros={plan.macros} onMarket={() => changeTab('mercado')} />
         </View>
-        <View style={styles.divider} />
-        <MacroBars eaten={eaten} goal={plan.macros} />
-      </Glass>
-
-      {isToday && <GoalWarnings warnings={plan.warnings} />}
-
-      <SectionHeader title="Refeições" aside={`${filled} de 4`} />
-      {MEAL_TYPES.map((meal) => (
-        <MealCard
-          key={meal}
-          meal={meal}
-          items={day.meals[meal]}
-          onAdd={isToday ? () => router.push({ pathname: '/busca', params: { refeicao: meal } }) : undefined}
-          onPressItem={isToday ? (item) => onDelete(meal, item) : undefined}
-        />
-      ))}
-      {!isToday && (
-        <Text variant="caption" tone="muted" style={styles.readonly}>
-          Dias anteriores ficam só para consulta.
-        </Text>
+      )}
+      {tab === 'receitas' && (
+        <View style={styles.pane}>
+          <RecipesPane kcalLeft={plan.targetKcal - dayTotals(state.today).kcal} />
+        </View>
+      )}
+      {tab === 'mercado' && (
+        <View style={styles.pane}>
+          <MarketPane today={today} />
+        </View>
       )}
     </Screen>
   );
 }
 
-function Fact({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.fact}>
-      <Text variant="caption" tone="secondary">
-        {label}
-      </Text>
-      <Text style={styles.factValue}>{value}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  header: {
+  tabsWrap: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.sm,
+  },
+  tabsFade: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: -28,
+  },
+  block: {
+    marginTop: 14,
+  },
+  timeline: {
+    marginTop: 26,
+  },
+  pane: {
+    marginTop: spacing.sm,
+  },
+  newMeal: {
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: colors.dashed,
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: spacing.md,
-  },
-  h1: {
-    fontFamily: fonts.display.semibold,
-    fontSize: 30,
-    lineHeight: 36,
-    letterSpacing: -1,
-  },
-  dates: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 6,
-  },
-  dateBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
   },
-  dateLabel: {
-    fontFamily: fonts.display.semibold,
-    fontSize: 14,
-  },
-  disabled: {
-    opacity: 0.3,
-  },
-  summary: {
-    padding: 18,
-  },
-  summaryTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.lg,
-  },
-  facts: {
-    flex: 1,
-    gap: 10,
-  },
-  fact: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  factValue: {
-    fontFamily: fonts.display.semibold,
-    fontSize: 14,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.track,
-    marginTop: spacing.lg,
-    marginBottom: 14,
+  newMealText: {
+    fontFamily: fonts.body.bold,
+    fontSize: 13.5,
   },
   readonly: {
     textAlign: 'center',
-    marginTop: spacing.xs,
+  },
+  pressed: {
+    opacity: 0.7,
   },
 });

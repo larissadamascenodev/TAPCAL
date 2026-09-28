@@ -66,3 +66,38 @@ export function weightTrend(
     points,
   };
 }
+
+/** Tamanho da meta de sequência: fechar uma semana inteira registrando. */
+export const STREAK_MILESTONE = 7;
+
+/**
+ * Quanto falta para fechar a próxima semana de sequência, de 0 a 1.
+ * 3 dias → 3/7; 7 dias → semana completa (1); 8 dias → começa outra (1/7).
+ */
+export function streakMilestoneFraction(days: number): number {
+  if (days <= 0) return 0;
+  const inWeek = days % STREAK_MILESTONE;
+  return (inWeek === 0 ? STREAK_MILESTONE : inWeek) / STREAK_MILESTONE;
+}
+
+export type WeightProgress = {
+  /** Quanto já mudou desde o início, sempre positivo quando anda na direção da meta. */
+  doneKg: number;
+  /** Distância total entre o peso inicial e a meta. */
+  totalKg: number;
+  /** Quanto ainda falta até a meta (0 se já chegou). */
+  leftKg: number;
+  /** Fração do caminho já feito, de 0 a 1. */
+  fraction: number;
+};
+
+/** Progresso do peso inicial até a meta, para perder ou para ganhar. */
+export function weightProgress(startKg: number, currentKg: number, targetKg: number): WeightProgress {
+  const round1 = (n: number) => Math.round(n * 10) / 10;
+  const direction = targetKg < startKg ? -1 : 1;
+  const totalKg = round1(Math.abs(targetKg - startKg));
+  const doneKg = round1(Math.max(0, (currentKg - startKg) * direction));
+  const leftKg = round1(Math.max(0, (targetKg - currentKg) * direction));
+  const fraction = totalKg > 0 ? Math.min(1, doneKg / totalKg) : 1;
+  return { doneKg, totalKg, leftKg, fraction };
+}

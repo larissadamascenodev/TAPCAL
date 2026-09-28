@@ -10,7 +10,7 @@
  */
 
 import { addDays, ageOn } from '@/lib/dates';
-import type { ActivityLevel, DateKey, Goal, Macros, Pace, Profile, Sex } from '@/types';
+import type { ActivityLevel, DateKey, Goal, Macros, MealType, Pace, Profile, Sex } from '@/types';
 
 export const KCAL_PER_KG = 7700;
 
@@ -265,3 +265,44 @@ export function computeMacros(kcal: number, goal: Goal, weightKg: number, height
   const carbsG = Math.max(0, Math.round((kcal - proteinG * 4 - fatG * 9) / 4));
   return { kcal, proteinG, carbsG, fatG };
 }
+
+// ─── Calorias por refeição ──────────────────────────────────────────────────
+
+/** Quanto de cada dia cabe em cada refeição (soma 1). */
+export const MEAL_SHARES: Record<MealType, number> = {
+  cafe_da_manha: 0.25,
+  almoco: 0.35,
+  lanche: 0.15,
+  jantar: 0.25,
+};
+
+/**
+ * Calorias indicadas para cada refeição, arredondadas de 10 em 10.
+ * O jantar fica com a sobra do arredondamento, para a soma bater com a meta.
+ */
+export function mealTargets(targetKcal: number): Record<MealType, number> {
+  const round10 = (n: number) => Math.round(n / 10) * 10;
+  const cafe = round10(targetKcal * MEAL_SHARES.cafe_da_manha);
+  const almoco = round10(targetKcal * MEAL_SHARES.almoco);
+  const lanche = round10(targetKcal * MEAL_SHARES.lanche);
+  return {
+    cafe_da_manha: cafe,
+    almoco,
+    lanche,
+    jantar: Math.max(0, Math.round(targetKcal) - cafe - almoco - lanche),
+  };
+}
+
+// ─── Nomes para a tela ──────────────────────────────────────────────────────
+
+export const GOAL_LABELS: Record<Goal, string> = {
+  emagrecer: 'Emagrecer',
+  manter: 'Manter o peso',
+  ganhar_massa: 'Ganhar massa',
+};
+
+export const PACE_LABELS: Record<Pace, string> = {
+  leve: 'Ritmo leve',
+  moderado: 'Ritmo moderado',
+  acelerado: 'Ritmo acelerado',
+};

@@ -35,3 +35,8 @@ export function ageOn(birthDate: DateKey, on: DateKey): number {
   const hadBirthday = m > bm || (m === bm && d >= bd);
   return y - by - (hadBirthday ? 0 : 1);
 }
+
+/** Quanto do dia já passou, de 0 (meia-noite) a 1. */
+export function dayFraction(date: Date = new Date()): number {
+  return (date.getHours() * 60 + date.getMinutes()) / 1440;
+}

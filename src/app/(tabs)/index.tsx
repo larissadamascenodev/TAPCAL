@@ -1,35 +1,28 @@
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 
-import { CalorieGauge } from '@/components/home/CalorieGauge';
+import { CalorieGauge, GaugeStats } from '@/components/home/CalorieGauge';
+import { DateStrip } from '@/components/home/DateStrip';
 import { HOME_HEADER_H, HomeHeader } from '@/components/home/HomeHeader';
-import { MacrosCard } from '@/components/home/MacrosCard';
+import { MacroRows } from '@/components/home/MacroRows';
+import { MealShortcuts } from '@/components/home/MealShortcuts';
 import { WaterTile } from '@/components/home/WaterTile';
-import { WeekStrip } from '@/components/home/WeekStrip';
 import { WeightCard } from '@/components/home/WeightCard';
 import { WorkoutTile } from '@/components/home/WorkoutTile';
-import { EmptyState, Screen, Text, toast } from '@/components/ui';
+import { EmptyState, Screen, SectionHeader, toast } from '@/components/ui';
 import { useDoubleTap } from '@/hooks/useDoubleTap';
+import { mealTargets } from '@/lib/goals';
 import { loggedDates, streak, weightTrend } from '@/lib/progress';
 import { dayTotals } from '@/lib/totals';
 import { estimatedMinutes, planForDate, shortFocus } from '@/lib/workout';
 import { goalPlan } from '@/store/selectors';
 import { useAppStore } from '@/store/useAppStore';
-import { colors, fonts, spacing } from '@/theme/theme';
-
-/** Seções que ainda não existem: abrem a página "Em breve". */
-const SECTIONS = [
-  { key: 'jornada', label: 'Jornada' },
-  { key: 'receitas', label: 'Receitas' },
-  { key: 'mercado', label: 'Mercado' },
-  { key: 'caneta', label: 'Caneta' },
-  { key: 'relatorios', label: 'Relatórios' },
-] as const;
+import { spacing } from '@/theme/theme';
 
 const WATER_STEP = 250;
 
-/** Rolou além disto: o nome aparece no topo. */
+/** Rolou além disto: o fundo do topo escurece. */
 const SCROLLED_AT = 150;
 
 export default function InicioScreen() {
@@ -45,6 +38,7 @@ export default function InicioScreen() {
   const logged = useMemo(() => loggedDates(day, history), [day, history]);
   const trend = useMemo(() => weightTrend(weights, today), [weights, today]);
   const gaugeTap = useDoubleTap(() => router.push('/scanner'));
+  const firstName = profile?.name.trim().split(/\s+/)[0] ?? '';
 
   if (!profile || !plan) {
     return (
@@ -88,22 +82,8 @@ export default function InicioScreen() {
       gap={0}
       topOffset={HOME_HEADER_H}
       onScrollY={(y) => setScrolled(y > SCROLLED_AT)}
-      overlay={<HomeHeader name={profile.name} streakDays={days} scrolled={scrolled} />}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabs} contentContainerStyle={styles.tabsRow}>
-        {SECTIONS.map((s) => (
-          <Pressable
-            key={s.key}
-            accessibilityRole="button"
-            onPress={() => router.push({ pathname: '/em-breve', params: { secao: s.key } })}
-            style={({ pressed }) => [styles.tab, pressed && styles.pressed]}>
-            <Text style={styles.tabText}>{s.label}</Text>
-          </Pressable>
-        ))}
-      </ScrollView>
-
-      <View style={styles.week}>
-        <WeekStrip today={today} logged={logged} />
-      </View>
+      overlay={<HomeHeader name={firstName} streakDays={days} scrolled={scrolled} />}>
+      <DateStrip today={today} />
 
       <Pressable
         onPress={gaugeTap}
@@ -111,10 +91,21 @@ export default function InicioScreen() {
         style={styles.gauge}>
         <CalorieGauge eaten={eaten.kcal} goal={plan.targetKcal} width={gaugeWidth} />
       </Pressable>
-
-      <View style={styles.block}>
-        <MacrosCard eaten={eaten} goal={plan.macros} />
+      <View style={styles.stats}>
+        <GaugeStats eaten={eaten.kcal} goal={plan.targetKcal} adjustment={plan.dailyAdjustmentKcal} />
       </View>
+
+      <MacroRows eaten={eaten} goal={plan.macros} style={styles.macros} />
+
+      <View style={styles.section}>
+        <SectionHeader title="Refeições de hoje" action="Ver diário" onAction={() => router.push('/alimentacao')} />
+      </View>
+      <MealShortcuts
+        meals={day.meals}
+        targets={mealTargets(plan.targetKcal)}
+        onAdd={(meal) => router.push({ pathname: '/busca', params: { refeicao: meal } })}
+        onNew={() => router.push('/adicionar')}
+      />
 
       <View style={[styles.block, styles.tiles]}>
         <WaterTile ml={day.waterMl} goalMl={plan.waterMl} onAdd={onWater} />
@@ -143,42 +134,26 @@ export default function InicioScreen() {
 }
 
 const styles = StyleSheet.create({
-  tabs: {
-    marginHorizontal: -spacing.lg,
-  },
-  tabsRow: {
-    gap: spacing.sm,
-    paddingHorizontal: spacing.lg,
-  },
-  tab: {
-    height: 44,
-    paddingHorizontal: 20,
-    borderRadius: 22,
-    justifyContent: 'center',
-    backgroundColor: colors.frostFill,
-    borderWidth: 1,
-    borderColor: colors.frostEdge,
-  },
-  tabText: {
-    fontFamily: fonts.body.semibold,
-    fontSize: 16,
-    color: colors.white,
-  },
-  week: {
-    marginTop: 20,
-  },
   gauge: {
-    marginTop: 24,
+    marginTop: spacing.lg,
     alignItems: 'center',
   },
-  block: {
+  stats: {
     marginTop: 20,
+  },
+  macros: {
+    marginTop: 26,
+  },
+  section: {
+    marginTop: 18,
+    marginBottom: spacing.md,
+  },
+  block: {
+    marginTop: spacing.md,
   },
   tiles: {
     flexDirection: 'row',
-    gap: spacing.md,
-  },
-  pressed: {
-    opacity: 0.75,
+    gap: 10,
+    marginTop: 22,
   },
 });

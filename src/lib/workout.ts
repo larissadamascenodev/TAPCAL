@@ -147,3 +147,9 @@ export function estimatedMinutes(plan: WorkoutPlan): number {
   const seconds = plan.exercises.reduce((sum, e) => sum + e.targetSets * (40 + e.restSeconds), 0);
   return Math.max(5, Math.round(seconds / 60 / 5) * 5);
 }
+
+/** Treinos concluídos no mesmo mês de `today`. */
+export function sessionsThisMonth(sessions: readonly WorkoutSession[], today: DateKey): number {
+  const month = today.slice(0, 7);
+  return sessions.filter((s) => s.date.startsWith(month) && s.finishedAt).length;
+}
