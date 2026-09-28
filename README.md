@@ -7,6 +7,7 @@ Expo + Expo Router + TypeScript.
 
 ```bash
 npm install
+cp .env.example .env.local
 npx expo start
 ```
 
@@ -26,6 +27,11 @@ src/
   theme/theme.ts          cores, fontes, espaçamentos, raios, tipografia
 design-reference/         mockups aprovados (design antes de código)
 ```
+
+## Supabase
+
+Projeto `tapcal` (ref `ubtphbznnmfsvtgmrfzr`, região São Paulo). Vazio por
+enquanto: tabelas e login entram na fase 5; a função do scanner, na fase 4.
 
 ## Comandos
 
