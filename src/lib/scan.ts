@@ -139,6 +139,23 @@ export function toFoodItems(items: readonly ScanItem[]): Omit<FoodItem, 'id' | '
 }
 
 /**
+ * Junta o que a IA devolveu num alimento só (para o cadastro à mão): soma as
+ * partes e calcula os valores por 100 g do conjunto. Sem gramas, devolve null.
+ */
+export function combineScan(result: ScanResult): { name: string; grams: number; per100: Macros } | null {
+  const items = result.items.filter((i) => i.grams > 0);
+  const grams = items.reduce((sum, i) => sum + i.grams, 0);
+  if (!items.length || grams <= 0) return null;
+  const total = scanTotals(items);
+  const per = (n: number) => r1((n / grams) * 100);
+  return {
+    name: items.length === 1 ? items[0].name : result.dish,
+    grams: Math.round(grams),
+    per100: { kcal: Math.round((total.kcal / grams) * 100), proteinG: per(total.proteinG), carbsG: per(total.carbsG), fatG: per(total.fatG) },
+  };
+}
+
+/**
  * Resultado de exemplo, usado quando o Supabase ou a chave do Gemini ainda
  * não estão configurados. Valores por 100 g da tabela TACO.
  */

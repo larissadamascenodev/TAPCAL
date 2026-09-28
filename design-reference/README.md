@@ -68,7 +68,8 @@ Mockup interativo em `v4.html`; `v4.png` mostra as seis telas.
 ## Adicionar e editar alimento (vidro premium)
 
 - `manual-busca.png` — busca na tabela TACO: selo, título em maiúsculas, campo de vidro, lista com linhas finas, "Digitar à mão" no rodapé.
-- `manual-porcao.png` — porção do alimento escolhido: refeição, cartão de porção, CALORIAS grandes com barrinhas e o botão neon.
-- `manual-digitar.png` — digitar à mão: campos de vidro e prévia ao vivo das calorias e macros.
+- `manual-porcao.png` — porção do alimento escolhido: refeição, seletor de porção compacto (pílula com − e +, gramas digitáveis, porções prontas), CALORIAS grandes com barrinhas e o botão neon.
+- `manual-digitar.png` — digitar à mão: só o nome; aparecem sugestões da tabela TACO e o botão "Calcular com IA". Ninguém digita macros.
+- `manual-digitar-ia.png` — valores prontos (da tabela ou estimados pela IA), com "Trocar", porção e resumo.
 - `editar-alimento.png` — editar alimento registrado, na folha de vidro do resultado do scanner.
 - Botão principal (CONTINUAR, SALVAR): pílula de vidro escuro com borda neon (verde neon e menta) girando.

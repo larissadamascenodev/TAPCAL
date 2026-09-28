@@ -12,6 +12,8 @@
  * embutida não entende as chaves novas (sb_publishable_…); a checagem é feita
  * aqui no código.
  *
+ * Corpo: { image, mimeType } (foto) ou { text } (alimento digitado à mão).
+ *
  * Respostas:
  *   200 { dish, confidence, items: [{ name, grams, kcal_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g }] }
  *   400 imagem_invalida · 401 nao_autorizado · 413 imagem_grande
@@ -75,6 +77,19 @@ function geminiApiKey(): string | undefined {
   }
   return undefined;
 }
+
+/** Tamanho máximo da descrição em texto. */
+const MAX_TEXT = 200;
+
+const TEXT_PROMPT = `Você é nutricionista brasileira. A pessoa digitou o nome de um alimento ou prato que comeu.
+
+1. Diga se é comida (is_food).
+2. Liste o alimento (ou os alimentos, se for um prato com partes bem diferentes) com nome curto em português do Brasil.
+3. Estime a porção típica em gramas que uma pessoa come no Brasil (se a descrição disser a quantidade, use ela).
+4. Dê kcal, proteína, carboidrato e gordura POR 100 g, usando a Tabela Brasileira de Composição de Alimentos (TACO) sempre que possível, ou o rótulo típico do produto no Brasil.
+5. Dê um nome curto para o prato e a sua confiança de 0 a 1.
+
+Se não for comida, devolva is_food = false e items vazio.`;
 
 const PROMPT = `Você é nutricionista brasileira. Analise a foto de uma refeição.
 
@@ -170,14 +185,18 @@ Deno.serve(async (req) => {
 
   let image = '';
   let mimeType = 'image/jpeg';
+  let text = '';
   try {
-    const body = (await req.json()) as { image?: unknown; mimeType?: unknown };
+    const body = (await req.json()) as { image?: unknown; mimeType?: unknown; text?: unknown };
     image = typeof body.image === 'string' ? body.image.replace(/^data:[^;]+;base64,/, '') : '';
+    text = typeof body.text === 'string' ? body.text.trim().slice(0, MAX_TEXT) : '';
     if (typeof body.mimeType === 'string' && /^image\/(jpeg|png|webp|heic)$/.test(body.mimeType)) mimeType = body.mimeType;
   } catch {
     return json(400, { error: 'imagem_invalida' });
   }
-  if (!image || !/^[A-Za-z0-9+/=\s]+$/.test(image.slice(0, 200))) return json(400, { error: 'imagem_invalida' });
+  // Sem foto, vale a descrição em texto (alimento digitado à mão).
+  if (!image && !text) return json(400, { error: 'imagem_invalida' });
+  if (image && !/^[A-Za-z0-9+/=\s]+$/.test(image.slice(0, 200))) return json(400, { error: 'imagem_invalida' });
   if (image.length > MAX_BASE64) return json(413, { error: 'imagem_grande' });
 
   const preferred = Deno.env.get('GEMINI_MODEL')?.trim();
@@ -189,7 +208,14 @@ Deno.serve(async (req) => {
     [preferred, ...MODELS].filter((m): m is string => !!m),
   );
   const payload = JSON.stringify({
-    contents: [{ role: 'user', parts: [{ inlineData: { mimeType, data: image } }, { text: PROMPT }] }],
+    contents: [
+      {
+        role: 'user',
+        parts: image
+          ? [{ inlineData: { mimeType, data: image } }, { text: PROMPT }]
+          : [{ text: `${TEXT_PROMPT}\n\nAlimento: ${text}` }],
+      },
+    ],
     generationConfig: {
       temperature: 0.2,
       responseMimeType: 'application/json',

@@ -1,12 +1,11 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
-import { Glass } from '@/components/ui/Glass';
-import { Stepper } from '@/components/ui/Stepper';
+import { IconButton } from '@/components/ui/IconButton';
 import { Text } from '@/components/ui/Text';
-import { formatInt } from '@/lib/format';
-import { colors, fonts, spacing } from '@/theme/theme';
+import { colors, fonts, radius, spacing } from '@/theme/theme';
 
-/** Porções prontas embaixo dos botões − e +. */
+/** Porções prontas embaixo do seletor. */
 export const QUICK_GRAMS = [50, 100, 150, 200];
 /** Passo dos botões − e +. */
 export const PORTION_STEP = 10;
@@ -20,25 +19,44 @@ type Props = {
   min?: number;
 };
 
-/** Cartão da porção: gramas em número grande, − e +, e as porções prontas. */
+/**
+ * Seletor de porção compacto: uma pílula de vidro com − e + em volta das
+ * gramas (dá para tocar e digitar) e as porções prontas embaixo.
+ */
 export function PortionCard({ grams, onChange, min = 0 }: Props) {
+  // Enquanto digita, mostra o texto cru (pode ficar vazio); fora disso, as gramas.
+  const [typing, setTyping] = useState<string | null>(null);
+
+  const type = (t: string) => {
+    const digits = t.replace(/\D/g, '').slice(0, 4);
+    setTyping(digits);
+    onChange(Math.min(MAX_PORTION, Number(digits) || 0));
+  };
+
   return (
-    <Glass contentStyle={styles.card}>
+    <View style={styles.wrap}>
       <Text variant="label" tone="muted">
         Porção
       </Text>
-      <Text style={styles.grams} accessibilityLiveRegion="polite">
-        {formatInt(grams)}
-        <Text variant="caption" tone="muted">
-          {' '}g
-        </Text>
-      </Text>
-      <Stepper
-        label="porção"
-        size={44}
-        onMinus={() => onChange(Math.max(min, grams - PORTION_STEP))}
-        onPlus={() => onChange(Math.min(MAX_PORTION, grams + PORTION_STEP))}
-      />
+      <View style={styles.pill}>
+        <IconButton icon="remove" label="Diminuir porção" size={44} onPress={() => onChange(Math.max(min, grams - PORTION_STEP))} />
+        <View style={styles.value}>
+          <TextInput
+            value={typing ?? String(grams)}
+            onChangeText={type}
+            onFocus={() => setTyping(String(grams))}
+            onBlur={() => setTyping(null)}
+            keyboardType="number-pad"
+            selectTextOnFocus
+            selectionColor={colors.lime2}
+            keyboardAppearance="dark"
+            accessibilityLabel="Porção em gramas"
+            style={styles.input}
+          />
+          <Text style={styles.unit}>g</Text>
+        </View>
+        <IconButton icon="add" label="Aumentar porção" size={44} onPress={() => onChange(Math.min(MAX_PORTION, grams + PORTION_STEP))} />
+      </View>
       <View style={styles.quick}>
         {QUICK_GRAMS.map((g) => (
           <Pressable
@@ -50,33 +68,57 @@ export function PortionCard({ grams, onChange, min = 0 }: Props) {
           </Pressable>
         ))}
       </View>
-    </Glass>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    alignItems: 'center',
-    paddingVertical: spacing.xl,
+  wrap: {
+    gap: spacing.sm,
   },
-  grams: {
-    marginTop: spacing.sm,
-    marginBottom: spacing.md,
+  pill: {
+    height: 60,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    borderRadius: radius.pill,
+    backgroundColor: colors.glassFill,
+    borderWidth: 1,
+    borderColor: colors.frostCardEdge,
+    borderTopColor: colors.frostCardEdgeTop,
+  },
+  value: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  input: {
+    minWidth: 44,
+    maxWidth: 110,
+    padding: 0,
+    textAlign: 'right',
+    color: colors.ink,
     fontFamily: fonts.display.bold,
-    fontSize: 52,
-    lineHeight: 58,
-    letterSpacing: -2.2,
+    fontSize: 28,
+    letterSpacing: -1,
     fontVariant: ['tabular-nums'],
+  },
+  unit: {
+    fontFamily: fonts.body.bold,
+    fontSize: 14,
+    color: colors.ink3,
   },
   quick: {
     flexDirection: 'row',
     gap: 6,
-    marginTop: spacing.lg,
   },
   quickChip: {
+    flex: 1,
     height: 32,
-    paddingHorizontal: 12,
     borderRadius: 16,
+    alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.glassFill,
     borderWidth: 1,

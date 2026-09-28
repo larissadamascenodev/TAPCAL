@@ -68,7 +68,30 @@ export async function analyzeMeal(base64: string, cfg: ScanConfig = scanConfig()
     await new Promise((r) => setTimeout(r, 1600));
     return { kind: 'ok', result: sampleScan(), example: true, reason: 'sem_supabase' };
   }
+  return post({ image: base64, mimeType: 'image/jpeg' }, cfg, signal);
+}
 
+/**
+ * Estima calorias e macros de um alimento digitado à mão (ex.: "coxinha").
+ * Aqui não existe modo exemplo: sem Supabase ou sem chave, volta um erro.
+ */
+export async function estimateFood(text: string, cfg: ScanConfig = scanConfig(), signal?: AbortSignal): Promise<ScanOutcome> {
+  const unavailable: ScanOutcome = {
+    kind: 'error',
+    message: 'A estimativa por IA não está disponível agora. Tente um alimento da tabela.',
+    canRetry: false,
+  };
+  if (!isConfigured(cfg)) return unavailable;
+  const outcome = await post({ text }, cfg, signal);
+  if (outcome.kind === 'ok' && outcome.example) return unavailable;
+  if (outcome.kind === 'error' && outcome.message.startsWith('Não encontrei comida')) {
+    return { kind: 'error', message: 'Não reconheci esse alimento. Tente escrever de outro jeito.', canRetry: true };
+  }
+  return outcome;
+}
+
+/** Chamada à Edge Function, com prazo e cancelamento. */
+async function post(body: object, cfg: ScanConfig, signal?: AbortSignal): Promise<ScanOutcome> {
   const controller = new AbortController();
   // A função pode tentar mais de um modelo quando o Gemini está cheio: dá tempo a ela.
   let timedOut = false;
@@ -82,16 +105,16 @@ export async function analyzeMeal(base64: string, cfg: ScanConfig = scanConfig()
     const res = await fetch(`${cfg.url}/functions/v1/analyze-meal`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', apikey: cfg.key as string },
-      body: JSON.stringify({ image: base64, mimeType: 'image/jpeg' }),
+      body: JSON.stringify(body),
       signal: controller.signal,
     });
-    let body: unknown = null;
+    let data: unknown = null;
     try {
-      body = await res.json();
+      data = await res.json();
     } catch {
       // corpo vazio ou não-JSON: fica null
     }
-    return interpretResponse(res.status, body);
+    return interpretResponse(res.status, data);
   } catch {
     if (signal?.aborted) return { kind: 'cancelled' };
     if (timedOut) {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { adjustGrams, editScanItem, MAX_GRAMS, normalizeScan, removeScanItem, sampleScan, scanTotals, toFoodItems } from '@/lib/scan';
+import { adjustGrams, combineScan, editScanItem, MAX_GRAMS, normalizeScan, removeScanItem, sampleScan, scanTotals, toFoodItems } from '@/lib/scan';
 
 const raw = {
   dish: 'Arroz, feijão e frango',
@@ -95,3 +95,26 @@ describe('corrigir um alimento do scanner', () => {
     expect(removeScanItem(base, id).map((i) => i.id)).not.toContain(id);
   });
 });
+
+describe('juntar a estimativa da IA num alimento', () => {
+  const per100 = { kcal: 200, proteinG: 10, carbsG: 20, fatG: 8 };
+  it('um alimento só: mesmo nome, porção e valores por 100 g', () => {
+    const r = combineScan({ dish: 'Coxinha', confidence: 0.8, items: [{ id: 'a', name: 'Coxinha de frango', grams: 80, per100 }] });
+    expect(r).toEqual({ name: 'Coxinha de frango', grams: 80, per100 });
+  });
+  it('várias partes viram o prato, com a média por 100 g', () => {
+    const r = combineScan({
+      dish: 'Pão com ovo',
+      confidence: 0.8,
+      items: [
+        { id: 'a', name: 'Pão', grams: 50, per100: { kcal: 300, proteinG: 8, carbsG: 58, fatG: 3 } },
+        { id: 'b', name: 'Ovo', grams: 50, per100: { kcal: 140, proteinG: 13, carbsG: 1, fatG: 10 } },
+      ],
+    });
+    expect(r).toEqual({ name: 'Pão com ovo', grams: 100, per100: { kcal: 220, proteinG: 10.5, carbsG: 29.5, fatG: 6.5 } });
+  });
+  it('sem gramas não dá para usar', () => {
+    expect(combineScan({ dish: 'x', confidence: 0.5, items: [] })).toBeNull();
+  });
+});
+
