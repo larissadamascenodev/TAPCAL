@@ -16,7 +16,10 @@ export function parseShortcut(value: unknown): ShortcutAction | null {
   return SHORTCUT_ACTIONS.includes(v as ShortcutAction) ? (v as ShortcutAction) : null;
 }
 
-/** Link que o app Atalhos abre para cada ação (app instalado, com o esquema tapcal). */
+/** Link único: abre a escolha entre foto, água e treino. */
+export const SHORTCUT_MENU_URL = 'tapcal://atalho';
+
+/** Link direto de uma ação (app instalado, com o esquema tapcal). */
 export function shortcutUrl(action: ShortcutAction): string {
-  return `tapcal://atalho/${action}`;
+  return `${SHORTCUT_MENU_URL}/${action}`;
 }

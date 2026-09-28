@@ -18,6 +18,9 @@ import { colors } from '@/theme/theme';
 
 SplashScreen.preventAutoHideAsync();
 
+// Quando um atalho abre o app direto numa tela, as abas ficam por baixo dela.
+export const unstable_settings = { initialRouteName: '(tabs)' };
+
 const navTheme: Theme = {
   ...DarkTheme,
   colors: {
@@ -72,6 +75,7 @@ export default function RootLayout() {
           <Stack.Screen name="em-breve" options={{ presentation: 'modal' }} />
           <Stack.Screen name="busca" options={{ presentation: 'modal' }} />
           <Stack.Screen name="scanner" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
+          <Stack.Screen name="atalho/index" options={{ presentation: 'modal' }} />
           <Stack.Screen name="atalho/[acao]" options={{ animation: 'none' }} />
         </Stack>
         <ToastHost />
