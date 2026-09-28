@@ -7,13 +7,17 @@ import { colors, gradients } from '@/theme/theme';
 type Props = {
   /** Liga a linha verde que varre a foto (durante a análise). */
   scanning?: boolean;
+  /** Distância do topo da tela (para não ficar embaixo dos botões). */
+  top?: number;
+  /** Distância da base da tela (para não ficar embaixo do disparador). */
+  bottom?: number;
 };
 
 const CORNER = 34;
 const STROKE = 3;
 
 /** Cantos brancos do enquadramento e a linha de varredura do mockup. */
-export function ScanFrame({ scanning = false }: Props) {
+export function ScanFrame({ scanning = false, top = 70, bottom = 70 }: Props) {
   const [height, setHeight] = useState(0);
   const [anim] = useState(() => new Animated.Value(0));
 
@@ -33,7 +37,7 @@ export function ScanFrame({ scanning = false }: Props) {
   const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [height * 0.1, height * 0.88] });
 
   return (
-    <View pointerEvents="none" style={styles.frame} onLayout={onLayout}>
+    <View pointerEvents="none" style={[styles.frame, { top, bottom }]} onLayout={onLayout}>
       <View style={[styles.corner, styles.tl]} />
       <View style={[styles.corner, styles.tr]} />
       <View style={[styles.corner, styles.bl]} />
@@ -55,8 +59,6 @@ export function ScanFrame({ scanning = false }: Props) {
 const styles = StyleSheet.create({
   frame: {
     position: 'absolute',
-    top: 70,
-    bottom: 70,
     left: 46,
     right: 46,
   },

@@ -27,6 +27,8 @@ type Phase =
   | { step: 'error'; uri: string; message: string; canRetry: boolean; base64: string };
 
 const PHOTO_H = 370;
+/** Altura do botão "Adicionar manualmente" acima da linha do disparador. */
+const MANUAL_OFFSET = 100;
 
 /** Reduz a foto para ~1024 px e devolve em base64 (menos dados, análise mais rápida). */
 async function prepare(uri: string): Promise<{ uri: string; base64: string }> {
@@ -88,6 +90,10 @@ export default function ScannerScreen() {
     }
   };
 
+  // O enquadramento fica entre a barra do topo e os botões de baixo, sem encostar neles.
+  const frameTop = insets.top + spacing.sm + 42 + spacing.lg;
+  const frameBottom = insets.bottom + spacing.xl + MANUAL_OFFSET + 42 + spacing.lg;
+
   // ── Câmera ────────────────────────────────────────────────────────────────
   if (phase.step === 'camera') {
     const granted = permission?.granted;
@@ -113,7 +119,7 @@ export default function ScannerScreen() {
             )}
           </View>
         )}
-        <ScanFrame />
+        <ScanFrame top={frameTop} bottom={frameBottom} />
 
         <View style={[styles.topBar, { top: insets.top + spacing.sm }]}>
           <IconButton icon="close" label="Fechar" dark onPress={() => router.back()} />
@@ -129,7 +135,7 @@ export default function ScannerScreen() {
           accessibilityRole="button"
           accessibilityHint="Buscar o alimento na tabela TACO ou digitar à mão"
           onPress={() => router.replace({ pathname: '/busca', params: { refeicao: meal } })}
-          style={({ pressed }) => [styles.manual, { bottom: insets.bottom + spacing.xl + 100 }, pressed && styles.pressed]}>
+          style={({ pressed }) => [styles.manual, { bottom: insets.bottom + spacing.xl + MANUAL_OFFSET }, pressed && styles.pressed]}>
           {Platform.OS !== 'android' && <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />}
           <Ionicons name="create-outline" size={16} color={colors.white} />
           <Text style={styles.manualText}>Adicionar manualmente</Text>
@@ -157,7 +163,7 @@ export default function ScannerScreen() {
       <View style={styles.root}>
         <Image source={{ uri: phase.uri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
         <View style={[StyleSheet.absoluteFill, styles.dim]} />
-        <ScanFrame scanning />
+        <ScanFrame scanning top={frameTop} bottom={frameBottom} />
         <View style={[styles.analyzing, { bottom: insets.bottom + spacing.xxxl }]}>
           <ActivityIndicator color={colors.gold} />
           <Text variant="bodyStrong">Analisando o prato…</Text>
@@ -174,6 +180,10 @@ export default function ScannerScreen() {
     return (
       <View style={styles.root}>
         <Image source={{ uri: phase.uri }} style={[styles.photo, { height: PHOTO_H }]} resizeMode="cover" />
+        <View style={[styles.topBar, { top: insets.top + spacing.sm }]}>
+          <IconButton icon="close" label="Fechar" dark onPress={() => router.back()} />
+          <IconButton icon="refresh" label="Nova foto" dark onPress={() => setPhase({ step: 'camera' })} />
+        </View>
         <View style={[styles.sheet, styles.errorSheet, { paddingBottom: insets.bottom + spacing.lg }]}>
           <View style={styles.grab} />
           <Ionicons name="alert-circle-outline" size={32} color={colors.lime2} style={styles.selfCenter} />
@@ -245,25 +255,22 @@ export default function ScannerScreen() {
             </View>
           )}
           <Text style={styles.dish}>{result.dish.toUpperCase()}</Text>
+
+          <View style={styles.bigk}>
+            <Text style={styles.sumValue}>{formatInt(totals.kcal)}</Text>
+            <Text style={styles.sumUnit}>KCAL</Text>
+          </View>
+
           {lowConfidence && (
             <Text variant="caption" style={styles.warn}>
               A foto deixou dúvidas. Confira os alimentos e as porções antes de continuar.
             </Text>
           )}
 
-          <ChipGroup label="Refeição" options={MEAL_OPTIONS} value={meal} onChange={setMeal} />
-
-          <View style={styles.summary}>
-            <Text style={styles.sumLabel}>TOTAL DE CALORIAS</Text>
-            <Text style={styles.sumValue}>
-              {formatInt(totals.kcal)}
-              <Text style={styles.sumUnit}> KCAL</Text>
-            </Text>
-            <View style={styles.rings}>
-              <MacroRing label="Proteína" value={totals.proteinG} goal={dayGoal?.proteinG} color={macroColors.proteinG} />
-              <MacroRing label="Carbo" value={totals.carbsG} goal={dayGoal?.carbsG} color={macroColors.carbsG} />
-              <MacroRing label="Gordura" value={totals.fatG} goal={dayGoal?.fatG} color={macroColors.fatG} />
-            </View>
+          <View style={styles.rings}>
+            <MacroRing label="Proteína" value={totals.proteinG} goal={dayGoal?.proteinG} color={macroColors.proteinG} />
+            <MacroRing label="Carboidrato" value={totals.carbsG} goal={dayGoal?.carbsG} color={macroColors.carbsG} />
+            <MacroRing label="Gordura" value={totals.fatG} goal={dayGoal?.fatG} color={macroColors.fatG} />
           </View>
 
           <View style={styles.list}>
@@ -294,6 +301,8 @@ export default function ScannerScreen() {
               </Text>
             </Pressable>
           </View>
+
+          <ChipGroup label="Refeição" options={MEAL_OPTIONS} value={meal} onChange={setMeal} />
 
           <Pressable accessibilityRole="button" onPress={save} style={({ pressed }) => [styles.cta, pressed && styles.pressed]}>
             <Text style={styles.ctaText}>CONTINUAR</Text>
@@ -554,15 +563,18 @@ const styles = StyleSheet.create({
     letterSpacing: -0.8,
   },
   list: {
-    marginTop: spacing.xs,
+    gap: spacing.sm,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.hairline,
+    paddingVertical: 12,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.lg - 2,
+    backgroundColor: colors.glassSubtle,
+    borderWidth: 1,
+    borderColor: colors.lineSoft,
   },
   rowOff: {
     opacity: 0.4,
@@ -583,23 +595,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingVertical: 14,
+    paddingVertical: 6,
+    paddingHorizontal: spacing.xs,
   },
   addRowText: {
     fontFamily: fonts.body.bold,
   },
-  summary: {
-    marginTop: spacing.xs,
-  },
-  sumLabel: {
-    fontFamily: fonts.body.bold,
-    fontSize: 11,
-    lineHeight: 14,
-    letterSpacing: 2,
-    color: colors.ink3,
+  bigk: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: spacing.sm,
+    marginTop: -4,
   },
   sumValue: {
-    marginTop: 4,
     fontFamily: fonts.display.bold,
     fontSize: 52,
     lineHeight: 56,
@@ -614,12 +622,17 @@ const styles = StyleSheet.create({
   },
   rings: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: spacing.lg,
+    gap: spacing.sm,
   },
   ring: {
+    flex: 1,
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: radius.lg - 2,
+    backgroundColor: colors.glassFill,
+    borderWidth: 1,
+    borderColor: colors.line,
   },
   ringCenter: {
     ...StyleSheet.absoluteFill,

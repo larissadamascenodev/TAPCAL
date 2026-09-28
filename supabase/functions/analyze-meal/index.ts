@@ -4,7 +4,7 @@
  *
  * Segredos (Supabase → Edge Functions → Secrets):
  *   GEMINI_API_KEY   chave da API do Gemini (obrigatória; também aceita GOOGLE_API_KEY, GEMINI_KEY…)
- *   GEMINI_MODEL     modelo a usar (opcional; padrão abaixo)
+ *   GEMINI_MODEL     modelo a tentar primeiro (opcional; depois vêm os de MODELS)
  *
  * Acesso: por enquanto qualquer chamada com a chave publicável do projeto no
  * cabeçalho `apikey` (o app ainda não tem login). Na fase 5 passa a exigir
@@ -18,7 +18,12 @@
  *   422 nao_reconhecido · 502 falha_ia · 503 sem_chave
  */
 
-const DEFAULT_MODEL = 'gemini-2.5-flash';
+/**
+ * Modelos tentados em ordem. O Google aposenta modelos com frequência (o
+ * gemini-2.5-flash passou a dar 404 para contas novas); se um sumir, a função
+ * passa para o próximo em vez de falhar.
+ */
+const MODELS = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-2.5-flash'];
 const MAX_BASE64 = 4_000_000; // ~3 MB de imagem
 const TIMEOUT_MS = 25_000;
 
@@ -133,34 +138,41 @@ Deno.serve(async (req) => {
   if (!image || !/^[A-Za-z0-9+/=\s]+$/.test(image.slice(0, 200))) return json(400, { error: 'imagem_invalida' });
   if (image.length > MAX_BASE64) return json(413, { error: 'imagem_grande' });
 
-  const model = Deno.env.get('GEMINI_MODEL') || DEFAULT_MODEL;
+  const preferred = Deno.env.get('GEMINI_MODEL')?.trim();
+  const models = [...new Set([preferred, ...MODELS].filter((m): m is string => !!m))];
   // GEMINI_API_BASE só existe para testes locais com um servidor simulado.
   const base = Deno.env.get('GEMINI_API_BASE') || 'https://generativelanguage.googleapis.com';
-  const url = `${base}/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+  const payload = JSON.stringify({
+    contents: [{ role: 'user', parts: [{ inlineData: { mimeType, data: image } }, { text: PROMPT }] }],
+    generationConfig: {
+      temperature: 0.2,
+      responseMimeType: 'application/json',
+      responseSchema: RESPONSE_SCHEMA,
+    },
+  });
 
-  let res: Response;
-  try {
-    res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': geminiKey },
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ inlineData: { mimeType, data: image } }, { text: PROMPT }] }],
-        generationConfig: {
-          temperature: 0.2,
-          responseMimeType: 'application/json',
-          responseSchema: RESPONSE_SCHEMA,
-        },
-      }),
-    });
-  } catch (e) {
-    console.error('gemini_fetch', e);
-    return json(502, { error: 'falha_ia' });
+  let res: Response | null = null;
+  for (const model of models) {
+    try {
+      res = await fetch(`${base}/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': geminiKey },
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+        body: payload,
+      });
+    } catch (e) {
+      console.error('gemini_fetch', model, e);
+      return json(502, { error: 'falha_ia' });
+    }
+    // 404 = modelo inexistente ou aposentado: tenta o próximo da lista.
+    if (res.status !== 404) break;
+    console.error('gemini_modelo_indisponivel', model, (await res.text()).slice(0, 300));
   }
 
-  if (!res.ok) {
-    console.error('gemini_status', res.status, (await res.text()).slice(0, 500));
-    return json(502, { error: 'falha_ia', status: res.status });
+  if (!res || !res.ok) {
+    const status = res?.status ?? 0;
+    if (res && res.status !== 404) console.error('gemini_status', status, (await res.text()).slice(0, 500));
+    return json(502, { error: 'falha_ia', status });
   }
 
   let parsed: { is_food?: boolean; dish?: string; confidence?: number; items?: unknown[] };
