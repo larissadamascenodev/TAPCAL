@@ -25,6 +25,11 @@ src/
     ui/                   Glass, TopGlow, Button, Text, Screen, EmptyState
     navigation/           FloatingTabBar (barra inferior flutuante)
   theme/theme.ts          cores, fontes, espaçamentos, raios, tipografia
+  types/                  tipos do domínio (perfil, refeição, alimento, treino, série, peso)
+  lib/goals.ts            motor de metas: IMC, TMB, gasto, calorias, macros, água, previsão
+  lib/                    datas, virada do dia, totais, treino
+  store/                  store local (zustand + AsyncStorage) e seletores
+  data/sample.ts          dados de exemplo para o app abrir preenchido
 design-reference/         mockups aprovados (design antes de código)
 ```
 
@@ -38,8 +43,9 @@ enquanto: tabelas e login entram na fase 5; a função do scanner, na fase 4.
 ```bash
 npm run lint        # ESLint (config do Expo)
 npm run typecheck   # TypeScript
+npm test            # testes (motor de metas, datas, store, treino)
 ```
 
 ## Fases
 
-O plano completo está no roteiro do projeto. Status atual: **Fase 1 — fundação**.
+O plano completo está no roteiro do projeto. Status atual: **Fase 2 — dados e motor de metas**.

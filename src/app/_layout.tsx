@@ -11,6 +11,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
+import { useDayRollover } from '@/hooks/useDayRollover';
 import { colors } from '@/theme/theme';
 
 SplashScreen.preventAutoHideAsync();
@@ -29,6 +30,8 @@ const navTheme: Theme = {
 };
 
 export default function RootLayout() {
+  useDayRollover();
+
   const [fontsLoaded, fontError] = useFonts({
     Sora_500Medium,
     Sora_600SemiBold,

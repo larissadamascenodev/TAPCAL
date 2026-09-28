@@ -9,4 +9,5 @@
 - Use os componentes de `src/components/ui` (Glass, Button, Text, Screen) em vez de recriar estilos.
 - Tudo precisa rodar no Expo Go até a fase 4 — não adicionar libs com código nativo fora do Expo Go.
 - Textos do app em português do Brasil.
-- Antes de concluir: `npm run lint` e `npm run typecheck`.
+- Antes de concluir: `npm run lint`, `npm run typecheck` e `npm test`.
+- Cálculos de metas só em `src/lib/goals.ts`, sempre com teste.

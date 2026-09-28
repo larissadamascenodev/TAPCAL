@@ -1,0 +1,149 @@
+/**
+ * Dados de exemplo para o app abrir preenchido enquanto não existe onboarding.
+ * Tudo é gerado relativo a "hoje", então o exemplo nunca fica velho.
+ *
+ * SAMPLE_PROFILE: troque pelos seus dados reais (os marcados com ⚠️ são palpites).
+ */
+
+import { addDays } from '@/lib/dates';
+import { emptyMeals } from '@/lib/day';
+import type {
+  DateKey,
+  DayLog,
+  FoodItem,
+  Profile,
+  WeightEntry,
+  WorkoutPlan,
+  WorkoutSession,
+} from '@/types';
+
+export const SAMPLE_PROFILE: Profile = {
+  name: 'Larissa',
+  sex: 'feminino',
+  birthDate: '1995-06-15', // ⚠️ palpite
+  heightCm: 165, // ⚠️ palpite
+  startWeightKg: 71,
+  targetWeightKg: 65,
+  activityLevel: 'moderado', // ⚠️ palpite
+  goal: 'emagrecer',
+  pace: 'moderado',
+  usesGlp1: false,
+  createdAt: '2026-08-31T12:00:00.000Z',
+};
+
+// Valores por porção, arredondados a partir da tabela TACO.
+function food(
+  id: string,
+  name: string,
+  grams: number,
+  kcal: number,
+  proteinG: number,
+  carbsG: number,
+  fatG: number,
+  date: DateKey,
+  time: string,
+): FoodItem {
+  return { id, name, grams, kcal, proteinG, carbsG, fatG, source: 'manual', createdAt: `${date}T${time}` };
+}
+
+export function sampleDay(date: DateKey): DayLog {
+  const meals = emptyMeals();
+  meals.cafe_da_manha = [
+    food('s-pao', 'Pão francês', 50, 150, 4.7, 29.3, 1.6, date, '07:30:00'),
+    food('s-ovo', 'Ovo cozido (2 unidades)', 100, 146, 13.3, 0.6, 9.5, date, '07:30:00'),
+    food('s-cafe', 'Café com leite', 200, 100, 5, 8, 5, date, '07:30:00'),
+  ];
+  meals.almoco = [
+    food('s-arroz', 'Arroz branco', 150, 192, 3.8, 42.2, 0.3, date, '12:30:00'),
+    food('s-feijao', 'Feijão carioca', 100, 76, 4.8, 13.6, 0.5, date, '12:30:00'),
+    food('s-frango', 'Peito de frango grelhado', 120, 191, 38.4, 0, 3, date, '12:30:00'),
+    food('s-salada', 'Salada de folhas e tomate', 80, 12, 0.8, 2, 0.2, date, '12:30:00'),
+  ];
+  meals.lanche = [
+    food('s-iogurte', 'Iogurte natural', 170, 88, 6.5, 9, 3, date, '16:00:00'),
+    food('s-banana', 'Banana prata', 80, 78, 1, 21, 0.1, date, '16:00:00'),
+  ];
+  return { date, meals, waterMl: 1250 };
+}
+
+export const SAMPLE_WORKOUT_PLANS: WorkoutPlan[] = [
+  {
+    id: 'plano-a',
+    name: 'Treino A',
+    focus: 'Peito, ombro e tríceps',
+    weekdays: [1, 4],
+    exercises: [
+      { id: 'ex-supino', name: 'Supino reto com halteres', muscleGroup: 'Peito', targetSets: 4, targetReps: '8-12', restSeconds: 90 },
+      { id: 'ex-crucifixo', name: 'Crucifixo inclinado', muscleGroup: 'Peito', targetSets: 3, targetReps: '10-12', restSeconds: 60 },
+      { id: 'ex-desenvolvimento', name: 'Desenvolvimento com halteres', muscleGroup: 'Ombro', targetSets: 4, targetReps: '8-12', restSeconds: 90 },
+      { id: 'ex-lateral', name: 'Elevação lateral', muscleGroup: 'Ombro', targetSets: 3, targetReps: '12-15', restSeconds: 60 },
+      { id: 'ex-triceps', name: 'Tríceps na polia', muscleGroup: 'Tríceps', targetSets: 3, targetReps: '10-12', restSeconds: 60 },
+    ],
+  },
+  {
+    id: 'plano-b',
+    name: 'Treino B',
+    focus: 'Costas e bíceps',
+    weekdays: [2, 5],
+    exercises: [
+      { id: 'ex-puxada', name: 'Puxada frontal', muscleGroup: 'Costas', targetSets: 4, targetReps: '8-12', restSeconds: 90 },
+      { id: 'ex-remada', name: 'Remada baixa', muscleGroup: 'Costas', targetSets: 4, targetReps: '8-12', restSeconds: 90 },
+      { id: 'ex-pulldown', name: 'Pulldown com corda', muscleGroup: 'Costas', targetSets: 3, targetReps: '12-15', restSeconds: 60 },
+      { id: 'ex-rosca', name: 'Rosca direta', muscleGroup: 'Bíceps', targetSets: 3, targetReps: '10-12', restSeconds: 60 },
+    ],
+  },
+  {
+    id: 'plano-c',
+    name: 'Treino C',
+    focus: 'Pernas e glúteos',
+    weekdays: [3, 6],
+    exercises: [
+      { id: 'ex-agachamento', name: 'Agachamento livre', muscleGroup: 'Quadríceps', targetSets: 4, targetReps: '8-10', restSeconds: 120 },
+      { id: 'ex-leg', name: 'Leg press 45°', muscleGroup: 'Quadríceps', targetSets: 4, targetReps: '10-12', restSeconds: 90 },
+      { id: 'ex-stiff', name: 'Stiff', muscleGroup: 'Posterior', targetSets: 3, targetReps: '10-12', restSeconds: 90 },
+      { id: 'ex-elevacao', name: 'Elevação pélvica', muscleGroup: 'Glúteos', targetSets: 4, targetReps: '10-12', restSeconds: 90 },
+      { id: 'ex-panturrilha', name: 'Panturrilha em pé', muscleGroup: 'Panturrilha', targetSets: 4, targetReps: '12-15', restSeconds: 45 },
+    ],
+  },
+];
+
+/** Um treino B concluído há 4 dias, para já existir recorde e histórico. */
+export function sampleSessions(today: DateKey): WorkoutSession[] {
+  const date = addDays(today, -4);
+  const set = (id: string, exerciseId: string, weightKg: number, reps: number, time: string) => ({
+    id,
+    exerciseId,
+    weightKg,
+    reps,
+    completedAt: `${date}T${time}`,
+  });
+  return [
+    {
+      id: 'sessao-exemplo',
+      planId: 'plano-b',
+      date,
+      startedAt: `${date}T18:00:00`,
+      finishedAt: `${date}T18:52:00`,
+      sets: [
+        set('s1', 'ex-puxada', 35, 12, '18:04:00'),
+        set('s2', 'ex-puxada', 40, 10, '18:07:00'),
+        set('s3', 'ex-puxada', 40, 9, '18:10:00'),
+        set('s4', 'ex-remada', 30, 12, '18:16:00'),
+        set('s5', 'ex-remada', 35, 10, '18:19:00'),
+        set('s6', 'ex-rosca', 8, 12, '18:40:00'),
+        set('s7', 'ex-rosca', 10, 10, '18:43:00'),
+      ],
+    },
+  ];
+}
+
+/** Uma pesagem por semana nas últimas 4 semanas, descendo devagar. */
+export function sampleWeights(today: DateKey): WeightEntry[] {
+  return [
+    { id: 'p1', date: addDays(today, -28), weightKg: 71 },
+    { id: 'p2', date: addDays(today, -21), weightKg: 70.6 },
+    { id: 'p3', date: addDays(today, -14), weightKg: 70.1 },
+    { id: 'p4', date: addDays(today, -7), weightKg: 69.8 },
+    { id: 'p5', date: today, weightKg: 69.4 },
+  ];
+}
