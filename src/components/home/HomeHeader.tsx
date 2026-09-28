@@ -8,7 +8,6 @@ import { Text } from '@/components/ui/Text';
 import { greeting } from '@/lib/format';
 import { colors, fonts, gradients, spacing } from '@/theme/theme';
 
-import { StreakBadge } from './StreakBadge';
 
 /** Altura do topo, sem contar a área segura. */
 export const HOME_HEADER_H = 50 + spacing.lg;
@@ -23,16 +22,14 @@ const FADE_IN = {
 
 type Props = {
   name: string;
-  streakDays: number;
   /** Rolou a tela: escurece o fundo do topo. */
   scrolled: boolean;
 };
 
 /**
- * Topo fixo da Início: avatar e saudação à esquerda, sequência de dias (chama)
- * à direita. Ao rolar, o fundo ganha um desfoque que some para baixo.
+ * Topo fixo da Início: avatar e saudação. Ao rolar, o fundo ganha um desfoque que some para baixo.
  */
-export function HomeHeader({ name, streakDays, scrolled }: Props) {
+export function HomeHeader({ name, scrolled }: Props) {
   const insets = useSafeAreaInsets();
   const top = insets.top + spacing.sm;
   const height = top + HOME_HEADER_H;
@@ -67,7 +64,6 @@ export function HomeHeader({ name, streakDays, scrolled }: Props) {
           </Text>
         </View>
 
-        <StreakBadge days={streakDays} />
       </View>
     </View>
   );

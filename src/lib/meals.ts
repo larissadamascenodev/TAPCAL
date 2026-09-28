@@ -39,3 +39,31 @@ export function timeOf(iso: string): string {
 export function mealTime(meal: MealType, items: readonly FoodItem[]): string {
   return items.length ? timeOf(items[0].createdAt) : DEFAULT_MEAL_TIMES[meal];
 }
+
+/** Passou desta fração da meta da refeição: conta como "bem acima". */
+export const MEAL_OVER_MARGIN = 1.15;
+
+export type MealProgress = {
+  /** Consumido ÷ meta da refeição (pode passar de 1). */
+  ratio: number;
+  /** Tem pelo menos um alimento registrado. */
+  logged: boolean;
+  /** Passou de 100% da meta da refeição. */
+  over: boolean;
+  /** Passou bem da meta (acima de MEAL_OVER_MARGIN): merece aviso. */
+  wayOver: boolean;
+  /** Quantas kcal acima da meta (0 se não passou). */
+  overKcal: number;
+};
+
+/** Situação de uma refeição em relação às calorias indicadas para ela. */
+export function mealProgress(kcal: number, targetKcal: number): MealProgress {
+  const ratio = targetKcal > 0 ? kcal / targetKcal : kcal > 0 ? Infinity : 0;
+  return {
+    ratio,
+    logged: kcal > 0,
+    over: ratio > 1,
+    wayOver: ratio > MEAL_OVER_MARGIN,
+    overKcal: Math.max(0, Math.round(kcal - targetKcal)),
+  };
+}

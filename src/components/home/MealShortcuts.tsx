@@ -6,7 +6,7 @@ import { Glass } from '@/components/ui/Glass';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { Text } from '@/components/ui/Text';
 import { formatInt } from '@/lib/format';
-import { mealTime } from '@/lib/meals';
+import { mealProgress, mealTime } from '@/lib/meals';
 import { sumMacros } from '@/lib/totals';
 import { colors, fonts, radius, spacing } from '@/theme/theme';
 import { MEAL_LABELS, MEAL_TYPES, type Meals, type MealType } from '@/types';
@@ -18,9 +18,6 @@ const PLATE: Record<MealType, string> = {
   lanche: '🥪',
   jantar: '🥗',
 };
-
-/** A partir desta fração das calorias indicadas, a refeição conta como feita. */
-const DONE_AT = 0.9;
 
 type Props = {
   meals: Meals;
@@ -40,26 +37,36 @@ export function MealShortcuts({ meals, targets, onAdd, onNew }: Props) {
         const items = meals[meal];
         const kcal = sumMacros(items).kcal;
         const target = targets[meal];
-        const done = target > 0 && kcal >= target * DONE_AT;
+        const p = mealProgress(kcal, target);
         return (
           <Glass key={meal} flush rounded={24} style={styles.card}>
             <FoodVisual emoji={PLATE[meal]} tone={meal} height={104} scrim>
               <View style={styles.time}>
                 <Text style={styles.timeText}>{mealTime(meal, items)}</Text>
               </View>
-              {done && (
-                <View style={styles.ok}>
+              {p.logged && (
+                <View style={styles.ok} accessibilityLabel="Refeição registrada">
                   <Ionicons name="checkmark" size={14} color={colors.onLime} />
                 </View>
               )}
               <Text style={styles.name}>{MEAL_LABELS[meal]}</Text>
             </FoodVisual>
             <View style={styles.body}>
-              <Text style={styles.kcal}>
-                <Text style={styles.kcalBig}>{formatInt(kcal || target)}</Text>
-                {kcal ? ` de ${formatInt(target)} kcal` : ' kcal indicadas'}
-              </Text>
-              <ProgressBar value={target ? kcal / target : 0} color={colors.lime} height={4} />
+              <View style={styles.kcalRow}>
+                <Text style={styles.kcal}>
+                  <Text style={[styles.kcalBig, p.over && styles.kcalOver]}>{formatInt(kcal || target)}</Text>
+                  {kcal ? ` de ${formatInt(target)} kcal` : ' kcal indicadas'}
+                </Text>
+                {p.wayOver && (
+                  <Ionicons
+                    name="alert-circle"
+                    size={16}
+                    color={colors.warn}
+                    accessibilityLabel={`${formatInt(p.overKcal)} kcal acima do indicado`}
+                  />
+                )}
+              </View>
+              <ProgressBar value={p.ratio} color={p.over ? colors.warn : colors.lime} height={4} />
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`${kcal ? 'Adicionar ao' : 'Registrar'} ${MEAL_LABELS[meal].toLowerCase()}`}
@@ -142,7 +149,14 @@ const styles = StyleSheet.create({
     padding: 12,
     gap: 9,
   },
+  kcalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 4,
+  },
   kcal: {
+    flexShrink: 1,
     fontFamily: fonts.body.semibold,
     fontSize: 12,
     lineHeight: 22,
@@ -154,6 +168,9 @@ const styles = StyleSheet.create({
     letterSpacing: -0.4,
     color: colors.ink,
     fontVariant: ['tabular-nums'],
+  },
+  kcalOver: {
+    color: colors.warnText,
   },
   btn: {
     height: 36,

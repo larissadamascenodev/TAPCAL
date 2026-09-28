@@ -13,7 +13,7 @@ import { WorkoutTile } from '@/components/home/WorkoutTile';
 import { EmptyState, Screen, SectionHeader, toast } from '@/components/ui';
 import { useDoubleTap } from '@/hooks/useDoubleTap';
 import { mealTargets } from '@/lib/goals';
-import { loggedDates, streak, weightTrend } from '@/lib/progress';
+import { weightTrend } from '@/lib/progress';
 import { dayTotals } from '@/lib/totals';
 import { estimatedMinutes, planForDate, shortFocus } from '@/lib/workout';
 import { goalPlan } from '@/store/selectors';
@@ -27,7 +27,7 @@ const SCROLLED_AT = 150;
 
 export default function InicioScreen() {
   const state = useAppStore();
-  const { profile, today: day, history, weights, workoutPlans, sessions, activeSession } = state;
+  const { profile, today: day, weights, workoutPlans, sessions, activeSession } = state;
   const { addWater, startSession } = state;
   const today = day.date;
   const { width } = useWindowDimensions();
@@ -35,7 +35,6 @@ export default function InicioScreen() {
 
   const plan = useMemo(() => goalPlan(state, today), [state, today]);
   const eaten = dayTotals(day);
-  const logged = useMemo(() => loggedDates(day, history), [day, history]);
   const trend = useMemo(() => weightTrend(weights, today), [weights, today]);
   const gaugeTap = useDoubleTap(() => router.push('/scanner'));
   const firstName = profile?.name.trim().split(/\s+/)[0] ?? '';
@@ -48,7 +47,6 @@ export default function InicioScreen() {
     );
   }
 
-  const days = streak(logged, today);
   const workout = planForDate(workoutPlans, today);
   const doneToday = sessions.some((s) => s.date === today);
 
@@ -82,7 +80,7 @@ export default function InicioScreen() {
       gap={0}
       topOffset={HOME_HEADER_H}
       onScrollY={(y) => setScrolled(y > SCROLLED_AT)}
-      overlay={<HomeHeader name={firstName} streakDays={days} scrolled={scrolled} />}>
+      overlay={<HomeHeader name={firstName} scrolled={scrolled} />}>
       <DateStrip today={today} />
 
       <Pressable

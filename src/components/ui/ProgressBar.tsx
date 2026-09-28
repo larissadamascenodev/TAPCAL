@@ -15,13 +15,17 @@ export function ProgressBar({ value, color, height = 5, style }: Props) {
   const pct = Math.max(0, Math.min(1, value)) * 100;
   return (
     <View style={[styles.track, { height, borderRadius: height / 2 }, style]}>
-      <View style={{ width: `${pct}%`, height: '100%', borderRadius: height / 2, backgroundColor: color }} />
+      {/* parte cheia e parte vazia dividem a largura na proporção exata */}
+      <View style={{ flex: pct, borderRadius: height / 2, backgroundColor: color }} />
+      <View style={{ flex: 100 - pct }} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   track: {
+    flexDirection: 'row',
+    alignSelf: 'stretch',
     overflow: 'hidden',
     backgroundColor: colors.track,
   },

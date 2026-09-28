@@ -3,8 +3,8 @@ import { describe, expect, it } from '@jest/globals';
 import { dayFraction } from '@/lib/dates';
 import { foodEmoji } from '@/lib/foodEmoji';
 import { mealTargets } from '@/lib/goals';
-import { DEFAULT_MEAL_TIMES, mealTime } from '@/lib/meals';
-import { streakMilestoneFraction, weightProgress } from '@/lib/progress';
+import { DEFAULT_MEAL_TIMES, mealProgress, mealTime } from '@/lib/meals';
+import { weightProgress } from '@/lib/progress';
 import { proteinTip } from '@/lib/tips';
 import { sessionsThisMonth } from '@/lib/workout';
 import type { FoodItem, WorkoutSession } from '@/types';
@@ -70,14 +70,7 @@ describe('horário da refeição', () => {
   });
 });
 
-describe('sequência e progresso do peso', () => {
-  it('mostra quanto falta para fechar a semana de sequência', () => {
-    expect(streakMilestoneFraction(0)).toBe(0);
-    expect(streakMilestoneFraction(3)).toBeCloseTo(3 / 7);
-    expect(streakMilestoneFraction(7)).toBe(1);
-    expect(streakMilestoneFraction(8)).toBeCloseTo(1 / 7);
-  });
-
+describe('progresso do peso', () => {
   it('calcula o caminho do peso inicial até a meta ao emagrecer', () => {
     expect(weightProgress(71, 69.4, 65)).toEqual({ doneKg: 1.6, totalKg: 6, leftKg: 4.4, fraction: 1.6 / 6 });
   });
@@ -100,5 +93,22 @@ describe('treinos do mês', () => {
   it('conta só os concluídos no mês de hoje', () => {
     const list = [s('2026-09-02'), s('2026-09-20'), s('2026-09-28', false), s('2026-08-30')];
     expect(sessionsThisMonth(list, '2026-09-28')).toBe(2);
+  });
+});
+
+describe('progresso da refeição', () => {
+  it('calcula a fração real do consumido sobre a meta', () => {
+    const p = mealProgress(396, 410);
+    expect(p.ratio).toBeCloseTo(0.966, 3);
+    expect(p).toMatchObject({ logged: true, over: false, wayOver: false, overKcal: 0 });
+  });
+
+  it('marca quando passa da meta e quando passa bem da meta', () => {
+    expect(mealProgress(430, 410)).toMatchObject({ over: true, wayOver: false, overKcal: 20 });
+    expect(mealProgress(620, 410)).toMatchObject({ over: true, wayOver: true, overKcal: 210 });
+  });
+
+  it('refeição vazia não conta como registrada', () => {
+    expect(mealProgress(0, 410)).toMatchObject({ ratio: 0, logged: false, over: false });
   });
 });

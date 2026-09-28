@@ -101,11 +101,12 @@ type StatsProps = {
   adjustment: number;
 };
 
-/** Os três números embaixo do velocímetro: consumidas, faltam (ou acima) e déficit. */
+/** Os três números embaixo do velocímetro: consumidas, faltam (ou acima) e o déficit do plano. */
 export function GaugeStats({ eaten, goal, adjustment }: StatsProps) {
   const left = goal - eaten;
   const over = left < 0;
-  const adjLabel = adjustment < 0 ? 'Déficit' : adjustment > 0 ? 'Superávit' : 'Ajuste';
+  // "do plano": é o ajuste embutido na meta, não o resultado do dia.
+  const adjLabel = adjustment < 0 ? 'Déficit do plano' : adjustment > 0 ? 'Superávit do plano' : 'Ajuste do plano';
   const adjValue = adjustment === 0 ? '0' : `${adjustment > 0 ? '+' : '−'}${formatInt(Math.abs(adjustment))}`;
   return (
     <View style={styles.stats}>
