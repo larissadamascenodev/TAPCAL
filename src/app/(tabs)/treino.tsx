@@ -2,7 +2,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
-import { Button, EmptyState, Glass, IconButton, Screen, SectionHeader, Text } from '@/components/ui';
+import { TabPage } from '@/components/navigation/TabPage';
+import { Button, EmptyState, Glass, IconButton, SectionHeader, Text } from '@/components/ui';
 import { StatTile } from '@/components/ui/StatTile';
 import { ExerciseRow } from '@/components/workout/ExerciseRow';
 import { WeekSplit } from '@/components/workout/WeekSplit';
@@ -34,10 +35,10 @@ export default function TreinoScreen() {
 
   if (!workoutPlans.length) {
     return (
-      <Screen>
+      <TabPage>
         <Text style={styles.h1}>Treino</Text>
         <EmptyState icon="barbell-outline" title="Nenhum treino montado" message="Monte sua divisão da semana para começar." />
-      </Screen>
+      </TabPage>
     );
   }
 
@@ -54,7 +55,7 @@ export default function TreinoScreen() {
   };
 
   return (
-    <Screen>
+    <TabPage>
       <View style={styles.header}>
         <Text style={styles.h1}>Treino</Text>
         <IconButton
@@ -143,7 +144,7 @@ export default function TreinoScreen() {
           </View>
         </>
       )}
-    </Screen>
+    </TabPage>
   );
 }
 

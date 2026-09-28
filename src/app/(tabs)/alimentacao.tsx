@@ -1,15 +1,14 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View, type ScrollView } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DateStrip } from '@/components/home/DateStrip';
 import { DaySummary } from '@/components/nutrition/DaySummary';
 import { GoalWarnings } from '@/components/nutrition/GoalWarnings';
 import { MealTimeline } from '@/components/nutrition/MealTimeline';
-import { confirmDestructive, EmptyState, Screen, Text, toast } from '@/components/ui';
+import { TabPage } from '@/components/navigation/TabPage';
+import { confirmDestructive, EmptyState, Text, toast } from '@/components/ui';
 import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
 import { daysBetween } from '@/lib/dates';
 import { emptyDay } from '@/lib/day';
@@ -18,7 +17,7 @@ import { mealTargets } from '@/lib/goals';
 import { dayTotals } from '@/lib/totals';
 import { dayLogFor, goalPlan } from '@/store/selectors';
 import { useAppStore } from '@/store/useAppStore';
-import { colors, fonts, gradients, spacing } from '@/theme/theme';
+import { colors, fonts, spacing } from '@/theme/theme';
 import type { FoodItem, MealType } from '@/types';
 
 type Tab = 'refeicoes' | 'plano';
@@ -28,7 +27,7 @@ const TABS = [
   { key: 'plano', label: 'Plano' },
 ] as const;
 
-/** Altura da faixa das abas fixa no topo (sem a área segura). */
+/** Altura das abas fixas logo abaixo do topo. */
 const TABS_H = 52 + spacing.md;
 /** Quantos dias para trás a faixa de datas mostra. */
 const PAST_DAYS = 13;
@@ -37,7 +36,6 @@ export default function AlimentacaoScreen() {
   const state = useAppStore();
   const removeFood = useAppStore((s) => s.removeFood);
   const today = state.today.date;
-  const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
   const [tab, setTab] = useState<Tab>('refeicoes');
   const [date, setDate] = useState(today);
@@ -55,17 +53,16 @@ export default function AlimentacaoScreen() {
   };
 
   const tabsBar = (
-    <View pointerEvents="box-none" style={[styles.tabsWrap, { paddingTop: insets.top + spacing.sm }]}>
-      <LinearGradient pointerEvents="none" colors={gradients.header} locations={[0, 0.45, 0.75, 1]} style={styles.tabsFade} />
+    <View style={styles.tabsWrap}>
       <SegmentedTabs options={TABS} value={tab} onChange={changeTab} />
     </View>
   );
 
   if (!plan) {
     return (
-      <Screen>
+      <TabPage>
         <EmptyState icon="person-outline" title="Crie seu perfil" message="As metas do dia aparecem aqui depois do cadastro." />
-      </Screen>
+      </TabPage>
     );
   }
 
@@ -79,7 +76,7 @@ export default function AlimentacaoScreen() {
   const pastLabel = daysBetween(shownDate, today) === 1 ? 'Ontem' : 'Este dia';
 
   return (
-    <Screen scrollRef={scrollRef} topOffset={TABS_H} overlay={tabsBar} gap={0}>
+    <TabPage scrollRef={scrollRef} below={tabsBar} belowHeight={TABS_H} gap={0}>
       {tab === 'refeicoes' && (
         <>
           <DateStrip today={today} past={PAST_DAYS} future={3} selected={shownDate} onSelect={setDate} />
@@ -125,25 +122,13 @@ export default function AlimentacaoScreen() {
           />
         </View>
       )}
-    </Screen>
+    </TabPage>
   );
 }
 
 const styles = StyleSheet.create({
   tabsWrap: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.sm,
-  },
-  tabsFade: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: -28,
+    marginTop: spacing.md,
   },
   block: {
     marginTop: 14,

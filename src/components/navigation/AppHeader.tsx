@@ -1,5 +1,6 @@
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
+import type { ReactNode } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,9 +12,8 @@ import { colors, fonts, gradients, spacing } from '@/theme/theme';
 
 import { StreakBadge } from './StreakBadge';
 
-
 /** Altura do topo, sem contar a área segura. */
-export const HOME_HEADER_H = 50 + spacing.lg;
+export const APP_HEADER_H = 50 + spacing.lg;
 /** Quanto o fundo do topo desce além dele, sumindo aos poucos (sem linha marcada). */
 const FADE = 44;
 
@@ -28,17 +28,21 @@ type Props = {
   streakDays: number;
   /** Rolou a tela: mostra o nome do perfil e escurece o fundo do topo. */
   scrolled: boolean;
+  /** Algo fixo logo abaixo do topo (ex.: as abas da Alimentação). */
+  below?: ReactNode;
+  /** Altura de `below`, para o fundo do topo cobrir ele também. */
+  belowHeight?: number;
 };
 
 /**
- * Topo fixo da Início: avatar à esquerda; chama da sequência e notificações à
+ * Topo fixo das abas (Início, Alimentação, Treino, Resultados): avatar à esquerda; chama da sequência e notificações à
  * direita. Assim que a tela começa a rolar, o nome do perfil aparece e o
  * fundo ganha um desfoque que some para baixo.
  */
-export function HomeHeader({ name, streakDays, scrolled }: Props) {
+export function AppHeader({ name, streakDays, scrolled, below, belowHeight = 0 }: Props) {
   const insets = useSafeAreaInsets();
   const top = insets.top + spacing.sm;
-  const height = top + HOME_HEADER_H;
+  const height = top + APP_HEADER_H + belowHeight;
 
   return (
     <View pointerEvents="box-none" style={[styles.wrap, { paddingTop: top }]}>
@@ -79,6 +83,7 @@ export function HomeHeader({ name, streakDays, scrolled }: Props) {
           />
         </View>
       </View>
+      {below}
     </View>
   );
 }

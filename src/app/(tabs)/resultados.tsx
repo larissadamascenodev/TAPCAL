@@ -4,7 +4,8 @@ import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { WeightCard } from '@/components/home/WeightCard';
-import { EmptyState, Glass, IconButton, Screen, SectionHeader, Text, toast } from '@/components/ui';
+import { TabPage } from '@/components/navigation/TabPage';
+import { EmptyState, Glass, IconButton, SectionHeader, Text, toast } from '@/components/ui';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { formatDayMonth, formatDecimal, formatInt, formatLiters } from '@/lib/format';
 import { ACTIVITY_LABELS, bmi, GOAL_LABELS, PACE_LABELS } from '@/lib/goals';
@@ -27,10 +28,10 @@ export default function ResultadosScreen() {
 
   if (!profile || !plan || current == null) {
     return (
-      <Screen>
+      <TabPage>
         <Text style={styles.h1}>Resultados</Text>
         <EmptyState icon="person-outline" title="Crie seu perfil" message="Seus dados e resultados aparecem aqui depois do cadastro." />
-      </Screen>
+      </TabPage>
     );
   }
 
@@ -43,7 +44,7 @@ export default function ResultadosScreen() {
   const adj = plan.dailyAdjustmentKcal;
 
   return (
-    <Screen>
+    <TabPage>
       <View style={styles.header}>
         <Text style={styles.h1}>Resultados</Text>
         <IconButton icon="create-outline" label="Editar dados" onPress={() => toast('Em breve você edita seus dados aqui')} />
@@ -137,7 +138,7 @@ export default function ResultadosScreen() {
           last
         />
       </Glass>
-    </Screen>
+    </TabPage>
   );
 }
 
