@@ -3,7 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import type { ReactNode } from 'react';
 import { Platform, StyleSheet, View, type StyleProp, type ViewProps, type ViewStyle } from 'react-native';
 
-import { colors, radius, spacing } from '@/theme/theme';
+import { colors, gradients, radius, spacing } from '@/theme/theme';
 
 export type GlassProps = ViewProps & {
   /** Força do desfoque (iOS e web); padrão médio. No Android fica só o preenchimento translúcido. */
@@ -22,16 +22,16 @@ export type GlassProps = ViewProps & {
   contentStyle?: StyleProp<ViewStyle>;
 };
 
-/** Desfoque médio do vidro fosco (a escala do expo-blur vai de 0 a 100). */
-const MEDIUM_BLUR = 50;
+/** Desfoque leve: o vidro deixa ver o que está atrás (escala do expo-blur: 0 a 100). */
+const LIGHT_BLUR = 22;
 
 /**
- * Cartão de vidro fosco — a base visual de todos os blocos do app.
- * Desfoque do que está atrás, 7% de branco por cima e borda fina clara
- * (mais clara em cima, como um reflexo de luz).
+ * Cartão de vidro — a base visual de todos os blocos do app.
+ * Quase transparente (3,5% de branco), desfoque leve, um reflexo de luz no
+ * canto de cima e borda fina, bem mais clara em cima.
  */
 export function Glass({
-  intensity = MEDIUM_BLUR,
+  intensity = LIGHT_BLUR,
   rounded = radius.xxl,
   flush = false,
   strong = false,
@@ -48,6 +48,14 @@ export function Glass({
     <View style={[styles.base, { borderRadius: rounded }, style]} {...rest}>
       {useBlur && <BlurView intensity={intensity} tint="dark" style={StyleSheet.absoluteFill} />}
       <View pointerEvents="none" style={[StyleSheet.absoluteFill, strong ? styles.fillStrong : styles.fill]} />
+      <LinearGradient
+        pointerEvents="none"
+        colors={gradients.glassSheen}
+        locations={[0, 0.45, 1]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0.7, y: 0.9 }}
+        style={StyleSheet.absoluteFill}
+      />
       {tint && (
         <LinearGradient pointerEvents="none" colors={tint} start={{ x: 0, y: 0 }} end={{ x: 0.9, y: 1 }} style={StyleSheet.absoluteFill} />
       )}

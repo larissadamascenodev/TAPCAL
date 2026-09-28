@@ -14,10 +14,10 @@ export const colors = {
   glassFillStrong: 'rgba(255,255,255,0.12)',
   glassSubtle: 'rgba(255,255,255,0.035)',
   glassHighlight: 'rgba(255,255,255,0.22)',
-  // Vidro fosco dos cartões: 7% de branco, borda de 14% (22% em cima)
-  frostCardFill: 'rgba(255,255,255,0.07)',
-  frostCardEdge: 'rgba(255,255,255,0.14)',
-  frostCardEdgeTop: 'rgba(255,255,255,0.22)',
+  // Vidro dos cartões: quase transparente, borda fina e mais clara em cima (reflexo)
+  frostCardFill: 'rgba(255,255,255,0.035)',
+  frostCardEdge: 'rgba(255,255,255,0.12)',
+  frostCardEdgeTop: 'rgba(255,255,255,0.30)',
   line: 'rgba(255,255,255,0.14)',
   line2: 'rgba(255,255,255,0.24)',
   lineSoft: 'rgba(255,255,255,0.07)',
@@ -115,6 +115,8 @@ export const gradients = {
   accent: [colors.limeLight, colors.lime] as const,
   // Barra de baixo e botão +: vidro um pouco mais claro
   glassStrong: ['rgba(255,255,255,0.14)', 'rgba(255,255,255,0.04)'] as const,
+  // Reflexo do vidro dos cartões: luz no canto de cima que some até o meio
+  glassSheen: ['rgba(255,255,255,0.11)', 'rgba(255,255,255,0.02)', 'rgba(255,255,255,0)'] as const,
   // Topo fixo da Início ao rolar: escurece e some para baixo, sem linha marcada
   header: ['rgba(5,5,6,0.9)', 'rgba(5,5,6,0.7)', 'rgba(5,5,6,0.25)', 'rgba(5,5,6,0)'] as const,
   // Anel do avatar

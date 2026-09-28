@@ -22,12 +22,13 @@ const FADE_IN = {
 
 type Props = {
   name: string;
-  /** Rolou a tela: escurece o fundo do topo. */
+  /** Rolou a tela: mostra a saudação com o nome e escurece o fundo do topo. */
   scrolled: boolean;
 };
 
 /**
- * Topo fixo da Início: avatar e saudação. Ao rolar, o fundo ganha um desfoque que some para baixo.
+ * Topo fixo da Início: só o avatar. Ao rolar, a saudação com o nome aparece e o
+ * fundo ganha um desfoque que some para baixo.
  */
 export function HomeHeader({ name, scrolled }: Props) {
   const insets = useSafeAreaInsets();
@@ -55,14 +56,16 @@ export function HomeHeader({ name, scrolled }: Props) {
           </View>
         </LinearGradient>
 
-        <View style={styles.nameWrap}>
+        <Animated.View
+          accessibilityElementsHidden={!scrolled}
+          style={[styles.nameWrap, { opacity: scrolled ? 1 : 0, transform: [{ translateY: scrolled ? 0 : 6 }] }, FADE_IN]}>
           <Text variant="caption" tone="secondary" style={styles.hello}>
             {greeting()},
           </Text>
           <Text style={styles.name} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
             {name}
           </Text>
-        </View>
+        </Animated.View>
 
       </View>
     </View>
