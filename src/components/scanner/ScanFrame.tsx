@@ -13,6 +13,8 @@ type Props = {
   bottom?: number;
 };
 
+/** Margem lateral do enquadramento. */
+export const FRAME_SIDE = 24;
 const CORNER = 34;
 const STROKE = 3;
 
@@ -59,8 +61,8 @@ export function ScanFrame({ scanning = false, top = 70, bottom = 70 }: Props) {
 const styles = StyleSheet.create({
   frame: {
     position: 'absolute',
-    left: 24,
-    right: 24,
+    left: FRAME_SIDE,
+    right: FRAME_SIDE,
   },
   corner: {
     position: 'absolute',

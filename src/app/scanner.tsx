@@ -9,7 +9,7 @@ import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, Sc
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, G } from 'react-native-svg';
 
-import { ScanFrame } from '@/components/scanner/ScanFrame';
+import { FRAME_SIDE, ScanFrame } from '@/components/scanner/ScanFrame';
 import { Button, ChipGroup, IconButton, Text, TextField, toast } from '@/components/ui';
 import { formatDecimal, formatInt } from '@/lib/format';
 import { MEAL_OPTIONS, mealByHour, mealShort, parseMeal } from '@/lib/meals';
@@ -163,10 +163,14 @@ export default function ScannerScreen() {
   if (phase.step === 'analyzing') {
     return (
       <View style={styles.root}>
-        <Image source={{ uri: phase.uri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-        <View style={[StyleSheet.absoluteFill, styles.dim]} />
+        {/* A foto inteira, sem zoom, dentro do enquadramento. */}
+        <Image
+          source={{ uri: phase.uri }}
+          style={[styles.analyzingPhoto, { top: frameTop + 8, bottom: frameBottom + 8 }]}
+          resizeMode="contain"
+        />
         <ScanFrame scanning top={frameTop} bottom={frameBottom} />
-        <View style={[styles.analyzing, { bottom: insets.bottom + spacing.xxxl }]}>
+        <View style={[styles.analyzing, { bottom: insets.bottom + spacing.lg }]}>
           <ActivityIndicator color={colors.gold} />
           <Text variant="bodyStrong">Analisando o prato…</Text>
           <Text variant="caption" tone="secondary">
@@ -514,8 +518,10 @@ const styles = StyleSheet.create({
   pressed: {
     transform: [{ scale: 0.94 }],
   },
-  dim: {
-    backgroundColor: colors.photoScrim,
+  analyzingPhoto: {
+    position: 'absolute',
+    left: FRAME_SIDE + 8,
+    right: FRAME_SIDE + 8,
   },
   analyzing: {
     position: 'absolute',
