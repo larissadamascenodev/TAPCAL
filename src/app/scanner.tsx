@@ -29,6 +29,8 @@ type Phase =
 const PHOTO_H = 370;
 /** Altura do botão "Adicionar manualmente" acima da linha do disparador. */
 const MANUAL_OFFSET = 100;
+/** Diâmetro do disparador (a linha mais alta de baixo). */
+const SHUTTER = 78;
 
 /** Reduz a foto para ~1024 px e devolve em base64 (menos dados, análise mais rápida). */
 async function prepare(uri: string): Promise<{ uri: string; base64: string }> {
@@ -90,9 +92,9 @@ export default function ScannerScreen() {
     }
   };
 
-  // O enquadramento fica entre a barra do topo e os botões de baixo, sem encostar neles.
-  const frameTop = insets.top + spacing.sm + 42 + spacing.lg;
-  const frameBottom = insets.bottom + spacing.xl + MANUAL_OFFSET + 42 + spacing.lg;
+  // O enquadramento vai da barra do topo até logo acima da linha do disparador e da galeria.
+  const frameTop = insets.top + spacing.sm + 42 + spacing.md;
+  const frameBottom = insets.bottom + spacing.xl + SHUTTER + spacing.md;
 
   // ── Câmera ────────────────────────────────────────────────────────────────
   if (phase.step === 'camera') {
@@ -492,8 +494,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   shutter: {
-    width: 78,
-    height: 78,
+    width: SHUTTER,
+    height: SHUTTER,
     borderRadius: 39,
     alignItems: 'center',
     justifyContent: 'center',
@@ -563,18 +565,15 @@ const styles = StyleSheet.create({
     letterSpacing: -0.8,
   },
   list: {
-    gap: spacing.sm,
+    marginTop: spacing.xs,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    paddingVertical: 12,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.lg - 2,
-    backgroundColor: colors.glassSubtle,
-    borderWidth: 1,
-    borderColor: colors.lineSoft,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.hairline,
   },
   rowOff: {
     opacity: 0.4,
@@ -595,8 +594,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingVertical: 6,
-    paddingHorizontal: spacing.xs,
+    paddingVertical: 14,
   },
   addRowText: {
     fontFamily: fonts.body.bold,
@@ -622,17 +620,11 @@ const styles = StyleSheet.create({
   },
   rings: {
     flexDirection: 'row',
-    gap: spacing.sm,
+    justifyContent: 'space-around',
   },
   ring: {
-    flex: 1,
     alignItems: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: radius.lg - 2,
-    backgroundColor: colors.glassFill,
-    borderWidth: 1,
-    borderColor: colors.line,
+    gap: 6,
   },
   ringCenter: {
     ...StyleSheet.absoluteFill,

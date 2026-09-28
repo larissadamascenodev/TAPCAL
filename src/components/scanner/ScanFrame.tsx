@@ -59,8 +59,8 @@ export function ScanFrame({ scanning = false, top = 70, bottom = 70 }: Props) {
 const styles = StyleSheet.create({
   frame: {
     position: 'absolute',
-    left: 46,
-    right: 46,
+    left: 24,
+    right: 24,
   },
   corner: {
     position: 'absolute',
