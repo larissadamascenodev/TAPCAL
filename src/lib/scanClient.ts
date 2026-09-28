@@ -12,10 +12,18 @@ export type ScanOutcome =
 
 export type ScanConfig = { url?: string; key?: string };
 
+/**
+ * Projeto Supabase "tapcal". A chave publicável foi feita para ir dentro do app
+ * (não dá acesso a nada sozinha); a chave do Gemini fica nos segredos do
+ * Supabase e nunca aparece aqui. O .env.local, se existir, tem prioridade.
+ */
+export const SUPABASE_URL = 'https://ubtphbznnmfsvtgmrfzr.supabase.co';
+export const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_B19soTeqiE2FFUrBcJoxFw_oMyDfolR';
+
 export function scanConfig(): ScanConfig {
   return {
-    url: process.env.EXPO_PUBLIC_SUPABASE_URL,
-    key: process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+    url: process.env.EXPO_PUBLIC_SUPABASE_URL || SUPABASE_URL,
+    key: process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || SUPABASE_PUBLISHABLE_KEY,
   };
 }
 
