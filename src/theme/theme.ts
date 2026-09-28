@@ -8,8 +8,6 @@ export const colors = {
   ground: '#050506',
   panel: '#0C0C0F',
   panel2: '#16161A',
-  // Folha do resultado do scanner: preto puro, para a foto e os números saltarem
-  sheetDark: '#000000',
 
   // Vidro líquido (cartões, barra flutuante e botões)
   glassFill: 'rgba(255,255,255,0.06)',
@@ -129,6 +127,11 @@ export const gradients = {
   workoutHero: ['rgba(209,251,57,0.18)', 'rgba(255,255,255,0.04)'] as const,
   // Água: azul que enche o cartão
   water: ['rgba(87,184,255,0.30)', 'rgba(87,184,255,0.06)'] as const,
+  // Base da foto do prato no resultado: escurece até o tom do fundo, sob o vidro
+  photoFade: ['rgba(5,5,6,0)', 'rgba(5,5,6,1)'] as const,
+  // Véu sobre a foto desfocada atrás da folha de vidro: fechado no topo (emenda
+  // com a foto), depois deixa passar a cor do prato
+  ambientVeil: ['rgba(5,5,6,1)', 'rgba(5,5,6,0.72)', 'rgba(5,5,6,0.72)'] as const,
   // Linha verde que varre a foto durante a análise
   sweep: ['rgba(209,251,57,0)', colors.lime, 'rgba(209,251,57,0)'] as const,
   // Chama da sequência de dias: contorno, miolo e o anel da semana

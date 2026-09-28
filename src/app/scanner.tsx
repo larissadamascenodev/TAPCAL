@@ -1,22 +1,34 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { BlurView } from 'expo-blur';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { LinearGradient } from 'expo-linear-gradient';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
+import {
+  ActivityIndicator,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FRAME_SIDE, ScanFrame } from '@/components/scanner/ScanFrame';
-import { Button, ChipGroup, IconButton, ProgressBar, Text, TextField, toast } from '@/components/ui';
+import { Button, ChipGroup, Glass, IconButton, ProgressBar, Text, TextField, toast } from '@/components/ui';
 import { formatDecimal, formatInt } from '@/lib/format';
 import { MEAL_OPTIONS, mealByHour, mealShort, parseMeal } from '@/lib/meals';
 import { editScanItem, itemMacros, removeScanItem, scanTotals, toFoodItems, type ScanResult } from '@/lib/scan';
 import { analyzeMeal } from '@/lib/scanClient';
 import { goalPlan } from '@/store/selectors';
 import { useAppStore } from '@/store/useAppStore';
-import { colors, fonts, macroColors, radius, spacing } from '@/theme/theme';
+import { colors, fonts, gradients, macroColors, radius, spacing } from '@/theme/theme';
 import type { MealType } from '@/types';
 
 type Phase =
@@ -26,6 +38,8 @@ type Phase =
   | { step: 'error'; uri: string; message: string; canRetry: boolean; base64: string };
 
 const PHOTO_H = 370;
+/** Arredondamento da folha de vidro do resultado. */
+const SHEET_R = 32;
 /** Altura do botão "Adicionar manualmente" acima da linha do disparador. */
 const MANUAL_OFFSET = 100;
 /** Diâmetro do disparador (a linha mais alta de baixo). */
@@ -202,12 +216,12 @@ export default function ScannerScreen() {
   if (phase.step === 'error') {
     return (
       <View style={styles.root}>
-        <Image source={{ uri: phase.uri }} style={[styles.photo, { height: PHOTO_H }]} resizeMode="cover" />
+        <PhotoHeader uri={phase.uri} />
         <View style={[styles.topBar, { top: insets.top + spacing.sm }]}>
           <IconButton icon="refresh" label="Nova foto" dark onPress={() => setPhase({ step: 'camera' })} />
           <IconButton icon="close" label="Fechar" dark onPress={() => router.back()} />
         </View>
-        <View style={[styles.sheet, styles.errorSheet, { paddingBottom: insets.bottom + spacing.lg }]}>
+        <GlassSheet uri={phase.uri} contentStyle={{ paddingBottom: insets.bottom + spacing.lg }}>
           <View style={styles.grab} />
           <Ionicons name="alert-circle-outline" size={32} color={colors.lime2} style={styles.selfCenter} />
           <Text variant="heading" style={styles.center}>
@@ -228,7 +242,7 @@ export default function ScannerScreen() {
               <Button label="Nova foto" onPress={() => setPhase({ step: 'camera' })} style={styles.flex} />
             )}
           </View>
-        </View>
+        </GlassSheet>
       </View>
     );
   }
@@ -260,16 +274,16 @@ export default function ScannerScreen() {
 
   return (
     <View style={styles.root}>
-      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xl }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.scrollGrow} showsVerticalScrollIndicator={false}>
         <View style={{ height: PHOTO_H }}>
-          <Image source={{ uri: phase.uri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+          <PhotoHeader uri={phase.uri} />
           <View style={[styles.topBar, { top: insets.top + spacing.sm }]}>
             <IconButton icon="refresh" label="Refazer foto" dark onPress={() => setPhase({ step: 'camera' })} />
             <IconButton icon="close" label="Fechar" dark onPress={() => router.back()} />
           </View>
         </View>
 
-        <View style={styles.sheet}>
+        <GlassSheet uri={phase.uri} contentStyle={{ paddingBottom: insets.bottom + spacing.xl }}>
           {phase.example ? (
             <View style={styles.badgeRow}>
               <Ionicons name="information-circle" size={18} color={colors.gold} />
@@ -336,7 +350,7 @@ export default function ScannerScreen() {
           <Pressable accessibilityRole="button" onPress={save} style={({ pressed }) => [styles.cta, pressed && styles.pressed]}>
             <Text style={styles.ctaText}>CONTINUAR</Text>
           </Pressable>
-        </View>
+        </GlassSheet>
       </ScrollView>
 
       {editingItem && (
@@ -355,6 +369,34 @@ export default function ScannerScreen() {
           }}
         />
       )}
+    </View>
+  );
+}
+
+/**
+ * Folha de vidro do resultado. Atrás do vidro vai a própria foto, bem desfocada e
+ * escurecida, para ele ganhar a cor do prato; no topo o véu fecha e emenda com a foto.
+ */
+function GlassSheet({ uri, contentStyle, children }: { uri: string; contentStyle?: StyleProp<ViewStyle>; children: ReactNode }) {
+  return (
+    <View style={styles.sheetWrap}>
+      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+        <Image source={{ uri }} style={StyleSheet.absoluteFill} resizeMode="cover" blurRadius={40} />
+        <LinearGradient colors={gradients.ambientVeil} locations={[0, 0.14, 1]} style={StyleSheet.absoluteFill} />
+      </View>
+      <Glass rounded={SHEET_R} flush style={styles.sheet} contentStyle={[styles.sheetContent, contentStyle]}>
+        {children}
+      </Glass>
+    </View>
+  );
+}
+
+/** Foto nítida no topo; a base escurece até o tom do fundo, para a folha de vidro encaixar. */
+function PhotoHeader({ uri }: { uri: string }) {
+  return (
+    <View pointerEvents="none" style={[styles.photo, { height: PHOTO_H }]}>
+      <Image source={{ uri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+      <LinearGradient colors={gradients.photoFade} style={styles.photoFade} />
     </View>
   );
 }
@@ -393,7 +435,11 @@ function EditItem({ name, grams, onCancel, onRemove, onSave }: EditProps) {
     <View style={styles.editRoot}>
       <Pressable accessibilityLabel="Fechar edição" style={StyleSheet.absoluteFill} onPress={onCancel} />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.editWrap}>
-        <View style={[styles.editCard, { paddingBottom: insets.bottom + spacing.lg }]}>
+        <Glass
+          rounded={SHEET_R - 4}
+          flush
+          style={styles.editCard}
+          contentStyle={[styles.editContent, { paddingBottom: insets.bottom + spacing.lg }]}>
           <View style={styles.grab} />
           <Text variant="heading">Editar alimento</Text>
           <TextField label="Nome" value={nameText} onChangeText={setNameText} autoCapitalize="sentences" returnKeyType="next" />
@@ -413,7 +459,7 @@ function EditItem({ name, grams, onCancel, onRemove, onSave }: EditProps) {
               style={styles.flex}
             />
           </View>
-        </View>
+        </Glass>
       </KeyboardAvoidingView>
     </View>
   );
@@ -533,17 +579,34 @@ const styles = StyleSheet.create({
   photo: {
     width: '100%',
   },
-  sheet: {
+  photoFade: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 160,
+  },
+  scrollGrow: {
+    flexGrow: 1,
+  },
+  // Folha de vidro: sobe um pouco sobre a foto, só os cantos de cima arredondados
+  sheetWrap: {
+    flex: 1,
     marginTop: -40,
+    overflow: 'hidden',
+    borderTopLeftRadius: SHEET_R,
+    borderTopRightRadius: SHEET_R,
+  },
+  sheet: {
+    flex: 1,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    borderBottomWidth: 0,
+  },
+  sheetContent: {
     paddingTop: 20,
     paddingHorizontal: spacing.lg,
     gap: 14,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    backgroundColor: colors.sheetDark,
-  },
-  errorSheet: {
-    flex: 1,
   },
   grab: {
     alignSelf: 'center',
@@ -674,15 +737,17 @@ const styles = StyleSheet.create({
   editWrap: {
     width: '100%',
   },
+  // Por cima dos itens: o mesmo vidro, mas com fundo firme para o texto de baixo não aparecer
   editCard: {
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    borderBottomWidth: 0,
+    backgroundColor: colors.panel,
+  },
+  editContent: {
     gap: 14,
     paddingTop: 12,
     paddingHorizontal: spacing.lg,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    backgroundColor: colors.panel,
-    borderTopWidth: 1,
-    borderColor: colors.line,
   },
   warn: {
     color: colors.gold,
