@@ -4,6 +4,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, spacing, tabBar } from '@/theme/theme';
 
+import { BackdropGlow } from './BackdropGlow';
+
 type Props = {
   children: ReactNode;
   /** Reserva espaço para a barra flutuante (padrão: sim, nas abas). */
@@ -20,7 +22,7 @@ type Props = {
   scrollRef?: RefObject<ScrollView | null>;
 };
 
-/** Moldura de toda tela: fundo escuro, área segura e rolagem. */
+/** Moldura de toda tela: fundo escuro com o verde suave, área segura e rolagem. */
 export function Screen({ children, withTabBar = true, gap = spacing.md, overlay, topOffset = 0, onScrollY, scrollRef }: Props) {
   const insets = useSafeAreaInsets();
   const bottomSpace = withTabBar
@@ -33,6 +35,7 @@ export function Screen({ children, withTabBar = true, gap = spacing.md, overlay,
 
   return (
     <View style={styles.root}>
+      <BackdropGlow />
       <ScrollView
         ref={scrollRef}
         onScroll={onScroll}

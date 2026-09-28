@@ -123,28 +123,3 @@ export type WeightEntry = {
   date: DateKey;
   weightKg: number;
 };
-
-// ─── Plano, receitas e mercado ──────────────────────────────────────────────
-// Por enquanto só com dados de exemplo (src/data): o plano feito pela IA, as
-// receitas e a lista de compras ganham funcionamento real numa fase própria.
-
-export type PlanFood = { name: string; portion: string; kcal: number };
-export type PlanMeal = { meal: MealType; foods: PlanFood[] };
-/** Cardápio de um dia do plano. */
-export type PlanDay = PlanMeal[];
-
-export type RecipeTag = 'Alta proteína' | 'Low carb' | 'Café da manhã' | 'Lanches';
-export type RecipeCategory = 'Café da manhã' | 'Almoço' | 'Jantar' | 'Lanches' | 'Low carb' | 'Alta proteína';
-export type Recipe = {
-  id: string;
-  name: string;
-  emoji: string;
-  tag: RecipeTag;
-  categories: RecipeCategory[];
-  minutes: number;
-  kcal: number;
-  proteinG: number;
-};
-
-export type MarketItem = { id: string; name: string; quantity: string };
-export type MarketSection = { name: string; emoji: string; items: MarketItem[] };

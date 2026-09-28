@@ -66,7 +66,7 @@ export function WeightCard({ trend, today, targetKg, weeksToGoal, losing, onAdd 
   );
 
   return (
-    <Glass frost flush rounded={28} contentStyle={styles.content}>
+    <Glass flush rounded={28} contentStyle={styles.content}>
       <View style={styles.top}>
         <View>
           <Text variant="label" tone="muted">

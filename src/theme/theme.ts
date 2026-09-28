@@ -14,7 +14,7 @@ export const colors = {
   glassFillStrong: 'rgba(255,255,255,0.12)',
   glassSubtle: 'rgba(255,255,255,0.035)',
   glassHighlight: 'rgba(255,255,255,0.22)',
-  // Vidro fosco dos cartões da Início: 7% de branco, borda de 14% (22% em cima)
+  // Vidro fosco dos cartões: 7% de branco, borda de 14% (22% em cima)
   frostCardFill: 'rgba(255,255,255,0.07)',
   frostCardEdge: 'rgba(255,255,255,0.14)',
   frostCardEdgeTop: 'rgba(255,255,255,0.22)',
@@ -100,8 +100,6 @@ export const colors = {
   plateLo: 'rgba(255,255,255,0.06)',
   plateEdge: 'rgba(255,255,255,0.4)',
 
-  onMint: '#04261B',
-  heart: '#FF5C7A',
   headerFill: 'rgba(5,5,6,0.72)',
 } as const;
 
@@ -120,8 +118,6 @@ export const gradients = {
   over: [colors.lime, '#FFB25C', '#FF7A59'] as const,
   // Botão primário
   accent: [colors.limeLight, colors.lime] as const,
-  // Vidro líquido: brilho diagonal por cima do desfoque
-  glass: ['rgba(255,255,255,0.10)', 'rgba(255,255,255,0.035)', 'rgba(255,255,255,0.06)'] as const,
   // Barra de baixo e botão +: vidro um pouco mais claro
   glassStrong: ['rgba(255,255,255,0.14)', 'rgba(255,255,255,0.04)'] as const,
   // Topo fixo da Início ao rolar: escurece e some para baixo, sem linha marcada
@@ -141,14 +137,12 @@ export const gradients = {
   flameMid: ['#FF8A1F', '#FFC43D', '#FFE38A'] as const,
   flameCore: ['#FFFFFF', '#FFF6CF', '#FFE38A'] as const,
   flameRing: ['#FFC23A', '#FF5A2A'] as const,
-  // Fundo das refeições e receitas (atrás do prato de vidro)
+  // Fundo das refeições (atrás do prato de vidro)
   visual: {
     cafe_da_manha: ['#8A5A2E', '#3A2412', '#1A120B'],
     almoco: ['#5E7A1E', '#2A3810', '#12170A'],
     lanche: ['#9A3F4E', '#44202A', '#1C0F13'],
     jantar: ['#3E3C8C', '#1E1D45', '#0E0E1E'],
-    verde: ['#2F7A5C', '#153A2C', '#0A1813'],
-    sol: ['#A0762A', '#4A3614', '#1E160A'],
   } satisfies Record<string, readonly [string, string, string]>,
   visualScrim: ['rgba(5,5,6,0)', 'rgba(5,5,6,0.78)'] as const,
 };

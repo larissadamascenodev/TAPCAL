@@ -45,13 +45,16 @@ Mockup interativo em `v4.html`; `v4.png` mostra as seis telas.
   déficit embaixo; macros em barras direto na tela; atalhos das refeições;
   água e treino em quadradinhos; peso.
 - **Alimentação** abre como página, com as abas Refeições, Plano, Receitas e
-  Mercado fixas no topo (pílula branca na aba ativa).
+  Mercado fixas no topo (pílula branca na aba ativa). No app ficaram só Refeições e Plano.
   - Refeições: o dia em linha do tempo, cada refeição no seu horário.
-  - Plano, Receitas e Mercado: **só visual, com dados de exemplo** (`src/data`).
-    O plano feito pela IA, as receitas de fontes confiáveis e a lista gerada do
-    plano ganham funcionamento real numa fase própria.
+  - Plano: por enquanto mostra "em breve"; o plano feito pela IA ganha uma
+    fase própria. Receitas e Mercado saíram do app por ora (continuam no
+    mockup como referência para quando voltarem).
 - **Resultados**: nova aba com progresso, evolução do peso, dados iniciais e
   metas calculadas.
+- **Fundo**: duas manchas de verde bem suaves atrás de todas as telas, para os
+  cartões de vidro fosco (7% de branco, borda de 14–22%, desfoque médio) terem
+  o que desfocar.
 - **Barra de baixo** só com ícones: Início, Alimentação, Treino, Resultados e o +.
 - Sem mascote e sem os atalhos Jornada, Receitas, Mercado, Caneta e Relatórios
   no topo da Início. A Caneta volta com o módulo dela (fase 8).

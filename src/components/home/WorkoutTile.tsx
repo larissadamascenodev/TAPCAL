@@ -16,7 +16,7 @@ type Props = {
 /** Cartão do treino do dia na Início, com botão para começar. */
 export function WorkoutTile({ title, subtitle, action, onPress }: Props) {
   return (
-    <Glass frost flush rounded={26} tint={gradients.workout} style={styles.tile} contentStyle={styles.content}>
+    <Glass flush rounded={26} tint={gradients.workout} style={styles.tile} contentStyle={styles.content}>
       <View style={styles.head}>
         <View style={styles.chip}>
           <Ionicons name="barbell-outline" size={16} color={colors.irisSoft} />

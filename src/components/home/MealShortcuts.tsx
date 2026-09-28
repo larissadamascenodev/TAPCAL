@@ -42,7 +42,7 @@ export function MealShortcuts({ meals, targets, onAdd, onNew }: Props) {
         const target = targets[meal];
         const done = target > 0 && kcal >= target * DONE_AT;
         return (
-          <Glass key={meal} frost flush rounded={24} style={styles.card}>
+          <Glass key={meal} flush rounded={24} style={styles.card}>
             <FoodVisual emoji={PLATE[meal]} tone={meal} height={104} scrim>
               <View style={styles.time}>
                 <Text style={styles.timeText}>{mealTime(meal, items)}</Text>

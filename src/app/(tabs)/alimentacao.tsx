@@ -8,10 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DateStrip } from '@/components/home/DateStrip';
 import { DaySummary } from '@/components/nutrition/DaySummary';
 import { GoalWarnings } from '@/components/nutrition/GoalWarnings';
-import { MarketPane } from '@/components/nutrition/MarketPane';
 import { MealTimeline } from '@/components/nutrition/MealTimeline';
-import { PlanPane } from '@/components/nutrition/PlanPane';
-import { RecipesPane } from '@/components/nutrition/RecipesPane';
 import { confirmDestructive, EmptyState, Screen, Text, toast } from '@/components/ui';
 import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
 import { daysBetween } from '@/lib/dates';
@@ -24,13 +21,11 @@ import { useAppStore } from '@/store/useAppStore';
 import { colors, fonts, gradients, spacing } from '@/theme/theme';
 import type { FoodItem, MealType } from '@/types';
 
-type Tab = 'refeicoes' | 'plano' | 'receitas' | 'mercado';
+type Tab = 'refeicoes' | 'plano';
 
 const TABS = [
   { key: 'refeicoes', label: 'Refeições' },
   { key: 'plano', label: 'Plano' },
-  { key: 'receitas', label: 'Receitas' },
-  { key: 'mercado', label: 'Mercado' },
 ] as const;
 
 /** Altura da faixa das abas fixa no topo (sem a área segura). */
@@ -123,17 +118,11 @@ export default function AlimentacaoScreen() {
       )}
       {tab === 'plano' && (
         <View style={styles.pane}>
-          <PlanPane today={today} goal={state.profile?.goal ?? 'manter'} macros={plan.macros} onMarket={() => changeTab('mercado')} />
-        </View>
-      )}
-      {tab === 'receitas' && (
-        <View style={styles.pane}>
-          <RecipesPane kcalLeft={plan.targetKcal - dayTotals(state.today).kcal} />
-        </View>
-      )}
-      {tab === 'mercado' && (
-        <View style={styles.pane}>
-          <MarketPane today={today} />
+          <EmptyState
+            icon="sparkles-outline"
+            title="Plano com IA · em breve"
+            message="Aqui a IA vai montar o seu cardápio da semana a partir das suas metas, com check no que você já comeu."
+          />
         </View>
       )}
     </Screen>

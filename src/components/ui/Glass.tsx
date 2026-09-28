@@ -3,12 +3,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import type { ReactNode } from 'react';
 import { Platform, StyleSheet, View, type StyleProp, type ViewProps, type ViewStyle } from 'react-native';
 
-import { colors, gradients, radius, spacing } from '@/theme/theme';
+import { colors, radius, spacing } from '@/theme/theme';
 
 export type GlassProps = ViewProps & {
-  /** Força do desfoque (iOS e web). No Android fica só o preenchimento translúcido. */
+  /** Força do desfoque (iOS e web); padrão médio. No Android fica só o preenchimento translúcido. */
   intensity?: number;
-  /** Arredondamento; padrão = radius.xxl (30, como nos mockups) */
+  /** Arredondamento; padrão = radius.xxl (30). */
   rounded?: number;
   /** Tira o padding interno padrão. */
   flush?: boolean;
@@ -18,27 +18,25 @@ export type GlassProps = ViewProps & {
   tint?: readonly [string, string, ...string[]];
   /** Camada entre o vidro e o conteúdo (ex.: a água enchendo o cartão). */
   underlay?: ReactNode;
-  /**
-   * Vidro fosco "limpo": desfoque médio, preenchimento branco de 7%, borda fina
-   * clara e sem os brilhos em degradê. Usado nos cartões da Início.
-   */
-  frost?: boolean;
   /** Estilo do contêiner interno (o que tem o padding). */
   contentStyle?: StyleProp<ViewStyle>;
 };
 
+/** Desfoque médio do vidro fosco (a escala do expo-blur vai de 0 a 100). */
+const MEDIUM_BLUR = 50;
+
 /**
- * Cartão de vidro líquido — a base visual de todos os blocos do app.
- * Borda fina clara (mais clara em cima) + desfoque do que está atrás + brilho diagonal.
+ * Cartão de vidro fosco — a base visual de todos os blocos do app.
+ * Desfoque do que está atrás, 7% de branco por cima e borda fina clara
+ * (mais clara em cima, como um reflexo de luz).
  */
 export function Glass({
-  intensity = 40,
+  intensity = MEDIUM_BLUR,
   rounded = radius.xxl,
   flush = false,
   strong = false,
   tint,
   underlay,
-  frost = false,
   style,
   contentStyle,
   children,
@@ -46,59 +44,12 @@ export function Glass({
 }: GlassProps) {
   const useBlur = Platform.OS !== 'android';
 
-  if (frost) {
-    return (
-      <View style={[styles.base, styles.frost, { borderRadius: rounded }, style]} {...rest}>
-        {useBlur && <BlurView intensity={FROST_BLUR} tint="dark" style={StyleSheet.absoluteFill} />}
-        <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.frostFill]} />
-        {tint && (
-          <LinearGradient
-            pointerEvents="none"
-            colors={tint}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 0.9, y: 1 }}
-            style={StyleSheet.absoluteFill}
-          />
-        )}
-        {underlay}
-        <View style={[!flush && styles.padding, contentStyle]}>{children}</View>
-      </View>
-    );
-  }
-
   return (
-    <View
-      style={[
-        styles.base,
-        { borderRadius: rounded },
-        !useBlur && { backgroundColor: colors.panel2 },
-        style,
-      ]}
-      {...rest}>
+    <View style={[styles.base, { borderRadius: rounded }, style]} {...rest}>
       {useBlur && <BlurView intensity={intensity} tint="dark" style={StyleSheet.absoluteFill} />}
-      {/* vidro líquido: brilho diagonal + reflexo suave no canto de cima */}
-      <LinearGradient
-        pointerEvents="none"
-        colors={strong ? gradients.glassStrong : gradients.glass}
-        start={{ x: 0.1, y: 0 }}
-        end={{ x: 0.9, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
-      <LinearGradient
-        pointerEvents="none"
-        colors={[colors.glassFillStrong, 'transparent']}
-        start={{ x: 0.15, y: 0 }}
-        end={{ x: 0.5, y: 0.6 }}
-        style={StyleSheet.absoluteFill}
-      />
+      <View pointerEvents="none" style={[StyleSheet.absoluteFill, strong ? styles.fillStrong : styles.fill]} />
       {tint && (
-        <LinearGradient
-          pointerEvents="none"
-          colors={tint}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0.9, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
+        <LinearGradient pointerEvents="none" colors={tint} start={{ x: 0, y: 0 }} end={{ x: 0.9, y: 1 }} style={StyleSheet.absoluteFill} />
       )}
       {underlay}
       <View style={[!flush && styles.padding, contentStyle]}>{children}</View>
@@ -106,22 +57,18 @@ export function Glass({
   );
 }
 
-/** Desfoque médio do vidro fosco (a escala do expo-blur vai de 0 a 100). */
-const FROST_BLUR = 50;
-
 const styles = StyleSheet.create({
-  frost: {
-    borderColor: colors.frostCardEdge,
-    borderTopColor: colors.frostCardEdgeTop,
-  },
-  frostFill: {
-    backgroundColor: colors.frostCardFill,
-  },
   base: {
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: colors.line,
-    borderTopColor: colors.glassHighlight,
+    borderColor: colors.frostCardEdge,
+    borderTopColor: colors.frostCardEdgeTop,
+  },
+  fill: {
+    backgroundColor: colors.frostCardFill,
+  },
+  fillStrong: {
+    backgroundColor: colors.glassFillStrong,
   },
   padding: {
     padding: spacing.lg,
