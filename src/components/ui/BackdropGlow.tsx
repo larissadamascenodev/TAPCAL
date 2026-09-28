@@ -4,8 +4,8 @@ import Svg, { Defs, Ellipse, RadialGradient, Stop } from 'react-native-svg';
 import { colors } from '@/theme/theme';
 
 /** Força do verde no centro de cada mancha (0 a 1). Baixa de propósito: só para o vidro ter o que desfocar. */
-const TOP_STRENGTH = 0.14;
-const BOTTOM_STRENGTH = 0.08;
+const TOP_STRENGTH = 0.09;
+const BOTTOM_STRENGTH = 0.05;
 
 /**
  * Fundo das telas: duas manchas de verde bem suaves (em cima à direita e embaixo
