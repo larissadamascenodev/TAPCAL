@@ -71,7 +71,11 @@ export async function analyzeMeal(base64: string, cfg: ScanConfig = scanConfig()
 
   const controller = new AbortController();
   // A função pode tentar mais de um modelo quando o Gemini está cheio: dá tempo a ela.
-  const timer = setTimeout(() => controller.abort(), 50_000);
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, 60_000);
   const onCancel = () => controller.abort();
   signal?.addEventListener('abort', onCancel);
   try {
@@ -90,6 +94,9 @@ export async function analyzeMeal(base64: string, cfg: ScanConfig = scanConfig()
     return interpretResponse(res.status, body);
   } catch {
     if (signal?.aborted) return { kind: 'cancelled' };
+    if (timedOut) {
+      return { kind: 'error', message: 'A análise demorou demais. A IA pode estar cheia; tente de novo.', canRetry: true };
+    }
     return { kind: 'error', message: 'Sem conexão com a internet. Confira e tente de novo.', canRetry: true };
   } finally {
     clearTimeout(timer);

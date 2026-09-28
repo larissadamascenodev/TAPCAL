@@ -79,4 +79,18 @@ describe('chamada', () => {
     ctrl.abort();
     await expect(p).resolves.toEqual({ kind: 'cancelled' });
   });
+
+  it('quando passa do tempo, avisa que demorou (não que está sem internet)', async () => {
+    jest.useFakeTimers();
+    globalThis.fetch = jest.fn(
+      (_url: string, init: RequestInit) =>
+        new Promise((_resolve, reject) => {
+          init.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
+        }),
+    ) as unknown as typeof fetch;
+    const p = analyzeMeal('x', { url: 'https://x.supabase.co', key: 'k' });
+    await jest.advanceTimersByTimeAsync(61_000);
+    await expect(p).resolves.toMatchObject({ kind: 'error', message: expect.stringContaining('demorou') });
+    jest.useRealTimers();
+  });
 });

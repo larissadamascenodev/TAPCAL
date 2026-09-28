@@ -25,8 +25,8 @@
  */
 const MODELS = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-flash-lite-latest', 'gemini-2.5-flash'];
 const MAX_BASE64 = 4_000_000; // ~3 MB de imagem
-const TIMEOUT_MS = 25_000; // por chamada ao Gemini
-const TOTAL_MS = 40_000; // prazo total, somando as tentativas
+const TIMEOUT_MS = 18_000; // por chamada ao Gemini
+const TOTAL_MS = 45_000; // prazo total, somando as tentativas
 /** Respostas do Gemini que valem tentar de novo (sobrecarga, limite, erro interno). */
 const RETRYABLE = new Set([429, 500, 503]);
 
@@ -111,6 +111,45 @@ const RESPONSE_SCHEMA = {
   required: ['is_food', 'dish', 'confidence', 'items'],
 };
 
+/** Modelos que a chave enxerga, guardados por um tempo para não perguntar a cada foto. */
+let modelCache: { at: number; names: string[] } | null = null;
+const MODEL_CACHE_MS = 10 * 60_000;
+
+/** Nomes que não servem para analisar foto (voz, imagem, embeddings, etc.). */
+const SKIP_MODEL = /(tts|audio|image|live|embedding|aqa|computer|robotics|native)/;
+
+/**
+ * Pergunta ao Google quais modelos "flash" essa chave pode usar e monta a ordem
+ * de tentativa: os preferidos primeiro, depois os demais, do mais novo ao mais antigo.
+ */
+async function modelOrder(base: string, key: string, preferred: string[]): Promise<string[]> {
+  if (!modelCache || Date.now() - modelCache.at > MODEL_CACHE_MS) {
+    try {
+      const res = await fetch(`${base}/v1beta/models?pageSize=200`, {
+        headers: { 'x-goog-api-key': key },
+        signal: AbortSignal.timeout(4_000),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { models?: { name?: string; supportedGenerationMethods?: string[] }[] };
+        const names = (data.models ?? [])
+          .filter((m) => m.supportedGenerationMethods?.includes('generateContent'))
+          .map((m) => (m.name ?? '').replace(/^models\//, ''))
+          .filter((n) => n.includes('flash') && !SKIP_MODEL.test(n));
+        modelCache = { at: Date.now(), names };
+        console.log('modelos_disponiveis', names.join(', '));
+      } else {
+        console.error('modelos_status', res.status);
+      }
+    } catch (e) {
+      console.error('modelos_fetch', e);
+    }
+  }
+  const available = modelCache?.names ?? [];
+  const byNewest = [...available].sort((a, b) => b.localeCompare(a, 'en', { numeric: true }));
+  const ordered = [...preferred.filter((m) => !available.length || available.includes(m)), ...byNewest];
+  return [...new Set(ordered.length ? ordered : preferred)];
+}
+
 type GeminiResponse = {
   candidates?: { content?: { parts?: { text?: string }[] } }[];
 };
@@ -142,9 +181,13 @@ Deno.serve(async (req) => {
   if (image.length > MAX_BASE64) return json(413, { error: 'imagem_grande' });
 
   const preferred = Deno.env.get('GEMINI_MODEL')?.trim();
-  const models = [...new Set([preferred, ...MODELS].filter((m): m is string => !!m))];
   // GEMINI_API_BASE só existe para testes locais com um servidor simulado.
   const base = Deno.env.get('GEMINI_API_BASE') || 'https://generativelanguage.googleapis.com';
+  const models = await modelOrder(
+    base,
+    geminiKey,
+    [preferred, ...MODELS].filter((m): m is string => !!m),
+  );
   const payload = JSON.stringify({
     contents: [{ role: 'user', parts: [{ inlineData: { mimeType, data: image } }, { text: PROMPT }] }],
     generationConfig: {
@@ -181,6 +224,8 @@ Deno.serve(async (req) => {
       console.error('gemini_status', model, res.status, (await res.text()).slice(0, 300));
       if (res.status === 404) continue outer;
       if (!RETRYABLE.has(res.status)) break outer;
+      // Sobrecarga: tenta o mesmo modelo mais uma vez só no primeiro; nos outros, passa adiante.
+      if (model !== models[0]) continue outer;
       if (attempt === 0) await new Promise((r) => setTimeout(r, 900));
     }
   }
