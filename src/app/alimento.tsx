@@ -7,30 +7,16 @@ import { validateFoodForm, type FoodFormField, type FoodFormInput } from '@/lib/
 import { formatInt } from '@/lib/format';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing } from '@/theme/theme';
-import { MEAL_LABELS, MEAL_TYPES, type MealType } from '@/types';
+import { MEAL_OPTIONS, mealByHour, mealShort, parseMeal } from '@/lib/meals';
+import type { MealType } from '@/types';
 
-const MEAL_OPTIONS = MEAL_TYPES.map((m) => ({
-  value: m,
-  label: m === 'cafe_da_manha' ? 'Café' : MEAL_LABELS[m],
-}));
-
-/** Refeição sugerida pela hora, quando a tela abre sem refeição escolhida. */
-function mealByHour(date = new Date()): MealType {
-  const h = date.getHours();
-  if (h < 11) return 'cafe_da_manha';
-  if (h < 15) return 'almoco';
-  if (h < 18) return 'lanche';
-  return 'jantar';
-}
 
 const EMPTY: FoodFormInput = { name: '', grams: '', kcal: '', proteinG: '', carbsG: '', fatG: '' };
 
 /** Adicionar alimento à mão (até o scanner e a busca chegarem na fase 4). */
 export default function AlimentoScreen() {
   const params = useLocalSearchParams<{ refeicao?: string }>();
-  const initial = MEAL_TYPES.includes(params.refeicao as MealType)
-    ? (params.refeicao as MealType)
-    : mealByHour();
+  const initial = parseMeal(params.refeicao) ?? mealByHour();
 
   const addFood = useAppStore((s) => s.addFood);
   const [meal, setMeal] = useState<MealType>(initial);
@@ -49,7 +35,7 @@ export default function AlimentoScreen() {
       return;
     }
     addFood(meal, result.food);
-    toast(`${formatInt(result.food.kcal)} kcal salvas no ${MEAL_LABELS[meal].toLowerCase()}`);
+    toast(`${formatInt(result.food.kcal)} kcal salvas no ${mealShort(meal).toLowerCase()}`);
     router.back();
   };
 
@@ -61,7 +47,7 @@ export default function AlimentoScreen() {
         <>
           <Button label="Cancelar" variant="secondary" onPress={() => router.back()} />
           <Button
-            label={`Salvar no ${meal === 'cafe_da_manha' ? 'café' : MEAL_LABELS[meal].toLowerCase()}`}
+            label={`Salvar no ${mealShort(meal).toLowerCase()}`}
             onPress={save}
             style={styles.save}
           />

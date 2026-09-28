@@ -1,0 +1,6 @@
+# Configuração do Supabase CLI para o projeto TapCal (ref ubtphbznnmfsvtgmrfzr).
+project_id = "tapcal"
+
+[functions.analyze-meal]
+# A verificação embutida só entende JWT; a função confere a chave publicável no código.
+verify_jwt = false

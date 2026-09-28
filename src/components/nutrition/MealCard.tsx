@@ -17,10 +17,10 @@ const MEAL_ICON: Record<MealType, { icon: keyof typeof Ionicons.glyphMap; color:
 };
 
 const EMPTY_HINT: Record<MealType, string> = {
-  cafe_da_manha: 'Toque no + para registrar o café',
-  almoco: 'Toque no + para registrar o almoço',
-  lanche: 'Toque no + para registrar o lanche',
-  jantar: 'Toque no + para registrar o jantar',
+  cafe_da_manha: 'Toque no + para buscar o que comeu',
+  almoco: 'Toque duas vezes na Início para fotografar o prato',
+  lanche: 'Toque no + para buscar o que comeu',
+  jantar: 'Toque duas vezes na Início para fotografar o prato',
 };
 
 function hhmm(iso: string): string {

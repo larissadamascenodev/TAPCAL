@@ -34,7 +34,23 @@
           "imageWidth": 76
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "O TapCal usa a câmera para fotografar seus pratos e calcular as calorias.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "O TapCal abre suas fotos para você analisar um prato já fotografado.",
+          "cameraPermission": "O TapCal usa a câmera para fotografar seus pratos e calcular as calorias.",
+          "microphonePermission": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

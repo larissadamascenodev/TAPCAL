@@ -11,6 +11,7 @@ import { WeightCard } from '@/components/home/WeightCard';
 import { WorkoutTile } from '@/components/home/WorkoutTile';
 import { MacroBars } from '@/components/nutrition/MacroBars';
 import { EmptyState, Glass, Screen, Text, toast } from '@/components/ui';
+import { useDoubleTap } from '@/hooks/useDoubleTap';
 import { formatInt, greeting } from '@/lib/format';
 import { loggedDates, streak, weightTrend } from '@/lib/progress';
 import { dayTotals } from '@/lib/totals';
@@ -41,6 +42,9 @@ export default function InicioScreen() {
   const eaten = dayTotals(day);
   const logged = useMemo(() => loggedDates(day, history), [day, history]);
   const trend = useMemo(() => weightTrend(weights, today), [weights, today]);
+  const openScanner = () => router.push('/scanner');
+  const cardTap = useDoubleTap(openScanner, () => toast('Toque mais uma vez'));
+  const gaugeTap = useDoubleTap(openScanner);
 
   if (!profile || !plan) {
     return (
@@ -117,9 +121,12 @@ export default function InicioScreen() {
         <WeekStrip today={today} logged={logged} />
       </View>
 
-      <View style={[styles.block, styles.gauge]}>
+      <Pressable
+        onPress={gaugeTap}
+        accessibilityHint="Toque duas vezes para fotografar um prato"
+        style={[styles.block, styles.gauge]}>
         <CalorieGauge eaten={eaten.kcal} goal={plan.targetKcal} width={gaugeWidth} />
-      </View>
+      </Pressable>
 
       <View style={styles.meta}>
         <Meta label="Meta" value={formatInt(plan.targetKcal)} />
@@ -138,7 +145,8 @@ export default function InicioScreen() {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Registrar refeição pela foto"
-        onPress={() => router.push({ pathname: '/em-breve', params: { secao: 'scanner' } })}
+        accessibilityHint="Toque duas vezes para abrir a câmera"
+        onPress={cardTap}
         style={({ pressed }) => [styles.blockLg, pressed && styles.pressed]}>
         <Glass flush contentStyle={styles.tap}>
           <LinearGradient colors={gradients.fab} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.tapIcon}>

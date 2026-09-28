@@ -67,6 +67,7 @@ export const colors = {
   ticks: 'rgba(255,255,255,0.22)',
   frostFill: 'rgba(255,255,255,0.20)',
   frostEdge: 'rgba(255,255,255,0.45)',
+  tagFill: 'rgba(10,10,12,0.62)',
 } as const;
 
 /** Cor de cada macro, igual em todas as telas. */
@@ -87,6 +88,8 @@ export const gradients = {
   workoutHero: ['rgba(255,106,69,0.20)', 'rgba(255,255,255,0.04)'] as const,
   // Água: azul que enche o cartão
   water: ['rgba(92,200,255,0.28)', 'rgba(92,200,255,0.08)'] as const,
+  // Linha dourada que varre a foto durante a análise
+  sweep: ['rgba(255,197,107,0)', colors.gold, 'rgba(255,197,107,0)'] as const,
 };
 
 /**

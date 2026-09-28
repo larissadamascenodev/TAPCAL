@@ -61,6 +61,8 @@ export default function RootLayout() {
         <Stack.Screen name="peso" options={{ presentation: 'modal' }} />
         <Stack.Screen name="treino-sessao" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
         <Stack.Screen name="em-breve" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="busca" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="scanner" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
       </Stack>
       <ToastHost />
     </ThemeProvider>

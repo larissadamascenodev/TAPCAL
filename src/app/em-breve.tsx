@@ -14,18 +14,6 @@ type Section = {
 
 /** O que cada atalho vai ser, e quando chega (pelo roteiro). */
 const SECTIONS: Record<string, Section> = {
-  scanner: {
-    title: 'Scanner de pratos',
-    icon: 'scan-outline',
-    description: 'Fotografe o prato e o app calcula calorias e macros, com porções ajustáveis.',
-    when: 'Próxima fase',
-  },
-  busca: {
-    title: 'Busca de alimentos',
-    icon: 'search-outline',
-    description: 'Busque qualquer alimento na tabela TACO e escolha a porção em gramas.',
-    when: 'Próxima fase',
-  },
   historico: {
     title: 'Histórico de treinos',
     icon: 'time-outline',

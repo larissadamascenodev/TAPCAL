@@ -23,13 +23,9 @@ export default function AdicionarScreen() {
   const go = (href: Href) => router.replace(href);
 
   const options: Option[] = [
-    {
-      icon: 'scan-outline',
-      label: 'Escanear prato',
-      hint: 'Em breve',
-      run: () => go({ pathname: '/em-breve', params: { secao: 'scanner' } }),
-    },
-    { icon: 'create-outline', label: 'Adicionar alimento', hint: 'Digitar à mão', run: () => go('/alimento') },
+    { icon: 'scan-outline', label: 'Escanear prato', hint: 'Foto', run: () => go('/scanner') },
+    { icon: 'search-outline', label: 'Buscar alimento', hint: 'Tabela TACO', run: () => go('/busca') },
+    { icon: 'create-outline', label: 'Adicionar à mão', hint: 'Digitar', run: () => go('/alimento') },
     {
       icon: 'water-outline',
       label: 'Registrar água',

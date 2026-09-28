@@ -73,7 +73,7 @@ export default function AlimentacaoScreen() {
         <IconButton
           icon="search"
           label="Buscar alimento"
-          onPress={() => router.push({ pathname: '/em-breve', params: { secao: 'busca' } })}
+          onPress={() => router.push('/busca')}
         />
       </View>
 
@@ -123,7 +123,7 @@ export default function AlimentacaoScreen() {
           key={meal}
           meal={meal}
           items={day.meals[meal]}
-          onAdd={isToday ? () => router.push({ pathname: '/alimento', params: { refeicao: meal } }) : undefined}
+          onAdd={isToday ? () => router.push({ pathname: '/busca', params: { refeicao: meal } }) : undefined}
           onPressItem={isToday ? (item) => onDelete(meal, item) : undefined}
         />
       ))}
