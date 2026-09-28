@@ -107,6 +107,30 @@ export function adjustGrams(items: readonly ScanItem[], id: string, delta: numbe
   return items.map((i) => (i.id === id ? { ...i, grams: Math.min(MAX_GRAMS, Math.max(0, i.grams + delta)) } : i));
 }
 
+/** Corrige um alimento que a IA reconheceu: nome e porção (0 a MAX_GRAMS, de 5 em 5 g). */
+export function editScanItem(
+  items: readonly ScanItem[],
+  id: string,
+  changes: { name?: string; grams?: number },
+): ScanItem[] {
+  return items.map((i) => {
+    if (i.id !== id) return i;
+    const name = changes.name?.trim();
+    const grams = changes.grams;
+    return {
+      ...i,
+      name: name ? name.charAt(0).toUpperCase() + name.slice(1) : i.name,
+      grams:
+        grams == null || !Number.isFinite(grams) ? i.grams : Math.min(MAX_GRAMS, Math.max(0, Math.round(grams / 5) * 5)),
+    };
+  });
+}
+
+/** Tira um alimento que a IA viu por engano. */
+export function removeScanItem(items: readonly ScanItem[], id: string): ScanItem[] {
+  return items.filter((i) => i.id !== id);
+}
+
 /** Converte o prato em alimentos para salvar na refeição. */
 export function toFoodItems(items: readonly ScanItem[]): Omit<FoodItem, 'id' | 'createdAt'>[] {
   return items

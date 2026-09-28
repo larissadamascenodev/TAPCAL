@@ -4,16 +4,18 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useRef, useState } from 'react';
-import { ActivityIndicator, Image, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Circle, G } from 'react-native-svg';
 
 import { ScanFrame } from '@/components/scanner/ScanFrame';
-import { Button, ChipGroup, IconButton, Stepper, Text, toast } from '@/components/ui';
+import { Button, ChipGroup, IconButton, Text, TextField, toast } from '@/components/ui';
 import { formatDecimal, formatInt } from '@/lib/format';
 import { MEAL_OPTIONS, mealByHour, mealShort, parseMeal } from '@/lib/meals';
-import { adjustGrams, itemMacros, scanTotals, toFoodItems, type ScanResult } from '@/lib/scan';
+import { editScanItem, itemMacros, removeScanItem, scanTotals, toFoodItems, type ScanResult } from '@/lib/scan';
 import { analyzeMeal } from '@/lib/scanClient';
+import { goalPlan } from '@/store/selectors';
 import { useAppStore } from '@/store/useAppStore';
 import { colors, fonts, macroColors, radius, spacing } from '@/theme/theme';
 import type { MealType } from '@/types';
@@ -24,7 +26,6 @@ type Phase =
   | { step: 'result'; uri: string; result: ScanResult; example: boolean; reason?: string }
   | { step: 'error'; uri: string; message: string; canRetry: boolean; base64: string };
 
-const STEP_G = 10;
 const PHOTO_H = 370;
 
 /** Reduz a foto para ~1024 px e devolve em base64 (menos dados, análise mais rápida). */
@@ -45,6 +46,9 @@ export default function ScannerScreen() {
   const [phase, setPhase] = useState<Phase>({ step: 'camera' });
   const [meal, setMeal] = useState<MealType>(parseMeal(params.refeicao) ?? mealByHour());
   const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState<string | null>(null);
+  const state = useAppStore();
+  const dayGoal = useMemo(() => goalPlan(state, state.today.date)?.macros ?? null, [state]);
 
   const analyze = async (uri: string, base64: string) => {
     setPhase({ step: 'analyzing', uri });
@@ -199,15 +203,15 @@ export default function ScannerScreen() {
   // ── Resultado ─────────────────────────────────────────────────────────────
   const { result } = phase;
   const totals = scanTotals(result.items);
-  const recognized = result.items.length;
   const lowConfidence = !phase.example && result.confidence < 0.6;
+  const editingItem = result.items.find((i) => i.id === editing) ?? null;
 
   const setItems = (items: ScanResult['items']) => setPhase({ ...phase, result: { ...result, items } });
 
   const save = () => {
     const foods = toFoodItems(result.items);
     if (!foods.length) {
-      toast('Ajuste pelo menos um alimento com mais de 0 g');
+      toast('Deixe pelo menos um alimento com mais de 0 g');
       return;
     }
     foods.forEach((f) => addFood(meal, f));
@@ -220,14 +224,6 @@ export default function ScannerScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xl }} showsVerticalScrollIndicator={false}>
         <View style={{ height: PHOTO_H }}>
           <Image source={{ uri: phase.uri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-          <View style={styles.tags}>
-            {result.items.map((i) => (
-              <View key={i.id} style={styles.tag}>
-                <View style={styles.tagDot} />
-                <Text style={styles.tagText}>{i.name}</Text>
-              </View>
-            ))}
-          </View>
           <View style={[styles.topBar, { top: insets.top + spacing.sm }]}>
             <IconButton icon="close" label="Fechar" dark onPress={() => router.back()} />
             <IconButton icon="refresh" label="Refazer foto" dark onPress={() => setPhase({ step: 'camera' })} />
@@ -235,93 +231,177 @@ export default function ScannerScreen() {
         </View>
 
         <View style={styles.sheet}>
-          <View style={styles.grab} />
           {phase.example ? (
-            <View style={[styles.badge, styles.badgeExample]}>
+            <View style={styles.badgeRow}>
+              <Ionicons name="information-circle" size={18} color={colors.gold} />
               <Text style={[styles.badgeText, { color: colors.gold }]}>
-                Modo exemplo ·{' '}
-                {phase.reason === 'sem_chave' ? 'falta a chave do Gemini no Supabase' : 'Supabase não configurado'}
+                MODO EXEMPLO · {phase.reason === 'sem_chave' ? 'FALTA A CHAVE DO GEMINI' : 'SEM CONEXÃO COM O SUPABASE'}
               </Text>
             </View>
           ) : (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>
-                ✓ {recognized} {recognized === 1 ? 'alimento reconhecido' : 'alimentos reconhecidos'}
-              </Text>
+            <View style={styles.badgeRow}>
+              <Ionicons name="checkmark-circle" size={18} color={colors.lime} />
+              <Text style={styles.badgeText}>IDENTIFICADO ITEM POR ITEM</Text>
             </View>
           )}
-          <Text style={styles.dish}>{result.dish}</Text>
-          <View style={styles.bigk}>
-            <Text style={styles.bigkValue}>{formatInt(totals.kcal)}</Text>
-            <Text variant="caption" tone="secondary">
-              kcal estimadas
-            </Text>
-          </View>
+          <Text style={styles.dish}>{result.dish.toUpperCase()}</Text>
           {lowConfidence && (
             <Text variant="caption" style={styles.warn}>
-              A foto deixou dúvidas. Confira os alimentos e as porções antes de salvar.
+              A foto deixou dúvidas. Confira os alimentos e as porções antes de continuar.
             </Text>
           )}
 
-          <View style={styles.chips}>
-            <MacroChip label="Proteína" value={totals.proteinG} color={macroColors.proteinG} />
-            <MacroChip label="Carbo" value={totals.carbsG} color={macroColors.carbsG} />
-            <MacroChip label="Gordura" value={totals.fatG} color={macroColors.fatG} />
-          </View>
-
-          <View style={styles.plist}>
+          <View style={styles.list}>
             {result.items.map((i) => (
-              <View key={i.id} style={[styles.pitem, i.grams === 0 && styles.pitemOff]}>
+              <Pressable
+                key={i.id}
+                accessibilityRole="button"
+                accessibilityHint="Toque para editar o nome e a quantidade"
+                onPress={() => setEditing(i.id)}
+                style={({ pressed }) => [styles.row, i.grams === 0 && styles.rowOff, pressed && styles.pressed]}>
                 <View style={styles.flex}>
-                  <Text variant="bodyStrong" style={styles.pname}>
-                    {i.name}
-                  </Text>
+                  <Text style={styles.rowName}>{i.name}</Text>
                   <Text variant="caption" tone="muted">
                     {formatInt(itemMacros(i).kcal)} kcal
                   </Text>
                 </View>
-                <View style={styles.step}>
-                  <Stepper
-                    label={i.name}
-                    size={28}
-                    onMinus={() => setItems(adjustGrams(result.items, i.id, -STEP_G))}
-                    onPlus={() => setItems(adjustGrams(result.items, i.id, STEP_G))}
-                  />
-                  <Text style={styles.gramsOut}>{formatInt(i.grams)} g</Text>
-                </View>
-              </View>
+                <Text style={styles.rowGrams}>{formatInt(i.grams)} g</Text>
+                <Ionicons name="pencil" size={14} color={colors.ink3} />
+              </Pressable>
             ))}
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push({ pathname: '/busca', params: { refeicao: meal } })}
+              style={({ pressed }) => [styles.addRow, pressed && styles.pressed]}>
+              <Ionicons name="add" size={16} color={colors.ink2} />
+              <Text variant="caption" tone="secondary" style={styles.addRowText}>
+                Adicionar alimento
+              </Text>
+            </Pressable>
+          </View>
+
+          <View style={styles.summary}>
+            <View>
+              <Text style={styles.sumLabel}>CALORIAS</Text>
+              <Text style={styles.sumValue}>
+                {formatInt(totals.kcal)}
+                <Text style={styles.sumUnit}> KCAL</Text>
+              </Text>
+            </View>
+            <View style={styles.rings}>
+              <MacroRing label="Proteína" value={totals.proteinG} goal={dayGoal?.proteinG} color={macroColors.proteinG} />
+              <MacroRing label="Carbo" value={totals.carbsG} goal={dayGoal?.carbsG} color={macroColors.carbsG} />
+              <MacroRing label="Gordura" value={totals.fatG} goal={dayGoal?.fatG} color={macroColors.fatG} />
+            </View>
           </View>
 
           <ChipGroup label="Refeição" options={MEAL_OPTIONS} value={meal} onChange={setMeal} />
 
-          <View style={styles.acts}>
-            <Button
-              label="Corrigir"
-              variant="secondary"
-              onPress={() => router.push({ pathname: '/busca', params: { refeicao: meal } })}
-            />
-            <Button label={`Salvar no ${mealShort(meal).toLowerCase()}`} onPress={save} style={styles.flex} />
-          </View>
-          <Text variant="caption" tone="muted" style={styles.center}>
-            Faltou algo? “Corrigir” abre a busca. Zere a porção do que não comeu.
-          </Text>
+          <Pressable accessibilityRole="button" onPress={save} style={({ pressed }) => [styles.cta, pressed && styles.pressed]}>
+            <Text style={styles.ctaText}>CONTINUAR</Text>
+          </Pressable>
         </View>
       </ScrollView>
+
+      {editingItem && (
+        <EditItem
+          key={editingItem.id}
+          name={editingItem.name}
+          grams={editingItem.grams}
+          onCancel={() => setEditing(null)}
+          onRemove={() => {
+            setItems(removeScanItem(result.items, editingItem.id));
+            setEditing(null);
+          }}
+          onSave={(name, grams) => {
+            setItems(editScanItem(result.items, editingItem.id, { name, grams }));
+            setEditing(null);
+          }}
+        />
+      )}
     </View>
   );
 }
 
-function MacroChip({ label, value, color }: { label: string; value: number; color: string }) {
+const RING = 58;
+const RING_R = 25;
+const RING_C = 2 * Math.PI * RING_R;
+
+/** Anel de um macro: gramas do prato no meio; o anel mostra quanto isso é da meta do dia. */
+function MacroRing({ label, value, goal, color }: { label: string; value: number; goal?: number; color: string }) {
+  const frac = goal ? Math.min(1, value / goal) : 0;
   return (
-    <View style={styles.chip}>
-      <View style={styles.chipLabel}>
-        <View style={[styles.dot, { backgroundColor: color }]} />
-        <Text variant="caption" tone="secondary" style={styles.chipLabelText}>
-          {label}
-        </Text>
+    <View style={styles.ring} accessible accessibilityLabel={`${label}: ${formatDecimal(value, 0)} gramas`}>
+      <View style={{ width: RING, height: RING }}>
+        <Svg width={RING} height={RING}>
+          <G rotation={-90} origin={`${RING / 2}, ${RING / 2}`}>
+            <Circle cx={RING / 2} cy={RING / 2} r={RING_R} fill="none" stroke={colors.track} strokeWidth={4.5} />
+            {frac > 0 && (
+              <Circle
+                cx={RING / 2}
+                cy={RING / 2}
+                r={RING_R}
+                fill="none"
+                stroke={color}
+                strokeWidth={4.5}
+                strokeLinecap="round"
+                strokeDasharray={`${Math.max(0.02, frac) * RING_C} ${RING_C}`}
+              />
+            )}
+          </G>
+        </Svg>
+        <View style={styles.ringCenter}>
+          <Text style={styles.ringValue}>{formatDecimal(value, 0)}</Text>
+        </View>
       </View>
-      <Text style={styles.chipValue}>{formatDecimal(value, 0)}g</Text>
+      <Text variant="caption" tone="secondary" style={styles.ringLabel}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+type EditProps = {
+  name: string;
+  grams: number;
+  onCancel: () => void;
+  onRemove: () => void;
+  onSave: (name: string, grams: number) => void;
+};
+
+/** Folha por cima do resultado para corrigir o nome e a quantidade de um alimento. */
+function EditItem({ name, grams, onCancel, onRemove, onSave }: EditProps) {
+  const insets = useSafeAreaInsets();
+  const [nameText, setNameText] = useState(name);
+  const [gramsText, setGramsText] = useState(String(grams));
+  const parsed = Number(gramsText.replace(',', '.'));
+
+  return (
+    <View style={styles.editRoot}>
+      <Pressable accessibilityLabel="Fechar edição" style={StyleSheet.absoluteFill} onPress={onCancel} />
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.editWrap}>
+        <View style={[styles.editCard, { paddingBottom: insets.bottom + spacing.lg }]}>
+          <View style={styles.grab} />
+          <Text variant="heading">Editar alimento</Text>
+          <TextField label="Nome" value={nameText} onChangeText={setNameText} autoCapitalize="sentences" returnKeyType="next" />
+          <TextField
+            label="Quantidade"
+            unit="g"
+            value={gramsText}
+            onChangeText={setGramsText}
+            keyboardType="number-pad"
+            error={gramsText && !Number.isFinite(parsed) ? 'Use só números' : null}
+          />
+          <View style={styles.acts}>
+            <Button label="Remover" variant="secondary" onPress={onRemove} />
+            <Button
+              label="Salvar"
+              onPress={() => onSave(nameText, Number.isFinite(parsed) ? parsed : grams)}
+              style={styles.flex}
+            />
+          </View>
+        </View>
+      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -438,37 +518,6 @@ const styles = StyleSheet.create({
   photo: {
     width: '100%',
   },
-  tags: {
-    position: 'absolute',
-    left: spacing.lg,
-    right: spacing.lg,
-    bottom: 56,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  tag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 14,
-    backgroundColor: colors.tagFill,
-    borderWidth: 1,
-    borderColor: colors.handle,
-  },
-  tagDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.gold,
-  },
-  tagText: {
-    fontFamily: fonts.body.bold,
-    fontSize: 11,
-    color: colors.white,
-  },
   sheet: {
     marginTop: -40,
     paddingTop: 20,
@@ -476,9 +525,7 @@ const styles = StyleSheet.create({
     gap: 14,
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
-    backgroundColor: colors.panel,
-    borderTopWidth: 1,
-    borderColor: colors.line,
+    backgroundColor: colors.sheetDark,
   },
   errorSheet: {
     flex: 1,
@@ -490,109 +537,144 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     backgroundColor: colors.handle,
   },
-  badge: {
-    alignSelf: 'flex-start',
-    height: 26,
-    paddingHorizontal: 10,
-    borderRadius: 13,
-    justifyContent: 'center',
-    backgroundColor: colors.okTint,
-  },
-  badgeExample: {
-    backgroundColor: colors.goldTint,
-    borderWidth: 1,
-    borderColor: colors.goldEdge,
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   badgeText: {
     fontFamily: fonts.body.bold,
-    fontSize: 11,
-    color: colors.ok,
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 2,
+    color: colors.lime,
   },
   dish: {
-    fontFamily: fonts.display.semibold,
-    fontSize: 22,
-    lineHeight: 27,
-    letterSpacing: -0.7,
-  },
-  bigk: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: spacing.sm,
-    marginTop: -4,
-  },
-  bigkValue: {
     fontFamily: fonts.display.bold,
-    fontSize: 48,
-    lineHeight: 52,
-    letterSpacing: -2.4,
-    fontVariant: ['tabular-nums'],
+    fontSize: 26,
+    lineHeight: 31,
+    letterSpacing: -0.8,
   },
-  warn: {
-    color: colors.gold,
+  list: {
+    marginTop: spacing.xs,
   },
-  chips: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  chip: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: radius.lg - 2,
-    backgroundColor: colors.glassFill,
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  chipLabel: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  chipLabelText: {
-    fontFamily: fonts.body.semibold,
-    fontSize: 11,
-  },
-  dot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-  },
-  chipValue: {
-    marginTop: 4,
-    fontFamily: fonts.display.semibold,
-    fontSize: 17,
-  },
-  plist: {
-    gap: spacing.sm,
-  },
-  pitem: {
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    paddingVertical: 10,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.lg - 2,
-    backgroundColor: colors.glassSubtle,
-    borderWidth: 1,
-    borderColor: colors.lineSoft,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.hairline,
   },
-  pitemOff: {
-    opacity: 0.45,
+  rowOff: {
+    opacity: 0.4,
   },
-  pname: {
-    fontSize: 14,
-    lineHeight: 19,
+  rowName: {
+    fontFamily: fonts.body.semibold,
+    fontSize: 16,
+    lineHeight: 21,
+    color: colors.ink2,
   },
-  step: {
-    flexDirection: 'row-reverse',
+  rowGrams: {
+    fontFamily: fonts.display.semibold,
+    fontSize: 16,
+    lineHeight: 21,
+    fontVariant: ['tabular-nums'],
+  },
+  addRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 14,
+  },
+  addRowText: {
+    fontFamily: fonts.body.bold,
+  },
+  summary: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+    marginTop: spacing.xs,
+  },
+  sumLabel: {
+    fontFamily: fonts.body.bold,
+    fontSize: 11,
+    lineHeight: 14,
+    letterSpacing: 2,
+    color: colors.ink3,
+  },
+  sumValue: {
+    marginTop: 4,
+    fontFamily: fonts.display.bold,
+    fontSize: 52,
+    lineHeight: 56,
+    letterSpacing: -2.5,
+    fontVariant: ['tabular-nums'],
+  },
+  sumUnit: {
+    fontFamily: fonts.body.bold,
+    fontSize: 13,
+    letterSpacing: 1.5,
+    color: colors.ink3,
+  },
+  rings: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  ring: {
     alignItems: 'center',
     gap: 6,
   },
-  gramsOut: {
-    minWidth: 48,
-    textAlign: 'center',
+  ringCenter: {
+    ...StyleSheet.absoluteFill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ringValue: {
     fontFamily: fonts.display.semibold,
-    fontSize: 13,
+    fontSize: 16,
+    lineHeight: 20,
+    fontVariant: ['tabular-nums'],
+  },
+  ringLabel: {
+    fontSize: 12,
+  },
+  cta: {
+    height: 58,
+    marginTop: spacing.xs,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.lime,
+  },
+  ctaText: {
+    fontFamily: fonts.display.bold,
+    fontSize: 15,
+    lineHeight: 20,
+    letterSpacing: 3,
+    color: colors.onLime,
+  },
+  editRoot: {
+    ...StyleSheet.absoluteFill,
+    justifyContent: 'flex-end',
+    backgroundColor: colors.photoScrim,
+  },
+  editWrap: {
+    width: '100%',
+  },
+  editCard: {
+    gap: 14,
+    paddingTop: 12,
+    paddingHorizontal: spacing.lg,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    backgroundColor: colors.panel,
+    borderTopWidth: 1,
+    borderColor: colors.line,
+  },
+  warn: {
+    color: colors.gold,
   },
   acts: {
     flexDirection: 'row',

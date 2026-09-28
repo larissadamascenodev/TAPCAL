@@ -8,6 +8,8 @@ export const colors = {
   ground: '#050506',
   panel: '#0C0C0F',
   panel2: '#16161A',
+  // Folha do resultado do scanner: preto puro, para a foto e os números saltarem
+  sheetDark: '#000000',
 
   // Vidro líquido (cartões, barra flutuante e botões)
   glassFill: 'rgba(255,255,255,0.06)',

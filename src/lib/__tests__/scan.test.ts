@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { adjustGrams, MAX_GRAMS, normalizeScan, sampleScan, scanTotals, toFoodItems } from '@/lib/scan';
+import { adjustGrams, editScanItem, MAX_GRAMS, normalizeScan, removeScanItem, sampleScan, scanTotals, toFoodItems } from '@/lib/scan';
 
 const raw = {
   dish: 'Arroz, feijão e frango',
@@ -71,5 +71,27 @@ describe('porções', () => {
   it('exemplo usa valores da TACO', () => {
     // arroz 120 g (154) + feijão 100 g (76) + alcatra 130 g (313) + salada 60 g (7)
     expect(scanTotals(sampleScan().items).kcal).toBe(550);
+  });
+});
+
+describe('corrigir um alimento do scanner', () => {
+  const base = sampleScan().items;
+  const id = base[0].id;
+
+  it('troca o nome e a porção, arredondando de 5 em 5 g', () => {
+    const [first] = editScanItem(base, id, { name: '  arroz integral ', grams: 183 });
+    expect(first.name).toBe('Arroz integral');
+    expect(first.grams).toBe(185);
+    expect(first.per100).toEqual(base[0].per100);
+  });
+
+  it('ignora nome vazio e porção inválida, e limita a porção', () => {
+    expect(editScanItem(base, id, { name: '   ', grams: Number.NaN })[0]).toEqual(base[0]);
+    expect(editScanItem(base, id, { grams: 99999 })[0].grams).toBe(MAX_GRAMS);
+    expect(editScanItem(base, id, { grams: -20 })[0].grams).toBe(0);
+  });
+
+  it('remove um alimento', () => {
+    expect(removeScanItem(base, id).map((i) => i.id)).not.toContain(id);
   });
 });
