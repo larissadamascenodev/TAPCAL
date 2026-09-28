@@ -4,9 +4,13 @@ import { Platform, StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { IconButton } from '@/components/ui/IconButton';
 import { Text } from '@/components/ui/Text';
+import { toast } from '@/components/ui/Toast';
 import { greeting } from '@/lib/format';
 import { colors, fonts, gradients, spacing } from '@/theme/theme';
+
+import { StreakBadge } from './StreakBadge';
 
 
 /** Altura do topo, sem contar a área segura. */
@@ -16,21 +20,23 @@ const FADE = 44;
 
 const FADE_IN = {
   transitionProperty: ['opacity', 'transform'] as ('opacity' | 'transform')[],
-  transitionDuration: 300,
+  transitionDuration: 420,
   transitionTimingFunction: 'ease-out' as const,
 };
 
 type Props = {
   name: string;
+  streakDays: number;
   /** Rolou a tela: mostra a saudação com o nome e escurece o fundo do topo. */
   scrolled: boolean;
 };
 
 /**
- * Topo fixo da Início: só o avatar. Ao rolar, a saudação com o nome aparece e o
+ * Topo fixo da Início: avatar à esquerda; chama da sequência e notificações à
+ * direita. Assim que a tela começa a rolar, a saudação com o nome aparece e o
  * fundo ganha um desfoque que some para baixo.
  */
-export function HomeHeader({ name, scrolled }: Props) {
+export function HomeHeader({ name, streakDays, scrolled }: Props) {
   const insets = useSafeAreaInsets();
   const top = insets.top + spacing.sm;
   const height = top + HOME_HEADER_H;
@@ -67,6 +73,15 @@ export function HomeHeader({ name, scrolled }: Props) {
           </Text>
         </Animated.View>
 
+        <View style={styles.actions}>
+          <StreakBadge days={streakDays} />
+          <IconButton
+            icon="notifications-outline"
+            label="Notificações"
+            size={46}
+            onPress={() => toast('Em breve as notificações aparecem aqui')}
+          />
+        </View>
       </View>
     </View>
   );
@@ -115,6 +130,11 @@ const styles = StyleSheet.create({
     fontFamily: fonts.display.bold,
     fontSize: 18,
     lineHeight: 22,
+  },
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
   },
   nameWrap: {
     flex: 1,

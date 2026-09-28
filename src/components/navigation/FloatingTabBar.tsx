@@ -10,6 +10,9 @@ import { colors, gradients, radius, tabBar } from '@/theme/theme';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
+/** Desfoque mínimo da barra: só o bastante para os ícones não brigarem com o conteúdo. */
+const MENU_BLUR = 14;
+
 /** Ícone e rótulo de cada aba, pelo nome do arquivo da rota em src/app/(tabs). */
 const TABS: Record<string, { label: string; icon: IconName; iconOn: IconName }> = {
   index: { label: 'Início', icon: 'home-outline', iconOn: 'home' },
@@ -86,7 +89,7 @@ export function FloatingTabBar({ state, navigation, insets }: BottomTabBarProps)
 function GlassLayers({ useBlur }: { useBlur: boolean }) {
   return (
     <>
-      {useBlur && <BlurView intensity={50} tint="dark" style={StyleSheet.absoluteFill} />}
+      {useBlur && <BlurView intensity={MENU_BLUR} tint="dark" style={StyleSheet.absoluteFill} />}
       <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.fill]} />
       <LinearGradient
         pointerEvents="none"

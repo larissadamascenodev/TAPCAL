@@ -4,7 +4,7 @@ import { dayFraction } from '@/lib/dates';
 import { foodEmoji } from '@/lib/foodEmoji';
 import { mealTargets } from '@/lib/goals';
 import { DEFAULT_MEAL_TIMES, mealProgress, mealTime } from '@/lib/meals';
-import { weightProgress } from '@/lib/progress';
+import { streakMilestoneFraction, weightProgress } from '@/lib/progress';
 import { proteinTip } from '@/lib/tips';
 import { sessionsThisMonth } from '@/lib/workout';
 import type { FoodItem, WorkoutSession } from '@/types';
@@ -67,6 +67,15 @@ describe('horário da refeição', () => {
 
   it('sem registro, usa o horário de referência', () => {
     expect(mealTime('jantar', [])).toBe(DEFAULT_MEAL_TIMES.jantar);
+  });
+});
+
+describe('sequência da semana', () => {
+  it('mostra quanto falta para fechar 7 dias seguidos', () => {
+    expect(streakMilestoneFraction(0)).toBe(0);
+    expect(streakMilestoneFraction(3)).toBeCloseTo(3 / 7);
+    expect(streakMilestoneFraction(7)).toBe(1);
+    expect(streakMilestoneFraction(8)).toBeCloseTo(1 / 7);
   });
 });
 

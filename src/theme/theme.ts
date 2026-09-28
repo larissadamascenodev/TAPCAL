@@ -90,6 +90,12 @@ export const colors = {
   capOff: 'rgba(255,255,255,0.08)',
 
 
+  // Chama da sequência
+  flameText: '#FFB788',
+  flameTint: 'rgba(255,138,60,0.16)',
+  flameEdge: 'rgba(255,160,90,0.28)',
+  flameGlow: 'rgba(255,120,40,0.38)',
+
   // Prato de vidro das refeições e receitas
   plateHi: 'rgba(255,255,255,0.34)',
   plateLo: 'rgba(255,255,255,0.06)',
@@ -129,6 +135,11 @@ export const gradients = {
   water: ['rgba(87,184,255,0.30)', 'rgba(87,184,255,0.06)'] as const,
   // Linha verde que varre a foto durante a análise
   sweep: ['rgba(209,251,57,0)', colors.lime, 'rgba(209,251,57,0)'] as const,
+  // Chama da sequência de dias: camada de fora, do meio, miolo e o anel da semana
+  flameOuter: ['#E8321A', '#FF6A1F', '#FFB23A'] as const,
+  flameMid: ['#FF8A1F', '#FFC43D', '#FFE38A'] as const,
+  flameCore: ['#FFFFFF', '#FFF6CF', '#FFE38A'] as const,
+  flameRing: ['#FFC23A', '#FF5A2A'] as const,
   // Fundo das refeições (atrás do prato de vidro)
   visual: {
     cafe_da_manha: ['#8A5A2E', '#3A2412', '#1A120B'],
