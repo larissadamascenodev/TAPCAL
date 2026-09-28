@@ -251,6 +251,21 @@ export default function ScannerScreen() {
             </Text>
           )}
 
+          <ChipGroup label="Refeição" options={MEAL_OPTIONS} value={meal} onChange={setMeal} />
+
+          <View style={styles.summary}>
+            <Text style={styles.sumLabel}>TOTAL DE CALORIAS</Text>
+            <Text style={styles.sumValue}>
+              {formatInt(totals.kcal)}
+              <Text style={styles.sumUnit}> KCAL</Text>
+            </Text>
+            <View style={styles.rings}>
+              <MacroRing label="Proteína" value={totals.proteinG} goal={dayGoal?.proteinG} color={macroColors.proteinG} />
+              <MacroRing label="Carbo" value={totals.carbsG} goal={dayGoal?.carbsG} color={macroColors.carbsG} />
+              <MacroRing label="Gordura" value={totals.fatG} goal={dayGoal?.fatG} color={macroColors.fatG} />
+            </View>
+          </View>
+
           <View style={styles.list}>
             {result.items.map((i) => (
               <Pressable
@@ -279,23 +294,6 @@ export default function ScannerScreen() {
               </Text>
             </Pressable>
           </View>
-
-          <View style={styles.summary}>
-            <View>
-              <Text style={styles.sumLabel}>CALORIAS</Text>
-              <Text style={styles.sumValue}>
-                {formatInt(totals.kcal)}
-                <Text style={styles.sumUnit}> KCAL</Text>
-              </Text>
-            </View>
-            <View style={styles.rings}>
-              <MacroRing label="Proteína" value={totals.proteinG} goal={dayGoal?.proteinG} color={macroColors.proteinG} />
-              <MacroRing label="Carbo" value={totals.carbsG} goal={dayGoal?.carbsG} color={macroColors.carbsG} />
-              <MacroRing label="Gordura" value={totals.fatG} goal={dayGoal?.fatG} color={macroColors.fatG} />
-            </View>
-          </View>
-
-          <ChipGroup label="Refeição" options={MEAL_OPTIONS} value={meal} onChange={setMeal} />
 
           <Pressable accessibilityRole="button" onPress={save} style={({ pressed }) => [styles.cta, pressed && styles.pressed]}>
             <Text style={styles.ctaText}>CONTINUAR</Text>
@@ -591,10 +589,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body.bold,
   },
   summary: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    gap: spacing.md,
     marginTop: spacing.xs,
   },
   sumLabel: {
@@ -620,7 +614,8 @@ const styles = StyleSheet.create({
   },
   rings: {
     flexDirection: 'row',
-    gap: 10,
+    justifyContent: 'space-around',
+    marginTop: spacing.lg,
   },
   ring: {
     alignItems: 'center',
