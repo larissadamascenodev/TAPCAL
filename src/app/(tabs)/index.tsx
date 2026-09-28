@@ -38,7 +38,6 @@ export default function InicioScreen() {
   const logged = useMemo(() => loggedDates(day, history), [day, history]);
   const trend = useMemo(() => weightTrend(weights, today), [weights, today]);
   const gaugeTap = useDoubleTap(() => router.push('/scanner'));
-  const firstName = profile?.name.trim().split(/\s+/)[0] ?? '';
 
   if (!profile || !plan) {
     return (
@@ -82,7 +81,7 @@ export default function InicioScreen() {
       gap={0}
       topOffset={HOME_HEADER_H}
       onScrollY={(y) => setScrolled(y > SCROLLED_AT)}
-      overlay={<HomeHeader name={firstName} streakDays={days} scrolled={scrolled} />}>
+      overlay={<HomeHeader name={profile.name.trim()} streakDays={days} scrolled={scrolled} />}>
       <DateStrip today={today} />
 
       <Pressable

@@ -7,7 +7,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IconButton } from '@/components/ui/IconButton';
 import { Text } from '@/components/ui/Text';
 import { toast } from '@/components/ui/Toast';
-import { greeting } from '@/lib/format';
 import { colors, fonts, gradients, spacing } from '@/theme/theme';
 
 import { StreakBadge } from './StreakBadge';
@@ -27,13 +26,13 @@ const FADE_IN = {
 type Props = {
   name: string;
   streakDays: number;
-  /** Rolou a tela: mostra a saudação com o nome e escurece o fundo do topo. */
+  /** Rolou a tela: mostra o nome do perfil e escurece o fundo do topo. */
   scrolled: boolean;
 };
 
 /**
  * Topo fixo da Início: avatar à esquerda; chama da sequência e notificações à
- * direita. Assim que a tela começa a rolar, a saudação com o nome aparece e o
+ * direita. Assim que a tela começa a rolar, o nome do perfil aparece e o
  * fundo ganha um desfoque que some para baixo.
  */
 export function HomeHeader({ name, streakDays, scrolled }: Props) {
@@ -65,9 +64,6 @@ export function HomeHeader({ name, streakDays, scrolled }: Props) {
         <Animated.View
           accessibilityElementsHidden={!scrolled}
           style={[styles.nameWrap, { opacity: scrolled ? 1 : 0, transform: [{ translateY: scrolled ? 0 : 6 }] }, FADE_IN]}>
-          <Text variant="caption" tone="secondary" style={styles.hello}>
-            {greeting()},
-          </Text>
           <Text style={styles.name} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
             {name}
           </Text>
@@ -139,9 +135,6 @@ const styles = StyleSheet.create({
   nameWrap: {
     flex: 1,
     minWidth: 0,
-  },
-  hello: {
-    fontFamily: fonts.body.semibold,
   },
   name: {
     fontFamily: fonts.display.semibold,
