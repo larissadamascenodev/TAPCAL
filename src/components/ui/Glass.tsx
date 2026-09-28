@@ -1,13 +1,10 @@
-import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { ReactNode } from 'react';
-import { Platform, StyleSheet, View, type StyleProp, type ViewProps, type ViewStyle } from 'react-native';
+import { StyleSheet, View, type StyleProp, type ViewProps, type ViewStyle } from 'react-native';
 
 import { colors, gradients, radius, spacing } from '@/theme/theme';
 
 export type GlassProps = ViewProps & {
-  /** Força do desfoque (iOS e web); padrão médio. No Android fica só o preenchimento translúcido. */
-  intensity?: number;
   /** Arredondamento; padrão = radius.xxl (30). */
   rounded?: number;
   /** Tira o padding interno padrão. */
@@ -22,16 +19,12 @@ export type GlassProps = ViewProps & {
   contentStyle?: StyleProp<ViewStyle>;
 };
 
-/** Desfoque leve: o vidro deixa ver o que está atrás (escala do expo-blur: 0 a 100). */
-const LIGHT_BLUR = 22;
-
 /**
  * Cartão de vidro — a base visual de todos os blocos do app.
- * Quase transparente (3,5% de branco), desfoque leve, um reflexo de luz no
- * canto de cima e borda fina, bem mais clara em cima.
+ * Vidro líquido sem desfoque: quase transparente (3,5% de branco), um reflexo
+ * de luz no canto de cima e borda fina, bem mais clara em cima.
  */
 export function Glass({
-  intensity = LIGHT_BLUR,
   rounded = radius.xxl,
   flush = false,
   strong = false,
@@ -42,11 +35,8 @@ export function Glass({
   children,
   ...rest
 }: GlassProps) {
-  const useBlur = Platform.OS !== 'android';
-
   return (
     <View style={[styles.base, { borderRadius: rounded }, style]} {...rest}>
-      {useBlur && <BlurView intensity={intensity} tint="dark" style={StyleSheet.absoluteFill} />}
       <View pointerEvents="none" style={[StyleSheet.absoluteFill, strong ? styles.fillStrong : styles.fill]} />
       <LinearGradient
         pointerEvents="none"
