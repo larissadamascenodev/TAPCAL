@@ -2,14 +2,14 @@ import { Text as RNText, type TextProps as RNTextProps } from 'react-native';
 
 import { colors, typography, type TypographyVariant } from '@/theme/theme';
 
-type Tone = 'primary' | 'secondary' | 'muted' | 'accent' | 'onEmber';
+type Tone = 'primary' | 'secondary' | 'muted' | 'accent' | 'onLime';
 
 const toneColor: Record<Tone, string> = {
   primary: colors.ink,
   secondary: colors.ink2,
   muted: colors.ink3,
-  accent: colors.ember2,
-  onEmber: colors.onEmber,
+  accent: colors.lime2,
+  onLime: colors.onLime,
 };
 
 export type TextProps = RNTextProps & {

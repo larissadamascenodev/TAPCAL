@@ -1,24 +1,22 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 
-import { CalorieGauge } from '@/components/home/CalorieGauge';
+import { HOME_HEADER_H, HomeHeader } from '@/components/home/HomeHeader';
+import { MascotHero } from '@/components/home/MascotHero';
+import { TodayCard } from '@/components/home/TodayCard';
 import { WaterTile } from '@/components/home/WaterTile';
-import { WeekStrip } from '@/components/home/WeekStrip';
 import { WeightCard } from '@/components/home/WeightCard';
 import { WorkoutTile } from '@/components/home/WorkoutTile';
-import { MacroBars } from '@/components/nutrition/MacroBars';
-import { EmptyState, Glass, Screen, Text, toast } from '@/components/ui';
+import { EmptyState, Screen, Text, toast } from '@/components/ui';
 import { useDoubleTap } from '@/hooks/useDoubleTap';
-import { formatInt, greeting } from '@/lib/format';
+import { mascotMood } from '@/lib/mascot';
 import { loggedDates, streak, weightTrend } from '@/lib/progress';
 import { dayTotals } from '@/lib/totals';
 import { estimatedMinutes, planForDate, shortFocus } from '@/lib/workout';
 import { goalPlan } from '@/store/selectors';
 import { useAppStore } from '@/store/useAppStore';
-import { colors, fonts, gradients, spacing } from '@/theme/theme';
+import { colors, fonts, spacing } from '@/theme/theme';
 
 /** Seções que ainda não existem: abrem a página "Em breve". */
 const SECTIONS = [
@@ -31,20 +29,22 @@ const SECTIONS = [
 
 const WATER_STEP = 250;
 
+/** Rolou além disto: o nome aparece no topo. */
+const SCROLLED_AT = 150;
+
 export default function InicioScreen() {
   const state = useAppStore();
   const { profile, today: day, history, weights, workoutPlans, sessions, activeSession } = state;
   const { addWater, startSession } = state;
   const today = day.date;
   const { width } = useWindowDimensions();
+  const [scrolled, setScrolled] = useState(false);
 
   const plan = useMemo(() => goalPlan(state, today), [state, today]);
   const eaten = dayTotals(day);
   const logged = useMemo(() => loggedDates(day, history), [day, history]);
   const trend = useMemo(() => weightTrend(weights, today), [weights, today]);
-  const openScanner = () => router.push('/scanner');
-  const cardTap = useDoubleTap(openScanner, () => toast('Toque mais uma vez'));
-  const gaugeTap = useDoubleTap(openScanner);
+  const cardTap = useDoubleTap(() => router.push('/scanner'));
 
   if (!profile || !plan) {
     return (
@@ -57,6 +57,18 @@ export default function InicioScreen() {
   const days = streak(logged, today);
   const workout = planForDate(workoutPlans, today);
   const doneToday = sessions.some((s) => s.date === today);
+  const firstName = profile.name.trim().split(/\s+/)[0] ?? profile.name;
+  const { mood, message } = mascotMood({
+    name: firstName,
+    eatenKcal: eaten.kcal,
+    goalKcal: plan.targetKcal,
+    proteinG: eaten.proteinG,
+    proteinGoalG: plan.macros.proteinG,
+    waterMl: day.waterMl,
+    waterGoalMl: plan.waterMl,
+    streakDays: days,
+    hour: new Date().getHours(),
+  });
 
   const onWater = () => {
     const next = day.waterMl + WATER_STEP;
@@ -81,30 +93,14 @@ export default function InicioScreen() {
           }
         : { title: 'Descanso', subtitle: 'Dia de recuperar' };
 
-  const gaugeWidth = Math.min(340, width - spacing.lg * 2);
+  const heroWidth = Math.min(340, width - spacing.lg * 2);
 
   return (
-    <Screen gap={0}>
-      <View style={styles.top}>
-        <View style={styles.who}>
-          <LinearGradient colors={[colors.ember, colors.iris, colors.ember]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.avatar}>
-            <View style={styles.avatarInner}>
-              <Text style={styles.avatarText}>{profile.name.charAt(0).toUpperCase()}</Text>
-            </View>
-          </LinearGradient>
-          <Text style={styles.hello}>
-            {greeting()},{'\n'}
-            {profile.name}
-          </Text>
-        </View>
-        {days > 0 && (
-          <View style={styles.pill} accessible accessibilityLabel={`${days} dias seguidos registrando`}>
-            <Ionicons name="flame-outline" size={14} color={colors.ember2} />
-            <Text style={styles.pillText}>{days}</Text>
-          </View>
-        )}
-      </View>
-
+    <Screen
+      gap={0}
+      topOffset={HOME_HEADER_H}
+      onScrollY={(y) => setScrolled(y > SCROLLED_AT)}
+      overlay={<HomeHeader name={profile.name} streakDays={days} scrolled={scrolled} />}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabs} contentContainerStyle={styles.tabsRow}>
         {SECTIONS.map((s) => (
           <Pressable
@@ -117,50 +113,13 @@ export default function InicioScreen() {
         ))}
       </ScrollView>
 
-      <View style={styles.block}>
-        <WeekStrip today={today} logged={logged} />
-      </View>
-
-      <Pressable
-        onPress={gaugeTap}
-        accessibilityHint="Toque duas vezes para fotografar um prato"
-        style={[styles.block, styles.gauge]}>
-        <CalorieGauge eaten={eaten.kcal} goal={plan.targetKcal} width={gaugeWidth} />
-      </Pressable>
-
-      <View style={styles.meta}>
-        <Meta label="Meta" value={formatInt(plan.targetKcal)} />
-        <Meta label="Consumidas" value={formatInt(eaten.kcal)} divider />
-        <Meta
-          label={plan.dailyAdjustmentKcal < 0 ? 'Déficit' : plan.dailyAdjustmentKcal > 0 ? 'Superávit' : 'Ajuste'}
-          value={plan.dailyAdjustmentKcal === 0 ? '0' : `${plan.dailyAdjustmentKcal > 0 ? '+' : '−'}${formatInt(Math.abs(plan.dailyAdjustmentKcal))}`}
-          divider
-        />
+      <View style={styles.hero}>
+        <MascotHero eaten={eaten.kcal} goal={plan.targetKcal} mood={mood} message={message} width={heroWidth} />
       </View>
 
       <View style={styles.block}>
-        <MacroBars eaten={eaten} goal={plan.macros} size="lg" />
+        <TodayCard goalKcal={plan.targetKcal} eaten={eaten} goal={plan.macros} onPress={cardTap} />
       </View>
-
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Registrar refeição pela foto"
-        accessibilityHint="Toque duas vezes para abrir a câmera"
-        onPress={cardTap}
-        style={({ pressed }) => [styles.blockLg, pressed && styles.pressed]}>
-        <Glass flush contentStyle={styles.tap}>
-          <LinearGradient colors={gradients.fab} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.tapIcon}>
-            <Ionicons name="hand-left-outline" size={20} color={colors.onEmber} />
-          </LinearGradient>
-          <View style={styles.tapText}>
-            <Text style={styles.tapTitle}>Toque duas vezes para registrar</Text>
-            <Text variant="caption" tone="secondary">
-              Foto do prato vira calorias em segundos
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={colors.ink3} />
-        </Glass>
-      </Pressable>
 
       <View style={[styles.block, styles.tiles]}>
         <WaterTile ml={day.waterMl} goalMl={plan.waterMl} onAdd={onWater} />
@@ -188,69 +147,8 @@ export default function InicioScreen() {
   );
 }
 
-function Meta({ label, value, divider }: { label: string; value: string; divider?: boolean }) {
-  return (
-    <View style={[styles.metaCol, divider && styles.metaDivider]}>
-      <Text variant="caption" tone="secondary">
-        {label}
-      </Text>
-      <Text style={styles.metaValue}>{value}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  top: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: spacing.md,
-  },
-  who: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    padding: 2,
-  },
-  avatarInner: {
-    flex: 1,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.avatarFill,
-  },
-  avatarText: {
-    fontFamily: fonts.display.semibold,
-    fontSize: 16,
-  },
-  hello: {
-    fontFamily: fonts.display.semibold,
-    fontSize: 22,
-    lineHeight: 25,
-    letterSpacing: -0.7,
-  },
-  pill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    height: 36,
-    paddingHorizontal: 14,
-    borderRadius: 18,
-    backgroundColor: colors.glassFill,
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  pillText: {
-    fontFamily: fonts.body.semibold,
-    fontSize: 13,
-  },
   tabs: {
-    marginTop: 18,
     marginHorizontal: -spacing.lg,
   },
   tabsRow: {
@@ -258,9 +156,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   tab: {
-    height: 42,
-    paddingHorizontal: 18,
-    borderRadius: 21,
+    height: 44,
+    paddingHorizontal: 20,
+    borderRadius: 22,
     justifyContent: 'center',
     backgroundColor: colors.frostFill,
     borderWidth: 1,
@@ -268,61 +166,18 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontFamily: fonts.body.semibold,
-    fontSize: 15,
+    fontSize: 16,
     color: colors.white,
   },
+  hero: {
+    marginTop: 10,
+  },
   block: {
-    marginTop: 20,
-  },
-  blockLg: {
-    marginTop: spacing.xl,
-  },
-  gauge: {
-    alignItems: 'center',
-  },
-  meta: {
-    flexDirection: 'row',
-    marginTop: 18,
-  },
-  metaCol: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  metaDivider: {
-    borderLeftWidth: 1,
-    borderLeftColor: colors.divider,
-  },
-  metaValue: {
-    fontFamily: fonts.display.semibold,
-    fontSize: 16,
-    lineHeight: 21,
-  },
-  tap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingVertical: 14,
-    paddingHorizontal: spacing.lg,
-  },
-  tapIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tapText: {
-    flex: 1,
-  },
-  tapTitle: {
-    fontFamily: fonts.display.semibold,
-    fontSize: 15,
-    lineHeight: 20,
+    marginTop: 14,
   },
   tiles: {
     flexDirection: 'row',
     gap: spacing.md,
-    marginTop: spacing.md,
   },
   pressed: {
     opacity: 0.75,

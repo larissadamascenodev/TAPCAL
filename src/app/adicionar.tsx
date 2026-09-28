@@ -46,7 +46,7 @@ export default function AdicionarScreen() {
         <Pressable key={o.label} accessibilityRole="button" onPress={o.run} style={({ pressed }) => pressed && styles.pressed}>
           <Glass flush rounded={radius.lg} contentStyle={styles.row}>
             <View style={styles.iconWrap}>
-              <Ionicons name={o.icon} size={20} color={colors.ember2} />
+              <Ionicons name={o.icon} size={20} color={colors.lime2} />
             </View>
             <Text variant="bodyStrong" style={styles.label}>
               {o.label}
@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.emberTint,
+    backgroundColor: colors.limeTint,
   },
   label: {
     flex: 1,

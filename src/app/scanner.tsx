@@ -92,7 +92,7 @@ export default function ScannerScreen() {
           <CameraView ref={camera} style={StyleSheet.absoluteFill} facing="back" />
         ) : (
           <View style={[StyleSheet.absoluteFill, styles.permission]}>
-            <Ionicons name="camera-outline" size={40} color={colors.ember2} />
+            <Ionicons name="camera-outline" size={40} color={colors.lime2} />
             <Text variant="heading" style={styles.center}>
               Fotografe o prato
             </Text>
@@ -161,7 +161,7 @@ export default function ScannerScreen() {
         <Image source={{ uri: phase.uri }} style={[styles.photo, { height: PHOTO_H }]} resizeMode="cover" />
         <View style={[styles.sheet, styles.errorSheet, { paddingBottom: insets.bottom + spacing.lg }]}>
           <View style={styles.grab} />
-          <Ionicons name="alert-circle-outline" size={32} color={colors.ember2} style={styles.selfCenter} />
+          <Ionicons name="alert-circle-outline" size={32} color={colors.lime2} style={styles.selfCenter} />
           <Text variant="heading" style={styles.center}>
             Não deu certo
           </Text>

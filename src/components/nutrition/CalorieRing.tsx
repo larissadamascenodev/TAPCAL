@@ -25,9 +25,9 @@ export function CalorieRing({ eaten, goal, size = 104 }: Props) {
       <Svg width={size} height={size}>
         <Defs>
           <LinearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
-            <Stop offset="0" stopColor={colors.gold} />
-            <Stop offset="0.5" stopColor={colors.ember2} />
-            <Stop offset="1" stopColor={colors.ember} />
+            <Stop offset="0" stopColor={colors.limeLight} />
+            <Stop offset="0.5" stopColor={colors.lime} />
+            <Stop offset="1" stopColor={colors.limeDeep} />
           </LinearGradient>
         </Defs>
         <Circle cx={size / 2} cy={size / 2} r={r} stroke={colors.track} strokeWidth={stroke} fill="none" />

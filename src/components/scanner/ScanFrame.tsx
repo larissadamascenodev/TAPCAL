@@ -5,7 +5,7 @@ import { Animated, Easing, StyleSheet, View, type LayoutChangeEvent } from 'reac
 import { colors, gradients } from '@/theme/theme';
 
 type Props = {
-  /** Liga a linha dourada que varre a foto (durante a análise). */
+  /** Liga a linha verde que varre a foto (durante a análise). */
   scanning?: boolean;
 };
 
@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
     right: 8,
     top: 0,
     height: 2,
-    shadowColor: colors.ember2,
+    shadowColor: colors.lime2,
     shadowOpacity: 1,
     shadowRadius: 10,
   },

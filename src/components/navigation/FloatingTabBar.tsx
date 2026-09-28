@@ -24,7 +24,7 @@ function tap() {
 
 /**
  * Barra inferior flutuante: pílula de vidro com Início, Alimentação e Treino,
- * e o botão + em laranja ao lado (abre /adicionar).
+ * e o botão + no mesmo vidro ao lado (abre /adicionar).
  */
 export function FloatingTabBar({ state, navigation, insets }: BottomTabBarProps) {
   const useBlur = Platform.OS !== 'android';
@@ -34,8 +34,7 @@ export function FloatingTabBar({ state, navigation, insets }: BottomTabBarProps)
       pointerEvents="box-none"
       style={[styles.wrap, { bottom: insets.bottom + tabBar.bottomGap }]}>
       <View style={styles.pill}>
-        {useBlur && <BlurView intensity={50} tint="dark" style={StyleSheet.absoluteFill} />}
-        <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.pillFill]} />
+        <GlassLayers useBlur={useBlur} />
 
         {state.routes.map((route, index) => {
           const tab = TABS[route.name];
@@ -62,11 +61,11 @@ export function FloatingTabBar({ state, navigation, insets }: BottomTabBarProps)
               accessibilityLabel={tab.label}
               onPress={onPress}
               style={[styles.tab, focused && styles.tabActive]}>
-              <Ionicons name={tab.icon} size={22} color={focused ? colors.ink : colors.ink3} />
+              <Ionicons name={tab.icon} size={22} color={focused ? colors.lime : colors.ink2} />
               <Text
                 variant="caption"
                 numberOfLines={1}
-                style={[styles.tabLabel, { color: focused ? colors.ink : colors.ink3 }]}>
+                style={[styles.tabLabel, { color: focused ? colors.lime : colors.ink2 }]}>
                 {tab.label}
               </Text>
             </Pressable>
@@ -82,15 +81,27 @@ export function FloatingTabBar({ state, navigation, insets }: BottomTabBarProps)
           router.push('/adicionar');
         }}
         style={({ pressed }) => [styles.plus, pressed && styles.plusPressed]}>
-        <LinearGradient
-          colors={gradients.fab}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
-        <Ionicons name="add" size={32} color={colors.onEmber} />
+        <GlassLayers useBlur={useBlur} />
+        <Ionicons name="add" size={32} color={colors.ink} />
       </Pressable>
     </View>
+  );
+}
+
+/** Vidro líquido da barra e do botão +: desfoque, brilho diagonal e borda clara. */
+function GlassLayers({ useBlur }: { useBlur: boolean }) {
+  return (
+    <>
+      {useBlur && <BlurView intensity={50} tint="dark" style={StyleSheet.absoluteFill} />}
+      <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.fill]} />
+      <LinearGradient
+        pointerEvents="none"
+        colors={gradients.glassStrong}
+        start={{ x: 0.1, y: 0 }}
+        end={{ x: 0.9, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+    </>
   );
 }
 
@@ -114,6 +125,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     borderWidth: 1,
     borderColor: colors.line2,
+    borderTopColor: colors.glassHighlight,
     backgroundColor: Platform.OS === 'android' ? colors.panel2 : 'transparent',
     // sombra para descolar a barra do conteúdo
     shadowColor: colors.shadow,
@@ -122,7 +134,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     elevation: 12,
   },
-  pillFill: {
+  fill: {
     backgroundColor: colors.navFill,
   },
   tab: {
@@ -149,11 +161,15 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: colors.ember,
-    shadowOpacity: 0.6,
-    shadowRadius: 22,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 10,
+    borderWidth: 1,
+    borderColor: colors.line2,
+    borderTopColor: colors.glassHighlight,
+    backgroundColor: Platform.OS === 'android' ? colors.panel2 : 'transparent',
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.45,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 12,
   },
   plusPressed: {
     transform: [{ scale: 0.94 }],

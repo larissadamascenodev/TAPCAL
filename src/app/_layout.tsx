@@ -22,12 +22,12 @@ const navTheme: Theme = {
   ...DarkTheme,
   colors: {
     ...DarkTheme.colors,
-    primary: colors.ember,
+    primary: colors.lime,
     background: colors.ground,
     card: colors.panel,
     text: colors.ink,
     border: colors.line,
-    notification: colors.ember,
+    notification: colors.lime,
   },
 };
 

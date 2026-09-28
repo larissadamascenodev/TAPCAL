@@ -3,12 +3,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import type { ReactNode } from 'react';
 import { Platform, StyleSheet, View, type StyleProp, type ViewProps, type ViewStyle } from 'react-native';
 
-import { colors, radius, spacing } from '@/theme/theme';
+import { colors, gradients, radius, spacing } from '@/theme/theme';
 
 export type GlassProps = ViewProps & {
   /** Força do desfoque (iOS e web). No Android fica só o preenchimento translúcido. */
   intensity?: number;
-  /** Arredondamento; padrão = radius.xl (28, como nos mockups) */
+  /** Arredondamento; padrão = radius.xxl (30, como nos mockups) */
   rounded?: number;
   /** Tira o padding interno padrão. */
   flush?: boolean;
@@ -23,12 +23,12 @@ export type GlassProps = ViewProps & {
 };
 
 /**
- * Cartão de vidro fosco — a base visual de todos os blocos do app.
- * Borda fina clara + desfoque do que está atrás + leve preenchimento branco.
+ * Cartão de vidro líquido — a base visual de todos os blocos do app.
+ * Borda fina clara (mais clara em cima) + desfoque do que está atrás + brilho diagonal.
  */
 export function Glass({
-  intensity = 30,
-  rounded = radius.xl,
+  intensity = 40,
+  rounded = radius.xxl,
   flush = false,
   strong = false,
   tint,
@@ -50,12 +50,20 @@ export function Glass({
       ]}
       {...rest}>
       {useBlur && <BlurView intensity={intensity} tint="dark" style={StyleSheet.absoluteFill} />}
-      <View
+      {/* vidro líquido: brilho diagonal + reflexo suave no canto de cima */}
+      <LinearGradient
         pointerEvents="none"
-        style={[
-          StyleSheet.absoluteFill,
-          { backgroundColor: strong ? colors.glassFillStrong : colors.glassFill },
-        ]}
+        colors={strong ? gradients.glassStrong : gradients.glass}
+        start={{ x: 0.1, y: 0 }}
+        end={{ x: 0.9, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+      <LinearGradient
+        pointerEvents="none"
+        colors={[colors.glassFillStrong, 'transparent']}
+        start={{ x: 0.15, y: 0 }}
+        end={{ x: 0.5, y: 0.6 }}
+        style={StyleSheet.absoluteFill}
       />
       {tint && (
         <LinearGradient
@@ -77,6 +85,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: colors.line,
+    borderTopColor: colors.glassHighlight,
   },
   padding: {
     padding: spacing.lg,

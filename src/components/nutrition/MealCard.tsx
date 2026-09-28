@@ -11,7 +11,7 @@ import { MEAL_LABELS, type FoodItem, type MealType } from '@/types';
 
 const MEAL_ICON: Record<MealType, { icon: keyof typeof Ionicons.glyphMap; color: string }> = {
   cafe_da_manha: { icon: 'cafe-outline', color: colors.gold },
-  almoco: { icon: 'restaurant-outline', color: colors.ember2 },
+  almoco: { icon: 'restaurant-outline', color: colors.lime2 },
   lanche: { icon: 'nutrition-outline', color: colors.iris },
   jantar: { icon: 'moon-outline', color: colors.tide },
 };
@@ -68,8 +68,8 @@ export function MealCard({ meal, items, onAdd, onPressItem }: Props) {
             hitSlop={8}
             onPress={onAdd}
             style={({ pressed }) => [styles.add, pressed && styles.pressed]}>
-            <LinearGradient colors={gradients.fab} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-            <Ionicons name="add" size={20} color={colors.onEmber} />
+            <LinearGradient colors={gradients.accent} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+            <Ionicons name="add" size={20} color={colors.onLime} />
           </Pressable>
         )}
       </View>

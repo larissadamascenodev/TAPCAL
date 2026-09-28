@@ -1,0 +1,602 @@
+<title>TapCal Início v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  color-scheme:dark;
+  --ground:#060708;--screen:#050506;
+  --ink:#F4F5F0;--ink-2:rgba(244,245,240,.66);--ink-3:rgba(244,245,240,.42);
+  --edge:rgba(255,255,255,.12);--edge-hi:rgba(255,255,255,.24);
+  --glass:rgba(255,255,255,.06);--glass-2:rgba(255,255,255,.12);
+  --lime:#D1FB39;--on-lime:#152000;--teal:#2ED3A0;--sky:#57B8FF;--violet:#9A8CFF;
+  --display:"Sora",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --body:"Manrope",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{background:var(--ground)}
+body{color:var(--ink);font-family:var(--body);padding-inline:16px;padding-block:28px 56px}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+button:focus-visible{outline:2px solid var(--lime);outline-offset:3px;border-radius:16px}
+.page{max-width:1000px;margin:0 auto;display:flex;flex-wrap:wrap;gap:40px;justify-content:center;align-items:flex-start}
+.phone{flex:none;width:100%;max-width:392px;border-radius:54px;padding:10px;background:linear-gradient(160deg,#2a2b2e,#0c0d0e 40%,#1b1c1f);box-shadow:0 40px 100px -30px rgba(0,0,0,.8),0 0 0 1px rgba(255,255,255,.06)}
+.screen{position:relative;height:820px;border-radius:44px;overflow:hidden;background:#050506;isolation:isolate}
+
+/* fundo vivo atrás de tudo: é ele que o vidro deixa ver */
+.ambient{display:none}
+.ambient i{position:absolute;border-radius:50%;filter:blur(56px)}
+.ambient .a1{width:300px;height:420px;left:-40px;top:-140px;background:radial-gradient(ellipse,rgba(209,251,57,.62),rgba(169,224,28,.18) 55%,transparent 72%);animation:drift 16s ease-in-out infinite}
+.ambient .a2{width:260px;height:380px;right:-70px;top:-80px;background:radial-gradient(ellipse,rgba(46,211,160,.6),transparent 70%);animation:drift 21s ease-in-out infinite reverse}
+.ambient .a3{width:220px;height:260px;left:120px;top:90px;background:radial-gradient(ellipse,rgba(87,184,255,.38),transparent 70%);animation:drift 25s ease-in-out infinite}
+.ambient .a4{width:300px;height:300px;left:-120px;top:470px;background:radial-gradient(ellipse,rgba(46,211,160,.30),transparent 70%);animation:drift 23s ease-in-out infinite reverse}
+.ambient .a5{width:280px;height:280px;right:-110px;top:620px;background:radial-gradient(ellipse,rgba(154,140,255,.30),transparent 70%);animation:drift 27s ease-in-out infinite}
+@keyframes drift{50%{transform:translate(18px,24px) scale(1.08)}}
+
+.scroll{position:absolute;inset:0;z-index:1;overflow-y:auto;scrollbar-width:none;padding:0 16px 150px}
+.scroll::-webkit-scrollbar{display:none}
+
+.status{position:absolute;left:0;right:0;top:0;z-index:6;display:flex;justify-content:space-between;align-items:center;padding:16px 30px 0;font-family:var(--display);font-weight:600;font-size:15px;pointer-events:none}
+.island{width:110px;height:32px;border-radius:20px;background:#000}
+.header{position:absolute;left:0;right:0;top:0;z-index:5;padding:58px 16px 12px;display:flex;align-items:center;gap:12px}
+.header::before{content:"";position:absolute;inset:0 0 -44px;z-index:-1;opacity:0;transition:opacity .35s;background:linear-gradient(180deg,rgba(5,5,6,.88) 0%,rgba(5,5,6,.7) 45%,rgba(5,5,6,.25) 75%,rgba(5,5,6,0) 100%);backdrop-filter:blur(14px) saturate(140%);-webkit-backdrop-filter:blur(14px) saturate(140%);-webkit-mask-image:linear-gradient(180deg,#000 0%,#000 45%,rgba(0,0,0,.6) 70%,transparent 100%);mask-image:linear-gradient(180deg,#000 0%,#000 45%,rgba(0,0,0,.6) 70%,transparent 100%)}
+.scrolled .header::before{opacity:1}
+.avatar{flex:none;width:52px;height:52px;border-radius:50%;padding:2px;background:conic-gradient(from 200deg,var(--lime),var(--teal),var(--lime))}
+.avatar span{display:grid;place-items:center;width:100%;height:100%;border-radius:50%;background:#15161A;overflow:hidden;font-family:var(--display);font-weight:700;font-size:20px}
+.hname{flex:1;min-width:0;white-space:nowrap;font-family:var(--display);font-weight:600;font-size:24px;letter-spacing:-.03em;opacity:0;transform:translateY(6px);transition:.3s cubic-bezier(.2,.8,.2,1)}
+.scrolled .hname{opacity:1;transform:none}
+.hright{margin-left:auto;flex:none;display:flex;gap:8px;align-items:center}
+.gbtn{height:46px;min-width:46px;padding:0 16px 0 12px;border-radius:22px;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:14px;font-weight:700;background:var(--glass);border:1px solid var(--edge-hi);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.pro{height:44px;padding:0 14px;border-radius:22px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-family:var(--display);font-weight:600;font-size:14px;background:var(--lime);color:var(--on-lime);box-shadow:0 8px 24px -10px rgba(209,251,57,.8)}
+
+.top-space{height:122px}
+.pills{display:flex;gap:8px;margin:0 -16px;padding:0 16px 4px;overflow-x:auto;scrollbar-width:none}
+.pills::-webkit-scrollbar{display:none}
+.pills button{flex:none;height:44px;padding:0 20px;border-radius:22px;font-size:16px;font-weight:600;color:#fff;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.38);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.pills button.on{background:rgba(244,245,240,.92);color:#101113;border-color:transparent}
+
+/* hero: medidor + mascote */
+.hero{position:relative;margin-top:10px;height:372px}
+.gauge{position:absolute;left:50%;top:44px;width:340px;max-width:100%;transform:translateX(-50%)}
+.gauge svg{display:block;width:100%;height:auto;overflow:visible}
+.g-track{fill:none;stroke:rgba(255,255,255,.10);stroke-width:16;stroke-linecap:round}
+.g-ticks{fill:none;stroke:rgba(255,255,255,.2);stroke-width:6}
+.g-val{fill:none;stroke:url(#gGrad);stroke-width:16;stroke-linecap:round;filter:drop-shadow(0 0 12px rgba(209,251,57,.55));transition:stroke-dasharray 1s cubic-bezier(.2,.8,.2,1)}
+.g-val.over{stroke:url(#gOver);filter:drop-shadow(0 0 12px rgba(255,138,92,.5))}
+#gdot{transition:cx 1s,cy 1s}
+.mascot-wrap{position:absolute;left:50%;top:104px;width:204px;transform:translateX(-50%);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.bubble{position:absolute;left:50%;top:6px;transform:translateX(-50%);width:max-content;max-width:250px;padding:11px 16px;border-radius:20px;background:#F4F5F0;color:#15161A;font-weight:700;font-size:14px;line-height:1.35;text-align:center;box-shadow:0 12px 30px -12px rgba(0,0,0,.6);text-wrap:balance;z-index:2;transition:transform .25s cubic-bezier(.2,.8,.2,1)}
+.bubble.pop{transform:translateX(-50%) scale(1.06)}
+.bubble::after{content:"";position:absolute;left:55%;bottom:-9px;width:12px;height:12px;border-radius:50%;background:#F4F5F0}
+.bubble::before{content:"";position:absolute;left:50%;bottom:-18px;width:7px;height:7px;border-radius:50%;background:#F4F5F0}
+.g-ends{position:absolute;left:14px;right:14px;bottom:26px;display:flex;justify-content:space-between;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--ink-3)}
+.g-pct{position:absolute;left:0;right:0;bottom:0;text-align:center;font-size:13px;color:var(--ink-2)}
+.g-pct b{color:var(--ink);font-family:var(--display)}
+
+/* vidro líquido */
+.glass{position:relative;border-radius:30px;background:linear-gradient(160deg,rgba(255,255,255,.10),rgba(255,255,255,.035) 45%,rgba(255,255,255,.06));border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(26px) saturate(170%);-webkit-backdrop-filter:blur(26px) saturate(170%);box-shadow:inset 0 1px 0 rgba(255,255,255,.22),inset 0 -1px 0 rgba(255,255,255,.04),0 18px 40px -24px rgba(0,0,0,.7)}
+.glass::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:radial-gradient(120% 60% at 15% 0%,rgba(255,255,255,.12),transparent 55%)}
+.card{margin-top:14px;padding:20px}
+
+.today .lbl{display:flex;justify-content:space-between;align-items:center;font-size:15px;color:var(--ink-2)}
+.today .goal{margin-top:6px;font-family:var(--display);font-weight:700;font-size:54px;letter-spacing:-.05em;line-height:1;font-variant-numeric:tabular-nums}
+.today .goal small{font-size:16px;letter-spacing:0;color:var(--ink-3);font-weight:600;margin-left:4px}
+.today .split{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.chip{height:34px;padding:0 14px;border-radius:17px;display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:700;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);font-variant-numeric:tabular-nums}
+.chip.lime{background:rgba(209,251,57,.16);border-color:rgba(209,251,57,.35);color:var(--lime)}
+.chip.warn{background:rgba(255,138,92,.16);border-color:rgba(255,138,92,.4);color:#FFB08A}
+.today .bar-main{position:relative;height:10px;border-radius:5px;margin-top:16px;background:rgba(255,255,255,.10);overflow:hidden}
+.today .bar-main i{position:absolute;left:0;top:0;bottom:0;border-radius:5px;background:linear-gradient(90deg,#EEFFA8,#D1FB39);box-shadow:0 0 14px rgba(209,251,57,.6);transition:width 1s cubic-bezier(.2,.8,.2,1)}
+.divider{height:1px;background:rgba(255,255,255,.10);margin:18px 0 16px}
+.macros{display:grid;gap:14px}
+.mac-top{display:flex;justify-content:space-between;align-items:baseline;font-size:14px}
+.mac-top b{font-weight:700;display:inline-flex;align-items:center;gap:8px}
+.mdot{width:9px;height:9px;border-radius:50%;flex:none;box-shadow:0 0 8px currentColor}
+.mac-top span{color:var(--ink-3);font-variant-numeric:tabular-nums}
+.mac-top span strong{color:var(--ink);font-weight:700}
+.mbar{height:7px;border-radius:4px;background:rgba(255,255,255,.10);margin-top:7px;overflow:hidden}
+.mbar i{display:block;height:100%;border-radius:4px;transition:width 1s cubic-bezier(.2,.8,.2,1)}
+
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}
+.grid2 .card{margin-top:0}
+.tile{padding:16px;min-height:168px;overflow:hidden}
+.tile .t-lbl{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+.tile .v{margin-top:16px;font-family:var(--display);font-weight:700;font-size:26px;letter-spacing:-.03em}
+.tile .v small{font-size:13px;color:var(--ink-3);font-weight:600;letter-spacing:0}
+.tile p{margin:2px 0 0;font-size:12px;color:var(--ink-2)}
+.tile .act{margin-top:12px;height:32px;padding:0 14px;border-radius:16px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);border:1px solid var(--edge-hi)}
+.water .liquid{position:absolute;left:0;right:0;bottom:0;height:50%;border-radius:0 0 30px 30px;background:linear-gradient(180deg,rgba(87,184,255,.30),rgba(87,184,255,.06))}
+.water>*:not(.liquid){position:relative}
+.sec-h{display:flex;justify-content:space-between;align-items:center;font-size:15px;color:var(--ink-2)}
+.num{margin-top:6px;font-family:var(--display);font-weight:700;font-size:30px;letter-spacing:-.03em}
+.num small{font-size:14px;color:var(--ink-3);font-weight:600;letter-spacing:0}
+.spark{display:block;width:100%;height:92px;margin-top:10px}
+.axis{display:flex;justify-content:space-between;font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--ink-3)}
+
+.dock{position:absolute;left:16px;right:16px;bottom:24px;z-index:7;display:flex;gap:10px;align-items:center}
+.nav,.fab{background:linear-gradient(160deg,rgba(255,255,255,.14),rgba(255,255,255,.04));border:1px solid rgba(255,255,255,.22);backdrop-filter:blur(26px) saturate(180%);-webkit-backdrop-filter:blur(26px) saturate(180%);box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 12px 30px -10px rgba(0,0,0,.7)}
+.nav{flex:1;height:68px;border-radius:34px;display:flex;justify-content:space-around;align-items:center;padding:0 6px}
+.nav button{height:56px;min-width:84px;border-radius:28px;display:grid;place-items:center;gap:1px;color:var(--ink-2)}
+.nav button span{font-size:10px;font-weight:700}
+.nav button.on{background:rgba(255,255,255,.14);color:var(--lime)}
+.fab{width:68px;height:68px;flex:none;border-radius:50%;display:grid;place-items:center;color:#fff}
+.home-ind{position:absolute;left:50%;bottom:8px;z-index:8;width:134px;height:5px;border-radius:3px;background:rgba(255,255,255,.55);transform:translateX(-50%)}
+
+/* ——— Tapi, o coelho-robô ——— */
+.tapi{display:block;width:100%;height:auto;overflow:visible}
+.tapi *{transform-box:view-box}
+.tp-all{transform-origin:120px 290px;animation:tp-breathe 3.2s ease-in-out infinite}
+.tp-head{transform-origin:120px 184px;animation:tp-nod 4s ease-in-out infinite}
+.tp-ear-l{transform-origin:96px 88px;animation:tp-earL 3.6s ease-in-out infinite}
+.tp-ear-r{transform-origin:144px 88px;animation:tp-earR 3.6s ease-in-out infinite .4s}
+.tp-ant-l{transform-origin:100px 50px;animation:tp-antL 2.4s ease-in-out infinite}
+.tp-ant-r{transform-origin:140px 50px;animation:tp-antR 2.4s ease-in-out infinite .3s}
+.tp-ant-glow,.tp-core-glow{animation:tp-glow 2s ease-in-out infinite}
+.tp-arm-l{transform-origin:87px 200px;transform:rotate(10deg);transition:transform .45s cubic-bezier(.3,1.4,.5,1)}
+.tp-arm-r{transform-origin:153px 200px;transform:rotate(-10deg);transition:transform .45s cubic-bezier(.3,1.4,.5,1)}
+.tp-eyes{transform-origin:120px 122px;animation:tp-blink 4.6s infinite}
+.tp-shadow{transform-origin:120px 290px;animation:tp-shadow 3.2s ease-in-out infinite}
+.tp-blush{transition:opacity .4s;opacity:.55}
+@keyframes tp-breathe{50%{transform:scale(1.015,.985)}}
+@keyframes tp-nod{50%{transform:rotate(1.5deg) translateY(1px)}}
+@keyframes tp-earL{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(4deg)}}
+@keyframes tp-earR{0%,100%{transform:rotate(4deg)}50%{transform:rotate(-3deg)}}
+@keyframes tp-antL{50%{transform:rotate(-8deg)}}
+@keyframes tp-antR{50%{transform:rotate(8deg)}}
+@keyframes tp-glow{50%{opacity:.6}}
+@keyframes tp-blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes tp-shadow{50%{transform:scaleX(.96)}}
+
+/* feliz: pulinho leve e braços balançando */
+.mood-feliz .tp-all{animation:tp-hop 1.8s cubic-bezier(.3,0,.3,1) infinite}
+.mood-feliz .tp-shadow{animation:tp-shadowhop 1.8s cubic-bezier(.3,0,.3,1) infinite}
+.mood-feliz .tp-arm-l{animation:tp-swingL 1.8s ease-in-out infinite}
+.mood-feliz .tp-arm-r{animation:tp-swingR 1.8s ease-in-out infinite}
+@keyframes tp-hop{0%,60%,100%{transform:translateY(0) scale(1)}70%{transform:translateY(2px) scale(1.04,.96)}82%{transform:translateY(-12px) scale(.98,1.02)}}
+@keyframes tp-shadowhop{0%,60%,100%{transform:scaleX(1);opacity:1}82%{transform:scaleX(.8);opacity:.6}}
+@keyframes tp-swingL{0%,100%{transform:rotate(14deg)}50%{transform:rotate(4deg)}}
+@keyframes tp-swingR{0%,100%{transform:rotate(-14deg)}50%{transform:rotate(-4deg)}}
+
+/* acenando: braço direito tchau */
+.mood-acenando .tp-arm-r{animation:tp-wave 1.1s ease-in-out infinite}
+.mood-acenando .tp-head{animation:tp-tilt 2.2s ease-in-out infinite}
+@keyframes tp-wave{0%,100%{transform:rotate(-150deg)}50%{transform:rotate(-118deg)}}
+@keyframes tp-tilt{50%{transform:rotate(-5deg)}}
+
+/* pensando: mão no queixo, cabeça inclinada */
+.mood-pensando .tp-arm-r{transform:rotate(136deg);animation:tp-tap 1.6s ease-in-out infinite}
+.mood-pensando .tp-head{animation:none;transform:rotate(-8deg)}
+.mood-pensando .tp-ear-l{animation:tp-earL 5s ease-in-out infinite}
+@keyframes tp-tap{0%,100%{transform:rotate(136deg)}50%{transform:rotate(130deg)}}
+
+/* comemorando: pula com os braços para cima */
+.mood-comemorando .tp-all{animation:tp-jump .9s cubic-bezier(.3,0,.3,1) infinite}
+.mood-comemorando .tp-shadow{animation:tp-shadowjump .9s cubic-bezier(.3,0,.3,1) infinite}
+.mood-comemorando .tp-arm-l{animation:tp-pumpL .45s ease-in-out infinite alternate}
+.mood-comemorando .tp-arm-r{animation:tp-pumpR .45s ease-in-out infinite alternate}
+.mood-comemorando .tp-ant-l{animation:tp-flapL .45s ease-in-out infinite alternate}
+.mood-comemorando .tp-ant-r{animation:tp-flapR .45s ease-in-out infinite alternate}
+@keyframes tp-jump{0%,100%{transform:translateY(0) scale(1.05,.95)}45%{transform:translateY(-26px) scale(.97,1.03)}}
+@keyframes tp-shadowjump{0%,100%{transform:scaleX(1);opacity:1}45%{transform:scaleX(.7);opacity:.45}}
+@keyframes tp-pumpL{from{transform:rotate(150deg)}to{transform:rotate(172deg)}}
+@keyframes tp-pumpR{from{transform:rotate(-150deg)}to{transform:rotate(-172deg)}}
+@keyframes tp-flapL{from{transform:rotate(-24deg)}to{transform:rotate(2deg)}}
+@keyframes tp-flapR{from{transform:rotate(24deg)}to{transform:rotate(-2deg)}}
+
+/* apaixonado: balança de um lado para o outro, mãos no peito */
+.mood-apaixonado .tp-all{animation:tp-sway 2.4s ease-in-out infinite}
+.mood-apaixonado .tp-arm-l{transform:rotate(-40deg)}
+.mood-apaixonado .tp-arm-r{transform:rotate(40deg)}
+.mood-apaixonado .tp-blush{opacity:1}
+@keyframes tp-sway{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg)}}
+
+/* preocupado: orelhas caídas, tremidinha */
+.mood-preocupado .tp-ear-l{animation:none;transform:rotate(16deg) translateY(6px)}
+.mood-preocupado .tp-ear-r{animation:none;transform:rotate(-16deg) translateY(6px)}
+.mood-preocupado .tp-head{animation:tp-shiver 2.6s ease-in-out infinite}
+.mood-preocupado .tp-arm-l{transform:rotate(-26deg)}
+.mood-preocupado .tp-arm-r{transform:rotate(26deg)}
+.mood-preocupado .tp-ant-l{animation:none;transform:rotate(-30deg)}
+.mood-preocupado .tp-ant-r{animation:none;transform:rotate(30deg)}
+@keyframes tp-shiver{0%,70%,100%{transform:translate(0,3px)}74%{transform:translate(-2px,3px)}78%{transform:translate(2px,3px)}82%{transform:translate(-1px,3px)}}
+
+/* toque: pula e dá uma voltinha */
+.poke .tp-all{animation:tp-poke .8s cubic-bezier(.3,0,.3,1) 1!important}
+.poke .tp-shadow{animation:tp-shadowjump .8s 1!important}
+@keyframes tp-poke{0%{transform:scale(1)}15%{transform:scale(1.08,.9)}50%{transform:translateY(-34px) rotate(-8deg) scale(.96,1.05)}75%{transform:translateY(-8px) rotate(4deg)}100%{transform:none}}
+
+/* efeitos */
+.fx-heart{transform-origin:center;animation:fx-rise 2.2s ease-out infinite}
+.fx-heart.d2{animation-delay:1.1s}
+@keyframes fx-rise{0%{transform:translateY(8px) scale(.6);opacity:0}20%{opacity:1}100%{transform:translateY(-44px) scale(1.1);opacity:0}}
+.fx-spark{animation:fx-spark .45s ease-in-out infinite alternate}
+@keyframes fx-spark{from{opacity:.3;transform:scale(.8)}to{opacity:1;transform:scale(1.1)}}
+.fx-spark{transform-box:fill-box;transform-origin:center}
+.fx-drop{animation:fx-drop 2.6s ease-in infinite}
+@keyframes fx-drop{0%,40%{transform:translateY(0);opacity:0}50%{opacity:1}100%{transform:translateY(22px);opacity:0}}
+.fx-dots circle{animation:fx-dot 1.5s ease-in-out infinite}
+.fx-dots circle:nth-child(2){animation-delay:.2s}.fx-dots circle:nth-child(3){animation-delay:.4s}
+@keyframes fx-dot{0%,100%{opacity:.25}50%{opacity:1}}
+
+/* painel lateral */
+.side{flex:1;min-width:260px;max-width:460px}
+.kicker{font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--lime)}
+.side h1{font-family:var(--display);font-weight:600;font-size:30px;letter-spacing:-.03em;line-height:1.1;margin:8px 0 10px;text-wrap:balance}
+.side p.lede{color:var(--ink-2);margin:0 0 22px;line-height:1.6;font-size:15px}
+.moods{display:grid;gap:8px}
+.mood{display:flex;align-items:center;gap:14px;width:100%;text-align:left;padding:12px 16px;border-radius:18px;background:#141517;border:1px solid rgba(255,255,255,.07)}
+.mood .dot{width:10px;height:10px;border-radius:50%;flex:none;background:rgba(255,255,255,.2)}
+.mood b{display:block;font-family:var(--display);font-weight:600;font-size:15px}
+.mood span{font-size:13px;color:var(--ink-2);line-height:1.45}
+.mood.on{border-color:var(--lime);background:linear-gradient(90deg,rgba(209,251,57,.10),#141517 70%)}
+.mood.on .dot{background:var(--lime);box-shadow:0 0 10px var(--lime)}
+.notes{margin-top:22px;padding:16px 18px;border-radius:18px;border:1px solid var(--edge);color:var(--ink-2);font-size:14px;line-height:1.6}
+.notes b{color:var(--ink)}
+.hint{margin:14px auto 0;max-width:392px;text-align:center;font-size:12px;color:var(--ink-3)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<style>.flame{display:block;filter:drop-shadow(0 0 6px rgba(255,140,40,.55))}.gbtn b{font-family:var(--display);font-size:16px;font-weight:700;font-variant-numeric:tabular-nums}</style>
+
+<div class="page">
+  <div>
+    <div class="phone">
+      <div class="screen" id="screen">
+        <div class="ambient" aria-hidden="true"><i class="a1"></i><i class="a2"></i><i class="a3"></i><i class="a4"></i><i class="a5"></i></div>
+        <div class="status" aria-hidden="true"><span>9:41</span><span class="island"></span><span>●●●</span></div>
+
+        <header class="header">
+          <div class="avatar"><span>L</span></div>
+          <div class="hname">Larissa</div>
+          <div class="hright">
+            <span class="gbtn" aria-label="3 dias seguidos registrando">
+              <svg class="flame" width="22" height="26" viewBox="0 0 22 26" aria-hidden="true">
+                <defs>
+                  <linearGradient id="flOut" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#FF3D1F"/><stop offset=".45" stop-color="#FF7A1A"/><stop offset="1" stop-color="#FFC23A"/></linearGradient>
+                  <linearGradient id="flIn" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#FFB02E"/><stop offset=".6" stop-color="#FFE27A"/><stop offset="1" stop-color="#FFF6CC"/></linearGradient>
+                  <radialGradient id="flCore" cx="50%" cy="70%" r="50%"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#FFF3B0" stop-opacity="0"/></radialGradient>
+                </defs>
+                <path d="M11 1c1 4 5 6 7 10 2.4 4.6 1.6 9.4-1.6 12.2C14.6 25 12.8 25.6 11 25.6s-3.6-.6-5.4-2.4C2.4 20.4 1.6 16.2 3.4 12.4c.9 2.1 2.2 3.1 3.4 3.3-1-4.6 1.4-9.3 4.2-14.7z" fill="url(#flOut)"/>
+                <path d="M11 9.5c.8 2.6 3.4 4 4.4 6.8.9 2.6.2 5-1.6 6.4-.9.7-1.8 1-2.8 1s-1.9-.3-2.8-1c-1.8-1.4-2.4-3.8-1.5-6 .6 1.2 1.4 1.8 2.2 1.9-.4-3 .7-6 2.1-9.1z" fill="url(#flIn)"/>
+                <ellipse cx="11" cy="19.5" rx="3" ry="3.6" fill="url(#flCore)"/>
+              </svg>
+              <b>3</b>
+            </span>
+          </div>
+        </header>
+
+        <div class="scroll" id="scroll">
+          <div class="top-space"></div>
+          <nav class="pills" aria-label="Seções">
+            <button class="on">Jornada</button><button>Receitas</button><button>Mercado</button><button>Caneta</button><button>Relatórios</button>
+          </nav>
+
+          <section class="hero" aria-label="Progresso de calorias">
+            <div class="gauge">
+              <svg viewBox="0 0 340 262" aria-hidden="true">
+                <defs>
+                  <linearGradient id="gGrad" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#EEFFA8"/><stop offset=".5" stop-color="#D1FB39"/><stop offset="1" stop-color="#A9E01C"/></linearGradient>
+                  <linearGradient id="gOver" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#D1FB39"/><stop offset=".7" stop-color="#FFB25C"/><stop offset="1" stop-color="#FF7A59"/></linearGradient>
+                </defs>
+                <path class="g-ticks" d="M69.54 228 A116 116 0 1 1 270.46 228" pathLength="100" stroke-dasharray="0.35 2.15"/>
+                <path class="g-track" d="M48.76 240 A140 140 0 1 1 291.24 240" pathLength="100"/>
+                <path class="g-val" id="gval" d="M48.76 240 A140 140 0 1 1 291.24 240" pathLength="100" stroke-dasharray="74 100"/>
+                <circle id="gdot" cx="0" cy="0" r="6" fill="#F7FFE0"/>
+              </svg>
+            </div>
+            <div class="bubble" id="bubble">Tá no caminho certo, Larissa! Faltam 424 kcal.</div>
+            <div class="mascot-wrap" id="tapiWrap" role="button" tabindex="0" aria-label="Tocar no Tapi">
+              <svg class="tapi mood-feliz" viewBox="0 0 240 300" role="img" aria-label="Tapi, o mascote do TapCal">
+  <defs>
+    <!-- plástico branco brilhante -->
+    <radialGradient id="tpShell" cx="34%" cy="22%" r="95%">
+      <stop offset="0" stop-color="#FFFFFF"/><stop offset=".38" stop-color="#F7F9FA"/><stop offset=".7" stop-color="#E1E6EA"/><stop offset=".9" stop-color="#C5CDD4"/><stop offset="1" stop-color="#AEB8C1"/>
+    </radialGradient>
+    <linearGradient id="tpAO" x1="0" y1="0" x2="0" y2="1">
+      <stop offset=".55" stop-color="#8A96A2" stop-opacity="0"/><stop offset="1" stop-color="#8A96A2" stop-opacity=".45"/>
+    </linearGradient>
+    <radialGradient id="tpSpec" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity=".95"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="tpBody" cx="38%" cy="20%" r="100%">
+      <stop offset="0" stop-color="#FFFFFF"/><stop offset=".5" stop-color="#EEF1F4"/><stop offset=".85" stop-color="#C9D1D8"/><stop offset="1" stop-color="#A9B3BC"/>
+    </radialGradient>
+    <!-- verde da marca em relevo -->
+    <linearGradient id="tpRim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#EDFF9E"/><stop offset=".35" stop-color="#D1FB39"/><stop offset=".8" stop-color="#A9DA1E"/><stop offset="1" stop-color="#86B80F"/>
+    </linearGradient>
+    <radialGradient id="tpLimeSoft" cx="36%" cy="28%" r="85%">
+      <stop offset="0" stop-color="#F2FFC2"/><stop offset=".5" stop-color="#CFF53F"/><stop offset="1" stop-color="#8FC012"/>
+    </radialGradient>
+    <radialGradient id="tpFace" cx="45%" cy="35%" r="80%">
+      <stop offset="0" stop-color="#FFFFFF"/><stop offset=".7" stop-color="#F3F6F8"/><stop offset="1" stop-color="#DCE3E8"/>
+    </radialGradient>
+    <linearGradient id="tpGlass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity=".85"/><stop offset=".35" stop-color="#FFFFFF" stop-opacity=".15"/><stop offset=".5" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <!-- olho: escuro em cima, brilho verde embaixo -->
+    <radialGradient id="tpEye" cx="50%" cy="28%" r="80%">
+      <stop offset="0" stop-color="#1A1E23"/><stop offset=".48" stop-color="#07090B"/><stop offset=".7" stop-color="#1F3A06"/><stop offset=".86" stop-color="#7DBB14"/><stop offset="1" stop-color="#DDFF6E"/>
+    </radialGradient>
+    <radialGradient id="tpBall" cx="34%" cy="28%" r="75%">
+      <stop offset="0" stop-color="#FFFFFF"/><stop offset=".6" stop-color="#EEF2F5"/><stop offset="1" stop-color="#B4BEC7"/>
+    </radialGradient>
+    <radialGradient id="tpShadow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#000" stop-opacity=".65"/><stop offset="1" stop-color="#000" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="tpBlush" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#FF9FB0" stop-opacity=".5"/><stop offset="1" stop-color="#FF9FB0" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="tpGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#D1FB39" stop-opacity=".75"/><stop offset="1" stop-color="#D1FB39" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="tpCup" cx="40%" cy="35%" r="70%">
+      <stop offset="0" stop-color="#F7FFD9"/><stop offset=".7" stop-color="#DDF7A0"/><stop offset="1" stop-color="#B7E24A"/>
+    </radialGradient>
+  </defs>
+
+  <ellipse class="tp-shadow" cx="120" cy="292" rx="52" ry="7" fill="url(#tpShadow)"/>
+
+  <g class="tp-all">
+    <!-- perninhas e pés -->
+    <g class="tp-feet">
+      <path d="M96 252c-3 10-4 20-2 26h18c2-6 2-16 0-26z" fill="url(#tpBody)"/>
+      <path d="M128 252c-2 10-2 20 0 26h18c2-6 1-16-2-26z" fill="url(#tpBody)"/>
+      <g transform="rotate(-8 100 282)">
+        <path d="M82 282c0-9 8-15 19-15s19 6 19 15c0 5-4 7-9 7H91c-5 0-9-2-9-7z" fill="url(#tpBody)"/>
+        <path d="M82 283c1 4 4 6 9 6h20c5 0 8-2 9-6-5 2-12 3-19 3s-14-1-19-3z" fill="url(#tpRim)"/>
+        <ellipse cx="94" cy="274" rx="6" ry="3" fill="url(#tpSpec)" opacity=".85"/>
+      </g>
+      <g transform="rotate(8 140 282)">
+        <path d="M120 282c0-9 8-15 19-15s19 6 19 15c0 5-4 7-9 7h-20c-5 0-9-2-9-7z" fill="url(#tpBody)"/>
+        <path d="M120 283c1 4 4 6 9 6h20c5 0 8-2 9-6-5 2-12 3-19 3s-14-1-19-3z" fill="url(#tpRim)"/>
+        <ellipse cx="132" cy="274" rx="6" ry="3" fill="url(#tpSpec)" opacity=".85"/>
+      </g>
+    </g>
+
+    <!-- tronco em formato de feijãozinho -->
+    <g class="tp-body">
+      <path d="M120 180c20 0 32 12 37 30 6 20 5 38-6 50-9 9-22 12-31 12s-22-3-31-12c-11-12-12-30-6-50 5-18 17-30 37-30z" fill="url(#tpBody)"/>
+      <path d="M120 180c20 0 32 12 37 30 6 20 5 38-6 50-9 9-22 12-31 12s-22-3-31-12c-11-12-12-30-6-50 5-18 17-30 37-30z" fill="url(#tpAO)"/>
+      <!-- faixa verde acompanhando a barriga -->
+      <path d="M86 246c9 9 21 13 34 13s25-4 34-13c-1 6-3 10-6 14-8 7-18 10-28 10s-20-3-28-10c-3-4-5-8-6-14z" fill="url(#tpRim)"/>
+      <!-- gola -->
+      <path d="M100 186c5-4 12-6 20-6s15 2 20 6c-3 4-6 6-9 6-3-2-7-3-11-3s-8 1-11 3c-3 0-6-2-9-6z" fill="url(#tpRim)"/>
+      <!-- emenda curva do peito -->
+      <path d="M134 196c9 7 13 19 11 32-1 6-3 11-6 15" fill="none" stroke="#9FAAB4" stroke-opacity=".7" stroke-width="1.4" stroke-linecap="round"/>
+      <path d="M136 195c9 7 13 19 11 32-1 6-3 11-6 15" fill="none" stroke="#FFFFFF" stroke-opacity=".9" stroke-width="1.2" stroke-linecap="round"/>
+      <ellipse cx="101" cy="208" rx="8" ry="15" fill="url(#tpSpec)" opacity=".9" transform="rotate(12 101 208)"/>
+      <g class="tp-core">
+        <circle class="tp-core-glow" cx="120" cy="222" r="19" fill="url(#tpGlow)"/>
+        <circle cx="120" cy="222" r="10.5" fill="#EFFBCB"/>
+        <circle cx="120" cy="222" r="10.5" fill="none" stroke="#D1FB39" stroke-width="3.2"/>
+        <circle cx="120" cy="222" r="14" fill="none" stroke="#FFFFFF" stroke-opacity=".6" stroke-width="1.2"/>
+        <circle cx="117" cy="219" r="3" fill="#FFFFFF"/>
+      </g>
+    </g>
+
+    <!-- bracinhos curvos (pivô no ombro) -->
+    <g class="tp-arm tp-arm-l">
+      <path d="M86 196c-9 2-15 10-18 20-2 8-2 14 2 17 4 2 9 0 12-6 3-7 6-15 9-22 2-5 0-9-5-9z" fill="url(#tpBody)"/>
+      <path d="M80 204c-4 5-6 11-7 17" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" opacity=".9"/>
+      <circle cx="87" cy="200" r="7.5" fill="url(#tpRim)"/>
+      <circle cx="85" cy="197.5" r="2.4" fill="#FFFFFF" opacity=".8"/>
+      <path d="M62 236c0-7 5-12 11-12s11 5 11 11c0 7-4 12-10 12-7 0-12-4-12-11z" fill="url(#tpLimeSoft)"/>
+      <path d="M81 229c4 0 6 3 5 6s-4 4-6 2" fill="url(#tpLimeSoft)"/>
+      <path d="M66 232c2-3 5-4 8-4" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" opacity=".7"/>
+    </g>
+    <g class="tp-arm tp-arm-r">
+      <path d="M154 196c9 2 15 10 18 20 2 8 2 14-2 17-4 2-9 0-12-6-3-7-6-15-9-22-2-5 0-9 5-9z" fill="url(#tpBody)"/>
+      <path d="M160 204c4 5 6 11 7 17" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" opacity=".55"/>
+      <circle cx="153" cy="200" r="7.5" fill="url(#tpRim)"/>
+      <circle cx="151" cy="197.5" r="2.4" fill="#FFFFFF" opacity=".8"/>
+      <path d="M178 236c0-7-5-12-11-12s-11 5-11 11c0 7 4 12 10 12 7 0 12-4 12-11z" fill="url(#tpLimeSoft)"/>
+      <path d="M159 229c-4 0-6 3-5 6s4 4 6 2" fill="url(#tpLimeSoft)"/>
+      <path d="M162 230c3-2 6-2 8-1" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" opacity=".7"/>
+    </g>
+
+    <!-- cabeça (pivô no pescoço) -->
+    <g class="tp-head">
+      <!-- antenas -->
+      <g class="tp-ant tp-ant-l"><path d="M100 50L88 22" stroke="url(#tpRim)" stroke-width="4.5" stroke-linecap="round"/><circle class="tp-ant-glow" cx="86" cy="18" r="14" fill="url(#tpGlow)" opacity=".5"/><circle cx="86" cy="18" r="9.5" fill="url(#tpBall)"/><circle cx="83" cy="15" r="3" fill="#FFFFFF"/></g>
+      <g class="tp-ant tp-ant-r"><path d="M140 50l12-28" stroke="url(#tpRim)" stroke-width="4.5" stroke-linecap="round"/><circle class="tp-ant-glow" cx="154" cy="18" r="14" fill="url(#tpGlow)" opacity=".5"/><circle cx="154" cy="18" r="9.5" fill="url(#tpBall)"/><circle cx="151" cy="15" r="3" fill="#FFFFFF"/></g>
+
+      <!-- fones -->
+      <g><ellipse cx="30" cy="122" rx="17" ry="30" fill="url(#tpRim)"/><ellipse cx="26" cy="122" rx="10.5" ry="21" fill="url(#tpCup)"/><ellipse class="tp-ant-glow" cx="26" cy="122" rx="13" ry="24" fill="none" stroke="#E7FF8C" stroke-width="2.6"/><ellipse cx="24" cy="112" rx="3" ry="7" fill="#FFFFFF" opacity=".75"/></g>
+      <g><ellipse cx="210" cy="122" rx="17" ry="30" fill="url(#tpRim)"/><ellipse cx="214" cy="122" rx="10.5" ry="21" fill="url(#tpCup)"/><ellipse class="tp-ant-glow" cx="214" cy="122" rx="13" ry="24" fill="none" stroke="#E7FF8C" stroke-width="2.6"/><ellipse cx="212" cy="112" rx="3" ry="7" fill="#FFFFFF" opacity=".75"/></g>
+
+      <!-- casco -->
+      <path d="M120 40c56 0 90 30 90 78 0 46-34 70-90 70s-90-24-90-70c0-48 34-78 90-78z" fill="url(#tpShell)"/>
+      <path d="M120 40c56 0 90 30 90 78 0 46-34 70-90 70s-90-24-90-70c0-48 34-78 90-78z" fill="url(#tpAO)"/>
+      <!-- emenda do casco -->
+      <path d="M121 41c4 16 14 28 32 34 20 6 40 16 52 28" fill="none" stroke="#9AA6B1" stroke-opacity=".75" stroke-width="1.4" stroke-linecap="round"/>
+      <path d="M123 41c4 15 14 27 32 33 20 6 40 16 52 28" fill="none" stroke="#FFFFFF" stroke-width="1.2" stroke-linecap="round"/>
+      <ellipse cx="78" cy="62" rx="28" ry="13" fill="url(#tpSpec)" transform="rotate(-22 78 62)"/>
+
+      <!-- placa do rosto (TV) com borda verde -->
+      <path d="M120 66c44 0 70 8 72 50 1 40-22 58-72 58s-73-18-72-58c2-42 28-50 72-50z" fill="#FFFFFF" opacity=".9"/>
+      <path d="M120 70c42 0 66 8 68 46 1 38-21 54-68 54s-69-16-68-54c2-38 26-46 68-46z" fill="url(#tpRim)"/>
+      <path d="M120 77c38 0 58 7 60 40 1 32-19 46-60 46s-61-14-60-46c2-33 22-40 60-40z" fill="url(#tpFace)"/>
+      <path d="M120 77c38 0 58 7 60 40 1 32-19 46-60 46s-61-14-60-46c2-33 22-40 60-40z" fill="url(#tpGlass)"/>
+      <path d="M68 100c6-14 22-19 44-20" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" opacity=".95"/>
+
+      <ellipse class="tp-blush" cx="72" cy="150" rx="11" ry="6" fill="url(#tpBlush)"/>
+      <ellipse class="tp-blush" cx="168" cy="150" rx="11" ry="6" fill="url(#tpBlush)"/>
+
+      <!-- olhos e boca, trocados conforme o humor -->
+      <g class="tp-face" fill="none" stroke-linecap="round" stroke-linejoin="round"></g>
+    </g>
+
+    <g class="tp-fx"></g>
+  </g>
+</svg>
+
+            </div>
+            <div class="g-ends"><span>0</span><span>1.634 KCAL</span></div>
+            <div class="g-pct" id="pct"><b>74%</b> da meta de hoje</div>
+          </section>
+
+          <section class="glass card today" aria-label="Total de hoje">
+            <div class="lbl">Total de hoje<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg></div>
+            <div class="goal">1.634<small>kcal meta</small></div>
+            <div class="split"><span class="chip" id="cEaten">1.210 consumidas</span><span class="chip lime" id="cLeft">faltam 424</span></div>
+            <div class="bar-main"><i id="barMain" style="width:74%"></i></div>
+            <div class="divider"></div>
+            <div class="macros">
+              <div><div class="mac-top"><b><i class="mdot" style="background:#D1FB39"></i>Proteína</b><span><strong id="mP">92</strong> / 125 g</span></div><div class="mbar"><i id="bP" style="width:74%;background:#D1FB39"></i></div></div>
+              <div><div class="mac-top"><b><i class="mdot" style="background:#2ED3A0"></i>Carboidrato</b><span><strong id="mC">138</strong> / 182 g</span></div><div class="mbar"><i id="bC" style="width:76%;background:#2ED3A0"></i></div></div>
+              <div><div class="mac-top"><b><i class="mdot" style="background:#9A8CFF"></i>Gordura</b><span><strong id="mG">31</strong> / 45 g</span></div><div class="mbar"><i id="bG" style="width:69%;background:#9A8CFF"></i></div></div>
+            </div>
+          </section>
+
+          <div class="grid2">
+            <section class="glass card tile water" aria-label="Água">
+              <div class="liquid"></div>
+              <div class="t-lbl">Água</div>
+              <div class="v">1,25 <small>L</small></div>
+              <p>de 2,45 L hoje</p>
+              <button class="act">+ 250 ml</button>
+            </section>
+            <section class="glass card tile" aria-label="Treino">
+              <div class="t-lbl">Treino</div>
+              <div class="v">Peito</div>
+              <p>5 exercícios · 30 min</p>
+              <button class="act"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4l14 8-14 8z"/></svg>Iniciar</button>
+            </section>
+          </div>
+
+          <section class="glass card" aria-label="Peso">
+            <div class="sec-h">Peso<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg></div>
+            <div class="num">69,4 <small>kg · meta 65 kg em ~9 semanas</small></div>
+            <svg class="spark" viewBox="0 0 320 92" preserveAspectRatio="none" aria-hidden="true">
+              <defs><linearGradient id="area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D1FB39" stop-opacity=".32"/><stop offset="1" stop-color="#D1FB39" stop-opacity="0"/></linearGradient></defs>
+              <path d="M4 16 C40 20,70 28,100 32 S160 38,190 52 S250 68,280 74 S300 78,312 80 L312 92 L4 92Z" fill="url(#area)"/>
+              <path d="M4 16 C40 20,70 28,100 32 S160 38,190 52 S250 68,280 74 S300 78,312 80" fill="none" stroke="#D1FB39" stroke-width="2.5" stroke-linecap="round"/>
+              <circle cx="312" cy="80" r="5" fill="#D1FB39"/>
+            </svg>
+            <div class="axis"><span>29 AGO</span><span>8 SET</span><span>18 SET</span><span>HOJE</span></div>
+          </section>
+        </div>
+
+        <div class="dock">
+          <nav class="nav" aria-label="Navegação">
+            <button class="on"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 4l9 7v8a2 2 0 0 1-2 2h-3v-6H8v6H5a2 2 0 0 1-2-2z"/></svg><span>Início</span></button>
+            <button><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 3v8a2 2 0 0 0 2 2v8M11 3v8M3 3v8a2 2 0 0 0 2 2M17 21V3c2.5 0 4 2.5 4 6s-1.5 5-4 5"/></svg><span>Alimentação</span></button>
+            <button><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12"/></svg><span>Treino</span></button>
+          </nav>
+          <button class="fab" aria-label="Registrar"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+        </div>
+        <div class="home-ind" aria-hidden="true"></div>
+      </div>
+    </div>
+    <p class="hint">Toque no coelho. Role a tela: o nome aparece no topo e os cards de vidro passam por baixo.</p>
+  </div>
+
+  <aside class="side">
+    <div class="kicker">Início · proposta v2</div>
+    <h1>Tapi reage ao seu dia</h1>
+    <p class="lede">Um robozinho fofo desenhado do zero a partir das suas referências. Ele fica sempre em movimento, a animação muda com o humor e ele reage quando você toca nele. Escolha um humor para ver a tela inteira mudar.</p>
+    <div class="moods" id="moods">
+      <button class="mood" data-m="acenando"><span class="dot"></span><div><b>Acenando</b><span>Nada registrado ainda hoje. Dá tchau e chama para o café.</span></div></button>
+      <button class="mood" data-m="pensando"><span class="dot"></span><div><b>Pensando</b><span>Já é tarde e você comeu pouco. Mão no queixo, cabeça inclinada.</span></div></button>
+      <button class="mood on" data-m="feliz"><span class="dot"></span><div><b>Feliz</b><span>No ritmo certo para a meta. Pulinhos e braços balançando.</span></div></button>
+      <button class="mood" data-m="comemorando"><span class="dot"></span><div><b>Comemorando</b><span>Bateu a proteína ou fechou o dia na meta. Pula com os braços para cima.</span></div></button>
+      <button class="mood" data-m="apaixonado"><span class="dot"></span><div><b>Apaixonado</b><span>7 dias seguidos registrando ou água batida. Olhos de coração.</span></div></button>
+      <button class="mood" data-m="preocupado"><span class="dot"></span><div><b>Preocupado</b><span>Passou da meta de calorias. Antenas caídas e uma gotinha de suor.</span></div></button>
+    </div>
+    <div class="notes"><b>Nome provisório:</b> chamei de Tapi (de TapCal). Dá para trocar por qualquer nome. <b>No app</b>, ele vai ser desenhado em vetor com as mesmas partes e animações, então fica leve e nítido em qualquer tela.</div>
+  </aside>
+</div>
+
+<script>
+(function(){
+  var NS='http://www.w3.org/2000/svg';
+  var L='#D1FB39', D='#16181B';
+  function heart(x,y,s){return 'M'+x+' '+(y+s*.35)+'c0-'+s*.5+' -'+s*.7+'-'+s*.75+' -'+s*.7+'-'+s*.1+'c0 '+s*.45+' '+s*.7+' '+s*.75+' '+s*.7+' '+s*.95+'c0-'+s*.2+' '+s*.7+'-'+s*.5+' '+s*.7+'-'+s*.95+'c0-'+s*.65+'-'+s*.7+'-'+s*.65+'-'+s*.7+' '+s*.1+'z'}
+  function eye(cx,cy,rx,ry,dx,dy){
+    return '<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+rx+'" ry="'+ry+'" fill="url(#tpEye)"/>'+
+      '<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+rx+'" ry="'+ry+'" stroke="#000" stroke-opacity=".35" stroke-width="1.2"/>'+
+      '<ellipse cx="'+(cx-rx*.28+dx)+'" cy="'+(cy-ry*.36+dy)+'" rx="'+rx*.42+'" ry="'+ry*.34+'" fill="#FFFFFF" transform="rotate(-18 '+(cx-rx*.28+dx)+' '+(cy-ry*.36+dy)+')"/>'+
+      '<circle cx="'+(cx+rx*.36+dx)+'" cy="'+(cy+ry*.22+dy)+'" r="'+rx*.14+'" fill="#FFFFFF" opacity=".95"/>'+
+      '<path d="M'+(cx-rx*.6)+' '+(cy+ry*.62)+'q'+rx*.6+' '+ry*.3+' '+rx*1.2+' 0" stroke="#F2FFB8" stroke-opacity=".55" stroke-width="1.6"/>';
+  }
+  function dark(d,w){return '<path d="'+d+'" stroke="'+D+'" stroke-width="'+w+'"/>'}
+  var EYES={
+    big:'<g class="tp-eyes">'+eye(92,122,20,25,0,0)+eye(148,122,20,25,0,0)+'</g>',
+    up:'<g class="tp-eyes">'+eye(92,120,19,24,4,-4)+eye(148,120,19,24,4,-4)+'</g>',
+    happy:dark('M76 126q16-18 32 0',5.5)+dark('M132 126q16-18 32 0',5.5),
+    squint:dark('M80 110l18 12-18 12',5.5)+dark('M160 110l-18 12 18 12',5.5),
+    hearts:'<path d="'+heart(92,110,24)+'" fill="'+L+'" stroke="#8DBE12" stroke-width="2"/><path d="'+heart(148,110,24)+'" fill="'+L+'" stroke="#8DBE12" stroke-width="2"/><circle cx="84" cy="113" r="3.4" fill="#FFFFFF"/><circle cx="140" cy="113" r="3.4" fill="#FFFFFF"/>',
+    worried:'<g class="tp-eyes">'+eye(92,126,17,21,0,2)+eye(148,126,17,21,0,2)+'</g>'+dark('M76 102l22-8',3.8)+dark('M164 102l-22-8',3.8)
+  };
+  var MOUTHS={
+    smile:dark('M112 153q8 6 16 0',3.2),
+    open:'<path d="M111 150q9 12 18 0z" fill="#23262A" stroke="'+D+'" stroke-width="2"/><path d="M115 156q5 3.6 10 0q-5-4-10 0z" fill="#FF8FA3"/>',
+    big:'<path d="M106 149q14 18 28 0z" fill="#23262A" stroke="'+D+'" stroke-width="2"/><path d="M112 158q8 5 16 0q-8-5.5-16 0z" fill="#FF8FA3"/>',
+    hmm:dark('M113 156q3.5-3 7 0t7 0',3),
+    frown:dark('M112 159q8-7 16 0',3.4)
+  };
+  var FACES={
+    feliz: EYES.big+MOUTHS.open,
+    acenando: EYES.big+MOUTHS.smile,
+    pensando: EYES.up+MOUTHS.hmm,
+    comemorando: EYES.squint+MOUTHS.big,
+    apaixonado: EYES.hearts+MOUTHS.open,
+    preocupado: EYES.worried+MOUTHS.frown,
+    risada: EYES.happy+MOUTHS.big
+  };
+  var FX={
+    feliz:'', acenando:'',
+    pensando:'<g class="fx-dots" fill="#F4F5F0"><circle cx="198" cy="52" r="4.5"/><circle cx="212" cy="38" r="5.5"/><circle cx="228" cy="22" r="6.5"/></g>',
+    comemorando:'<g stroke="'+L+'" stroke-width="5" stroke-linecap="round"><path class="fx-spark" d="M30 60l-10-14"/><path class="fx-spark" d="M18 92l-16-4"/><path class="fx-spark" d="M210 60l10-14"/><path class="fx-spark" d="M222 92l16-4"/></g>',
+    apaixonado:'<path class="fx-heart" d="'+heart(212,44,16)+'" fill="'+L+'"/><path class="fx-heart d2" d="'+heart(26,64,12)+'" fill="'+L+'"/>',
+    preocupado:'<path class="fx-drop" d="M196 74c0 0-8 10-8 15a8 8 0 0 0 16 0c0-5-8-15-8-15z" fill="#8FD3FF" opacity=".9"/>'
+  };
+  var goal=1634, $=function(id){return document.getElementById(id)};
+  var STATE={
+    acenando:{eaten:0,p:0,c:0,g:0,msg:'Oi, Larissa! Bora registrar o café da manhã?'},
+    pensando:{eaten:420,p:22,c:58,g:12,msg:'Hmm… já são 16h e você comeu pouco. Que tal um lanche?'},
+    feliz:{eaten:1210,p:92,c:138,g:31,msg:'Tá no caminho certo, Larissa! Faltam 424 kcal.'},
+    comemorando:{eaten:1602,p:128,c:170,g:42,msg:'Proteína batida! Dia fechado dentro da meta!'},
+    apaixonado:{eaten:1350,p:104,c:150,g:36,msg:'7 dias seguidos registrando. Tô orgulhoso de você!'},
+    preocupado:{eaten:1890,p:110,c:236,g:62,msg:'Eita, passamos 256 kcal da meta. Amanhã a gente equilibra!'}
+  };
+  var POKES=['Hihi, cócegas!','Opa! Tô aqui!','Bora beber água?','Toque duas vezes na tela pra fotografar o prato!'];
+  var svg=document.querySelector('.tapi'), face=svg.querySelector('.tp-face'), fx=svg.querySelector('.tp-fx');
+  var mood='feliz', pokeTimer=null, pi=0;
+  function fmt(n){return Math.round(n).toLocaleString('pt-BR')}
+  function numbers(s){
+    var f=Math.min(1,s.eaten/goal), over=s.eaten>goal, left=goal-s.eaten;
+    $('gval').setAttribute('stroke-dasharray',(f*100).toFixed(1)+' 100');
+    $('gval').classList.toggle('over',over);
+    var a=(210-f*240)*Math.PI/180;
+    $('gdot').setAttribute('cx',(170+140*Math.cos(a)).toFixed(1));
+    $('gdot').setAttribute('cy',(170-140*Math.sin(a)).toFixed(1));
+    $('pct').innerHTML='<b>'+Math.round(s.eaten/goal*100)+'%</b> da meta de hoje';
+    $('cEaten').textContent=fmt(s.eaten)+' consumidas';
+    var cl=$('cLeft'); cl.textContent=over?fmt(-left)+' acima da meta':'faltam '+fmt(left); cl.className='chip '+(over?'warn':'lime');
+    $('barMain').style.width=Math.min(100,f*100)+'%';
+    $('mP').textContent=s.p; $('mC').textContent=s.c; $('mG').textContent=s.g;
+    $('bP').style.width=Math.min(100,s.p/125*100)+'%'; $('bC').style.width=Math.min(100,s.c/182*100)+'%'; $('bG').style.width=Math.min(100,s.g/45*100)+'%';
+  }
+  function say(t){var b=$('bubble');b.textContent=t;b.classList.add('pop');setTimeout(function(){b.classList.remove('pop')},250)}
+  function setMood(m){
+    mood=m; svg.setAttribute('class','tapi mood-'+m);
+    face.innerHTML=FACES[m]; fx.innerHTML=FX[m];
+    say(STATE[m].msg); numbers(STATE[m]);
+    document.querySelectorAll('.mood').forEach(function(b){b.classList.toggle('on',b.dataset.m===m)});
+  }
+  function poke(){
+    clearTimeout(pokeTimer);
+    svg.classList.remove('poke'); void svg.getBoundingClientRect(); svg.classList.add('poke');
+    face.innerHTML=FACES.risada; say(POKES[pi++%POKES.length]);
+    pokeTimer=setTimeout(function(){svg.classList.remove('poke');face.innerHTML=FACES[mood];say(STATE[mood].msg)},1600);
+  }
+  document.querySelectorAll('.mood').forEach(function(b){b.addEventListener('click',function(){setMood(b.dataset.m)})});
+  var wrap=$('tapiWrap');
+  wrap.addEventListener('click',poke);
+  wrap.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();poke()}});
+  var sc=$('scroll'),screen=$('screen');
+  sc.addEventListener('scroll',function(){screen.classList.toggle('scrolled',sc.scrollTop>150)},{passive:true});
+  setMood('feliz');
+})();
+</script>

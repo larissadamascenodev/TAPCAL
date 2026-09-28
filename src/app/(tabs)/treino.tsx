@@ -34,7 +34,7 @@ export default function TreinoScreen() {
 
   if (!workoutPlans.length) {
     return (
-      <Screen glowAccent="iris">
+      <Screen>
         <Text style={styles.h1}>Treino</Text>
         <EmptyState icon="barbell-outline" title="Nenhum treino montado" message="Monte sua divisão da semana para começar." />
       </Screen>
@@ -54,7 +54,7 @@ export default function TreinoScreen() {
   };
 
   return (
-    <Screen glowAccent="iris">
+    <Screen>
       <View style={styles.header}>
         <Text style={styles.h1}>Treino</Text>
         <IconButton
@@ -74,7 +74,7 @@ export default function TreinoScreen() {
               Em andamento
             </Text>
             <Text style={styles.heroTitle}>{activePlan.focus}</Text>
-            <Button label="Continuar treino" icon={<Ionicons name="play" size={12} color={colors.onEmber} />} onPress={() => router.push('/treino-sessao')} style={styles.heroBtn} size="md" />
+            <Button label="Continuar treino" icon={<Ionicons name="play" size={12} color={colors.onLime} />} onPress={() => router.push('/treino-sessao')} style={styles.heroBtn} size="md" />
           </>
         ) : todayPlan ? (
           <>
@@ -96,7 +96,7 @@ export default function TreinoScreen() {
             ) : (
               <Button
                 label="Começar treino"
-                icon={<Ionicons name="play" size={12} color={colors.onEmber} />}
+                icon={<Ionicons name="play" size={12} color={colors.onLime} />}
                 onPress={() => start(todayPlan)}
                 style={styles.heroBtn}
                 size="md"

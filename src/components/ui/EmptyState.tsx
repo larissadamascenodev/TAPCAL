@@ -18,7 +18,7 @@ export function EmptyState({ icon, title, message }: Props) {
     <Glass style={styles.card}>
       <View style={styles.inner}>
         <View style={styles.iconWrap}>
-          <Ionicons name={icon} size={26} color={colors.ember2} />
+          <Ionicons name={icon} size={26} color={colors.lime2} />
         </View>
         <Text variant="heading" style={styles.center}>
           {title}
@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.emberTint,
+    backgroundColor: colors.limeTint,
     marginBottom: spacing.xs,
   },
   center: {

@@ -21,7 +21,7 @@ export type ButtonProps = Omit<PressableProps, 'children' | 'style'> & {
 
 /**
  * Botões do app.
- * - primary: degradê laranja, para a ação principal da tela (uma por tela)
+ * - primary: degradê verde neon, para a ação principal da tela (uma por tela)
  * - secondary: vidro com borda, para ações de apoio
  * - ghost: só o texto, para ações discretas
  */
@@ -58,7 +58,7 @@ export function Button({
       {...rest}>
       {variant === 'primary' && (
         <LinearGradient
-          colors={gradients.fab}
+          colors={gradients.accent}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[StyleSheet.absoluteFill, { borderRadius: radius.pill }]}
@@ -68,7 +68,7 @@ export function Button({
         {icon}
         <Text
           variant="bodyStrong"
-          tone={variant === 'primary' ? 'onEmber' : variant === 'ghost' ? 'accent' : 'primary'}
+          tone={variant === 'primary' ? 'onLime' : variant === 'ghost' ? 'accent' : 'primary'}
           style={size === 'md' && styles.smallLabel}>
           {label}
         </Text>

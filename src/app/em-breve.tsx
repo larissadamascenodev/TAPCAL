@@ -69,7 +69,7 @@ export default function EmBreveScreen() {
       <View style={styles.spacer} />
       <Glass contentStyle={styles.card}>
         <View style={styles.icon}>
-          <Ionicons name={s.icon} size={30} color={colors.ember2} />
+          <Ionicons name={s.icon} size={30} color={colors.lime2} />
         </View>
         <View style={styles.badge}>
           <Text variant="label" tone="accent">
@@ -102,13 +102,13 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.emberTint,
+    backgroundColor: colors.limeTint,
   },
   badge: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: radius.pill,
-    backgroundColor: colors.emberTint,
+    backgroundColor: colors.limeTint,
   },
   title: {
     fontFamily: fonts.display.semibold,

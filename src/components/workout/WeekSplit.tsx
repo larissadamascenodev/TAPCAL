@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   done: {
-    borderColor: colors.emberEdge,
+    borderColor: colors.limeEdge,
   },
   today: {
     backgroundColor: colors.ink,

@@ -207,7 +207,7 @@ export default function TreinoSessaoScreen() {
               }
               accessibilityHint={set ? 'Toque e segure para apagar' : undefined}
               style={[styles.setRow, current && styles.setCurrent]}>
-              <Text style={[styles.setNum, current && { color: colors.ember2 }]}>{i + 1}</Text>
+              <Text style={[styles.setNum, current && { color: colors.lime2 }]}>{i + 1}</Text>
               <Text variant="bodyStrong" style={styles.setValue} tone={set || current ? 'primary' : 'muted'}>
                 {set
                   ? `${formatDecimal(set.weightKg)} kg × ${set.reps}`
@@ -242,7 +242,7 @@ export default function TreinoSessaoScreen() {
       <Button
         label={mainLabel}
         fullWidth
-        icon={<Ionicons name={exerciseDone && !isLast ? 'arrow-forward' : 'checkmark'} size={18} color={colors.onEmber} />}
+        icon={<Ionicons name={exerciseDone && !isLast ? 'arrow-forward' : 'checkmark'} size={18} color={colors.onLime} />}
         onPress={onMain}
         style={styles.main}
       />
@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: colors.ember,
+    backgroundColor: colors.lime,
   },
   clockText: {
     fontFamily: fonts.display.semibold,
@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.track,
   },
   segOn: {
-    backgroundColor: colors.ember,
+    backgroundColor: colors.lime,
   },
   titleBlock: {
     marginTop: spacing.sm,
@@ -361,8 +361,8 @@ const styles = StyleSheet.create({
     borderColor: colors.lineSoft,
   },
   setCurrent: {
-    borderColor: colors.emberEdge,
-    backgroundColor: colors.emberWash,
+    borderColor: colors.limeEdge,
+    backgroundColor: colors.limeWash,
   },
   setNum: {
     width: 20,

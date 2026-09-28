@@ -12,4 +12,3 @@ export { Sheet } from './Sheet';
 export { Text, type TextProps } from './Text';
 export { TextField } from './TextField';
 export { toast, ToastHost } from './Toast';
-export { TopGlow } from './TopGlow';

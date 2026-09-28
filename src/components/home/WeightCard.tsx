@@ -107,16 +107,16 @@ export function WeightCard({ trend, today, targetKg, weeksToGoal, losing, onAdd 
           <Svg width={w} height={CHART_H}>
             <Defs>
               <LinearGradient id="area" x1="0" y1="0" x2="0" y2="1">
-                <Stop offset="0" stopColor={colors.ember} stopOpacity={0.35} />
-                <Stop offset="1" stopColor={colors.ember} stopOpacity={0} />
+                <Stop offset="0" stopColor={colors.lime} stopOpacity={0.35} />
+                <Stop offset="1" stopColor={colors.lime} stopOpacity={0} />
               </LinearGradient>
             </Defs>
             <Line x1={0} y1={28} x2={w} y2={28} stroke={colors.gridLine} />
             <Line x1={0} y1={56} x2={w} y2={56} stroke={colors.gridLine} />
             {area ? <Path d={area} fill="url(#area)" /> : null}
-            <Path d={line} stroke={colors.emberLine} strokeWidth={2.5} strokeLinecap="round" fill="none" />
-            <Circle cx={last.x} cy={last.y} r={9} fill={colors.ember} opacity={0.25} />
-            <Circle cx={last.x} cy={last.y} r={4.5} fill={colors.emberHighlight} />
+            <Path d={line} stroke={colors.limeLine} strokeWidth={2.5} strokeLinecap="round" fill="none" />
+            <Circle cx={last.x} cy={last.y} r={9} fill={colors.lime} opacity={0.25} />
+            <Circle cx={last.x} cy={last.y} r={4.5} fill={colors.limeHighlight} />
           </Svg>
         )}
       </View>

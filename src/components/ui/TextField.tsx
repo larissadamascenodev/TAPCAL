@@ -21,7 +21,7 @@ export function TextField({ label, unit, error, style, ...rest }: Props) {
       <View style={[styles.field, !!error && styles.fieldError]}>
         <TextInput
           placeholderTextColor={colors.ink3}
-          selectionColor={colors.ember2}
+          selectionColor={colors.lime2}
           keyboardAppearance="dark"
           style={[styles.input, style]}
           accessibilityLabel={label}
@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
   },
   fieldError: {
-    borderColor: colors.emberEdge,
+    borderColor: colors.limeEdge,
   },
   input: {
     flex: 1,
@@ -69,6 +69,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   error: {
-    color: colors.ember2,
+    color: colors.lime2,
   },
 });
