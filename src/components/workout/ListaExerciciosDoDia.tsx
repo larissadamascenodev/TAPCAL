@@ -1,7 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import Animated, { ZoomIn } from 'react-native-reanimated';
 
 import { Text } from '@/components/ui';
@@ -29,6 +31,20 @@ type Props = {
   onAbrir?: (exercicioNoTreinoId: string) => void;
   /** Em andamento: tocar numa série que falta abre o registro dela. */
   onSerie?: (exercicioNoTreinoId: string) => void;
+  /**
+   * Edição do treino (vale também para plano da IA): adicionar no fim,
+   * remover (arrastando para o lado ou no modo de edição) e mudar a ordem.
+   * Segurar um exercício abre o modo de edição.
+   */
+  edicao?: {
+    onAdicionar: () => void;
+    onRemover: (exercicioNoTreinoId: string) => void;
+    onMover: (exercicioNoTreinoId: string, delta: -1 | 1) => void;
+  };
+};
+
+const tique = () => {
+  if (Platform.OS !== 'web') Haptics.selectionAsync();
 };
 
 const NO = 30;
@@ -45,7 +61,8 @@ const nomeCardio = (c: Cardio) => (c.atividade === 'eliptico' ? 'elíptico' : c.
  * na linha; o atual tem um reflexo de vidro e o ponto em destaque. Fechado,
  * mostra só o exercício; aberto, as séries. O atual (ou o primeiro) já vem aberto.
  */
-export function ListaExerciciosDoDia({ treino, modo, titulo, series, historico, sexo, onAbrir, onSerie }: Props) {
+export function ListaExerciciosDoDia({ treino, modo, titulo, series, historico, sexo, onAbrir, onSerie, edicao }: Props) {
+  const [editando, setEditando] = useState(false);
   const idAtual =
     modo === 'andamento'
       ? treino.exercicios[proximoExercicio(treino, { series: [...series] })]?.id
@@ -60,15 +77,40 @@ export function ListaExerciciosDoDia({ treino, modo, titulo, series, historico, 
   return (
     <View>
       <View style={styles.cabecalho}>
-        <Text style={styles.dia}>{titulo}</Text>
-        <Text variant="caption" tone="muted">
-          {treino.exercicios.length} {treino.exercicios.length === 1 ? 'exercício' : 'exercícios'}
-        </Text>
+        <Text style={[styles.dia, styles.flex]}>{titulo}</Text>
+        {edicao ? (
+          <Pressable accessibilityRole="button" hitSlop={10} onPress={() => setEditando((v) => !v)}>
+            <Text style={[styles.editar, editando && styles.editarOn]}>{editando ? 'Pronto' : 'Editar'}</Text>
+          </Pressable>
+        ) : (
+          <Text variant="caption" tone="muted">
+            {treino.exercicios.length} {treino.exercicios.length === 1 ? 'exercício' : 'exercícios'}
+          </Text>
+        )}
       </View>
+      {editando && (
+        <Text variant="caption" tone="muted" style={styles.dicaEdicao}>
+          Mude a ordem com as setas ou tire o que não vai fazer. Vale para as próximas vezes deste treino.
+        </Text>
+      )}
       {treino.exercicios.map((e, i) => {
         const feitas = series.filter((s) => s.exercicioNoTreinoId === e.id);
-        const ultimo = i === treino.exercicios.length - 1 && !treino.cardio;
-        return (
+        const ultimo = i === treino.exercicios.length - 1 && !treino.cardio && !edicao;
+        if (editando && edicao) {
+          return (
+            <ItemEdicao
+              key={e.id}
+              item={e}
+              ordem={i + 1}
+              primeiro={i === 0}
+              ultimoDaLista={i === treino.exercicios.length - 1}
+              sexo={sexo}
+              onRemover={() => edicao.onRemover(e.id)}
+              onMover={(d) => edicao.onMover(e.id, d)}
+            />
+          );
+        }
+        const linha = (
           <Item
             key={e.id}
             item={e}
@@ -83,9 +125,55 @@ export function ListaExerciciosDoDia({ treino, modo, titulo, series, historico, 
             onToggle={() => setEscolha({ id: aberto === e.id ? null : e.id, base: idAtual })}
             onAbrir={onAbrir && (() => onAbrir(e.id))}
             onSerie={onSerie && (() => onSerie(e.id))}
+            onLongPress={
+              edicao &&
+              (() => {
+                tique();
+                setEditando(true);
+              })
+            }
           />
         );
+        if (!edicao) return linha;
+        // Arrastar para o lado mostra "Remover".
+        return (
+          <ReanimatedSwipeable
+            key={e.id}
+            friction={2}
+            rightThreshold={60}
+            overshootRight={false}
+            renderRightActions={(_p, _t, metodos) => (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Remover ${exercicioPorId(e.exercicioId)?.nome ?? 'exercício'} do treino`}
+                onPress={() => {
+                  metodos.close();
+                  edicao.onRemover(e.id);
+                }}
+                style={styles.remover}>
+                <Ionicons name="trash-outline" size={18} color={colors.warnText} />
+                <Text style={styles.removerText}>Remover</Text>
+              </Pressable>
+            )}>
+            {linha}
+          </ReanimatedSwipeable>
+        );
       })}
+      {edicao && (
+        <View style={styles.item}>
+          <View style={styles.trilho}>
+            <View style={[styles.no, styles.noAdd]}>
+              <Ionicons name="add" size={16} color={colors.lime} />
+            </View>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            onPress={edicao.onAdicionar}
+            style={({ pressed }) => [styles.conteudo, styles.adicionar, pressed && styles.pressed]}>
+            <Text style={styles.adicionarText}>Adicionar exercício</Text>
+          </Pressable>
+        </View>
+      )}
       {treino.cardio && (
         <View style={styles.item}>
           <View style={styles.trilho}>
@@ -105,6 +193,58 @@ export function ListaExerciciosDoDia({ treino, modo, titulo, series, historico, 
   );
 }
 
+/** Exercício no modo de edição: remover e mudar a ordem. */
+function ItemEdicao({
+  item,
+  ordem,
+  primeiro,
+  ultimoDaLista,
+  sexo,
+  onRemover,
+  onMover,
+}: {
+  item: ExercicioNoTreino;
+  ordem: number;
+  primeiro: boolean;
+  ultimoDaLista: boolean;
+  sexo?: 'feminino' | 'masculino';
+  onRemover: () => void;
+  onMover: (delta: -1 | 1) => void;
+}) {
+  const ex = exercicioPorId(item.exercicioId);
+  const nome = ex?.nome ?? 'Exercício';
+  return (
+    <View style={styles.item}>
+      <View style={styles.trilho}>
+        <View style={styles.no}>
+          <Text style={styles.noText}>{String(ordem).padStart(2, '0')}</Text>
+        </View>
+        <View style={styles.linha} />
+      </View>
+      <View style={[styles.conteudo, styles.edicaoLinha]}>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Remover ${nome}`} hitSlop={6} onPress={onRemover} style={styles.menos}>
+          <Ionicons name="remove" size={16} color={colors.warnText} />
+        </Pressable>
+        <View style={styles.thumb}>{ex && <MapaMuscular principal={ex.musculoPrincipal} altura={40} podeVirar={false} sexo={sexo} />}</View>
+        <View style={styles.flex}>
+          <Text style={styles.nome} numberOfLines={1}>
+            {nome}
+          </Text>
+          <Text variant="caption" tone="muted">
+            {item.series} × {repsLabel(item)}
+          </Text>
+        </View>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Subir ${nome}`} disabled={primeiro} hitSlop={4} onPress={() => onMover(-1)} style={[styles.seta, primeiro && styles.setaOff]}>
+          <Ionicons name="chevron-up" size={18} color={colors.ink} />
+        </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Descer ${nome}`} disabled={ultimoDaLista} hitSlop={4} onPress={() => onMover(1)} style={[styles.seta, ultimoDaLista && styles.setaOff]}>
+          <Ionicons name="chevron-down" size={18} color={colors.ink} />
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 function Item({
   item,
   ordem,
@@ -118,6 +258,7 @@ function Item({
   onToggle,
   onAbrir,
   onSerie,
+  onLongPress,
 }: {
   item: ExercicioNoTreino;
   ordem: number;
@@ -131,6 +272,7 @@ function Item({
   onToggle: () => void;
   onAbrir?: () => void;
   onSerie?: () => void;
+  onLongPress?: () => void;
 }) {
   const ex = exercicioPorId(item.exercicioId);
   const nome = ex?.nome ?? 'Exercício';
@@ -158,6 +300,8 @@ function Item({
           accessibilityState={{ expanded: aberto }}
           accessibilityLabel={`${ordem}. ${nome}${modo !== 'planejado' ? `, ${feitas.length} de ${item.series} séries` : `, ${item.series} séries`}`}
           onPress={onToggle}
+          onLongPress={onLongPress}
+          delayLongPress={350}
           style={({ pressed }) => [styles.cabeca, pressed && styles.pressed]}>
           {(atual || aberto) && (
             <LinearGradient pointerEvents="none" colors={gradients.timelineAtual} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={styles.reflexo} />
@@ -397,6 +541,78 @@ const styles = StyleSheet.create({
   },
   cardio: {
     paddingTop: 18,
+  },
+  editar: {
+    fontFamily: fonts.body.bold,
+    fontSize: 14,
+    color: colors.ink2,
+  },
+  editarOn: {
+    color: colors.lime,
+  },
+  dicaEdicao: {
+    marginTop: -spacing.sm,
+    marginBottom: spacing.md,
+  },
+  remover: {
+    width: 104,
+    marginVertical: 6,
+    marginLeft: 8,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    backgroundColor: colors.warnTint,
+    borderWidth: 1,
+    borderColor: colors.warnEdge,
+  },
+  removerText: {
+    fontFamily: fonts.body.bold,
+    fontSize: 12.5,
+    color: colors.warnText,
+  },
+  noAdd: {
+    borderStyle: 'dashed',
+    borderColor: colors.line2,
+  },
+  adicionar: {
+    justifyContent: 'center',
+    minHeight: 58,
+    paddingTop: 14,
+  },
+  adicionarText: {
+    fontFamily: fonts.body.bold,
+    fontSize: 15,
+    color: colors.lime,
+  },
+  edicaoLinha: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingTop: 10,
+  },
+  menos: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.warnTint,
+    borderWidth: 1,
+    borderColor: colors.warnEdge,
+  },
+  seta: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.glassFill,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  setaOff: {
+    opacity: 0.3,
   },
   pressed: {
     opacity: 0.7,

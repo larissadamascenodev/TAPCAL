@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { inicioDoPeriodo, niveisDoMapa, seriesPorMusculo, sessoesNoPeriodo, totaisDoPeriodo, treinosMaisFeitos } from '@/lib/treino/relatorio';
+import { cargasPorExercicio, inicioDoPeriodo, niveisDoMapa, seriesPorGrupo, seriesPorMusculo, sessoesNoPeriodo, totaisDoPeriodo, treinosMaisFeitos } from '@/lib/treino/relatorio';
 import type { PlanoDeTreino, SessaoDeTreino } from '@/types/treino';
 
 const serie = (exercicioId: string, numero: number) => ({ exercicioNoTreinoId: 'x', exercicioId, numero, cargaKg: 20, reps: 10, concluidaEm: '' });
@@ -57,5 +57,11 @@ describe('relatórios do treino', () => {
       { nome: 'Pernas e glúteos', vezes: 1 },
     ]);
     expect(totaisDoPeriodo(lista.slice(0, 2))).toEqual({ treinos: 2, minutos: 100, kcal: 300 });
+  });
+
+  it('por grupo muscular (radar) e por exercício', () => {
+    expect(seriesPorGrupo(lista.slice(0, 2))).toEqual({ costas: 2, ombros: 0, abdomen: 0, bracos: 1, peito: 0, pernas: 4 });
+    const comCarga = [{ ...lista[0], series: [{ ...serie('puxada-frontal-aberta', 1), cargaKg: 40 }, { ...serie('puxada-frontal-aberta', 2), cargaKg: 45 }] }, lista[2]];
+    expect(cargasPorExercicio(comCarga)).toEqual([{ exercicioId: 'puxada-frontal-aberta', cargaKg: 45, series: 3 }]);
   });
 });

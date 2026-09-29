@@ -1,18 +1,22 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, View } from 'react-native';
 
 import { TabPage } from '@/components/navigation/TabPage';
-import { EmptyState, Glass, IconButton, NeonButton, Text } from '@/components/ui';
+import { SheetBadge } from '@/components/nutrition/PlateSheet';
+import { confirmDestructive, EmptyState, Glass, GlassModal, IconButton, NeonButton, Text, toast } from '@/components/ui';
 import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
 import { CapsulaAoVivo, HeroDescanso, HeroEmAndamento, HeroTreino } from '@/components/workout/HeroDoDia';
+import { ExerciseLibrary } from '@/components/workout/ExerciseLibrary';
 import { ListaExerciciosDoDia } from '@/components/workout/ListaExerciciosDoDia';
 import { RegistrarSerieSheet } from '@/components/workout/RegistrarSerieSheet';
 import { RelatorioSemana } from '@/components/workout/RelatorioSemana';
 import { SemanaTreino } from '@/components/workout/SemanaTreino';
 import { daysBetween, fromDateKey } from '@/lib/dates';
 import { formatDayMonth, formatInt, WEEKDAY_SHORT } from '@/lib/format';
+import { exercicioPorId } from '@/lib/exercicios';
+import { adicionarExercicios, moverExercicio, removerExercicio, tirarDaBiblioteca } from '@/lib/treino/editor';
 import { minutosDaSessao } from '@/lib/treino/met';
 import { kcalEstimadas, minutosEstimados, proximosTreinos } from '@/lib/treino/plano';
 import { ehSemanaDeAlivio, horaDaProximaFase, semanaDoBloco, seriesNaSemana } from '@/lib/treino/progressao';
@@ -70,7 +74,7 @@ function naSemana(t: TreinoDoDia, plano: PlanoDeTreino | undefined, data: DateKe
  */
 export default function TreinoScreen() {
   const state = useAppStore();
-  const { today: day, planos, sessoes, sessaoAtiva, comecarTreino, pausarTreino, retomarTreino } = state;
+  const { today: day, planos, sessoes, sessaoAtiva, comecarTreino, pausarTreino, retomarTreino, atualizarPlano } = state;
   const sexo = state.profile?.sex;
   const today = day.date;
   const peso = currentWeightKg(state) ?? 70;
@@ -78,6 +82,7 @@ export default function TreinoScreen() {
   const [aba, setAba] = useState<Aba>('exercicios');
   /** Exercício cuja série está sendo registrada pelo modal (treino em andamento). */
   const [registrando, setRegistrando] = useState<string | null>(null);
+  const [adicionando, setAdicionando] = useState(false);
 
   const plano = planoAtivo(planos);
   const estados = useMemo(
@@ -142,6 +147,22 @@ export default function TreinoScreen() {
   const tituloLista = e.hoje && diaDaLista === dia ? `Hoje · ${diaCompleto(dia)}` : maiuscula(diaCompleto(diaDaLista));
 
   const comCardio = plano.treinos.filter((x) => x.cardio);
+  const planoDaLista = mostraAtivo ? planoDaSessao : plano;
+
+  /** Muda um treino do plano (a ordem, o que entra e o que sai) e guarda. */
+  const mudarTreino = (p: PlanoDeTreino, treinoId: string, f: (t: TreinoDoDia) => TreinoDoDia) =>
+    atualizarPlano({ ...p, treinos: p.treinos.map((x) => (x.id === treinoId ? f(x) : x)) });
+
+  const remover = (p: PlanoDeTreino, treinoId: string, exId: string) => {
+    const nome = exercicioPorId(p.treinos.find((x) => x.id === treinoId)?.exercicios.find((x) => x.id === exId)?.exercicioId)?.nome ?? 'Exercício';
+    const feitas = sessaoAtiva?.treinoDoDiaId === treinoId ? sessaoAtiva.series.filter((x) => x.exercicioNoTreinoId === exId).length : 0;
+    const fazer = () => {
+      mudarTreino(p, treinoId, (tr) => removerExercicio(tr, exId));
+      toast(`${nome} saiu do treino`);
+    };
+    if (feitas) confirmDestructive(`Remover ${nome}?`, 'As séries que você já fez hoje continuam salvas no treino.', 'Remover', fazer);
+    else fazer();
+  };
 
   return (
     <TabPage brilho={BRILHO_TREINO}>
@@ -224,6 +245,15 @@ export default function TreinoScreen() {
             sexo={sexo}
             onAbrir={modo === 'andamento' ? abrirSessao : modo === 'planejado' && !sessaoAtiva && t ? (ex) => start(t, ex) : undefined}
             onSerie={modo === 'andamento' ? setRegistrando : undefined}
+            edicao={
+              modo === 'feito' || !planoDaLista
+                ? undefined
+                : {
+                    onAdicionar: () => setAdicionando(true),
+                    onRemover: (id) => remover(planoDaLista, lista.id, id),
+                    onMover: (id, d) => mudarTreino(planoDaLista, lista.id, (tr) => moverExercicio(tr, id, d)),
+                  }
+            }
           />
         ) : (
           <Text tone="secondary" style={styles.vazio}>
@@ -267,6 +297,27 @@ export default function TreinoScreen() {
       )}
 
       {aba === 'semana' && <RelatorioSemana plano={plano} planos={planos} sessoes={sessoes} hoje={today} sexo={sexo} />}
+
+      {/* Adicionar exercícios ao treino mostrado (vale para as próximas vezes) */}
+      {lista && planoDaLista && (
+        <Modal visible={adicionando} animationType="slide" onRequestClose={() => setAdicionando(false)}>
+          <GlassModal
+            badge={<SheetBadge icon="add" label={`${lista.nome.toUpperCase()} · ADICIONAR`} />}
+            onClose={() => setAdicionando(false)}
+            footer={<NeonButton label="Pronto" onPress={() => setAdicionando(false)} />}>
+            <ExerciseLibrary
+              picked={new Set((planoDaLista.treinos.find((x) => x.id === lista.id)?.exercicios ?? []).map((x) => x.exercicioId))}
+              onToggle={(exId) => {
+                const ex = exercicioPorId(exId);
+                if (!ex) return;
+                mudarTreino(planoDaLista, lista.id, (tr) =>
+                  tr.exercicios.some((x) => x.exercicioId === exId) ? tirarDaBiblioteca(tr, exId) : adicionarExercicios(tr, [ex]),
+                );
+              }}
+            />
+          </GlassModal>
+        </Modal>
+      )}
 
       <RegistrarSerieSheet
         item={registrando && treinoAtivo ? (treinoAtivo.exercicios.find((x) => x.id === registrando) ?? null) : null}

@@ -62,3 +62,55 @@ export function totaisDoPeriodo(sessoes: readonly SessaoDeTreino[]): { treinos: 
     kcal: sessoes.reduce((k, s) => k + s.kcal, 0),
   };
 }
+
+/** Grupos do gráfico "Por grupos musculares", na ordem em volta do radar. */
+export const GRUPOS = ['costas', 'ombros', 'abdomen', 'bracos', 'peito', 'pernas'] as const;
+export type Grupo = (typeof GRUPOS)[number];
+
+export const GRUPO_LABELS: Record<Grupo, string> = {
+  costas: 'Costas',
+  ombros: 'Ombros',
+  abdomen: 'Abdômen',
+  bracos: 'Braços',
+  peito: 'Peito',
+  pernas: 'Pernas',
+};
+
+const GRUPO_DO_MUSCULO: Record<Musculo, Grupo> = {
+  'upper-back': 'costas',
+  'lower-back': 'costas',
+  trapezius: 'costas',
+  deltoids: 'ombros',
+  abs: 'abdomen',
+  obliques: 'abdomen',
+  biceps: 'bracos',
+  triceps: 'bracos',
+  forearm: 'bracos',
+  chest: 'peito',
+  quadriceps: 'pernas',
+  hamstring: 'pernas',
+  gluteal: 'pernas',
+  calves: 'pernas',
+  adductors: 'pernas',
+  abductors: 'pernas',
+  tibialis: 'pernas',
+};
+
+/** Séries por grupo muscular (pelo músculo principal de cada exercício). */
+export function seriesPorGrupo(sessoes: readonly SessaoDeTreino[]): Record<Grupo, number> {
+  const out = Object.fromEntries(GRUPOS.map((g) => [g, 0])) as Record<Grupo, number>;
+  for (const { musculo, series } of seriesPorMusculo(sessoes)) out[GRUPO_DO_MUSCULO[musculo]] += series;
+  return out;
+}
+
+/** Por exercício: maior carga do período e quantas séries, do mais feito para o menos. */
+export function cargasPorExercicio(sessoes: readonly SessaoDeTreino[]): { exercicioId: string; cargaKg: number; series: number }[] {
+  const mapa = new Map<string, { cargaKg: number; series: number }>();
+  for (const s of sessoes) {
+    for (const x of s.series) {
+      const atual = mapa.get(x.exercicioId) ?? { cargaKg: 0, series: 0 };
+      mapa.set(x.exercicioId, { cargaKg: Math.max(atual.cargaKg, x.cargaKg), series: atual.series + 1 });
+    }
+  }
+  return [...mapa.entries()].map(([exercicioId, v]) => ({ exercicioId, ...v })).sort((a, b) => b.series - a.series || b.cargaKg - a.cargaKg);
+}

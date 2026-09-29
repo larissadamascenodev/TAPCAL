@@ -3,23 +3,29 @@ import {
   Manrope_500Medium,
   Manrope_600SemiBold,
   Manrope_700Bold,
-} from '@expo-google-fonts/manrope';
-import { Sora_500Medium, Sora_600SemiBold, Sora_700Bold } from '@expo-google-fonts/sora';
-import { useFonts } from 'expo-font';
-import { DarkTheme, Stack, ThemeProvider, type Theme } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+} from "@expo-google-fonts/manrope";
+import {
+  Sora_500Medium,
+  Sora_600SemiBold,
+  Sora_700Bold,
+} from "@expo-google-fonts/sora";
+import { useFonts } from "expo-font";
+import { DarkTheme, Stack, ThemeProvider, type Theme } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
+import { StyleSheet } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
-import { ToastHost } from '@/components/ui/Toast';
-import { WebFrame } from '@/components/ui/WebFrame';
-import { useDayRollover } from '@/hooks/useDayRollover';
-import { colors } from '@/theme/theme';
+import { ToastHost } from "@/components/ui/Toast";
+import { WebFrame } from "@/components/ui/WebFrame";
+import { useDayRollover } from "@/hooks/useDayRollover";
+import { colors } from "@/theme/theme";
 
 SplashScreen.preventAutoHideAsync();
 
 // Quando um atalho abre o app direto numa tela, as abas ficam por baixo dela.
-export const unstable_settings = { initialRouteName: '(tabs)' };
+export const unstable_settings = { initialRouteName: "(tabs)" };
 
 const navTheme: Theme = {
   ...DarkTheme,
@@ -56,40 +62,81 @@ export default function RootLayout() {
   if (!ready) return null;
 
   return (
-    <ThemeProvider value={navTheme}>
-      <WebFrame>
-        <StatusBar style="light" />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: colors.ground },
-          }}>
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="alimento" options={{ presentation: 'modal' }} />
-          <Stack.Screen name="peso" options={{ presentation: 'modal' }} />
-          <Stack.Screen name="rotina" options={{ presentation: 'modal' }} />
-          <Stack.Screen
-            name="treino-sessao"
-            options={{ presentation: 'fullScreenModal', gestureEnabled: false }}
-          />
-          <Stack.Screen name="em-breve" options={{ presentation: 'modal' }} />
-          <Stack.Screen name="busca" options={{ presentation: 'modal' }} />
-          <Stack.Screen name="exercicios" options={{ presentation: 'modal' }} />
-          <Stack.Screen name="treino-novo" options={{ presentation: 'modal' }} />
-          <Stack.Screen name="meus-treinos" options={{ presentation: 'modal' }} />
-          <Stack.Screen name="treino-editor" options={{ presentation: 'modal' }} />
-          <Stack.Screen name="treino-ia" options={{ presentation: 'modal' }} />
-          <Stack.Screen
-            name="editar-alimento"
-            // transparente: a tela de Refeições aparece desfocada atrás da folha
-            options={{ presentation: 'transparentModal', animation: 'fade', contentStyle: { backgroundColor: 'transparent' } }}
-          />
-          <Stack.Screen name="scanner" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
-          <Stack.Screen name="atalho/index" options={{ presentation: 'modal' }} />
-          <Stack.Screen name="atalho/[acao]" options={{ animation: 'none' }} />
-        </Stack>
-        <ToastHost />
-      </WebFrame>
-    </ThemeProvider>
+    // Raiz dos gestos (arrastar para o lado para remover um exercício, etc.)
+    <GestureHandlerRootView style={styles.root}>
+      <ThemeProvider value={navTheme}>
+        <WebFrame>
+          <StatusBar style="light" />
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: colors.ground },
+            }}
+          >
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="alimento" options={{ presentation: "modal" }} />
+            <Stack.Screen name="peso" options={{ presentation: "modal" }} />
+            <Stack.Screen name="rotina" options={{ presentation: "modal" }} />
+            <Stack.Screen
+              name="treino-sessao"
+              options={{
+                presentation: "fullScreenModal",
+                gestureEnabled: false,
+              }}
+            />
+            <Stack.Screen name="em-breve" options={{ presentation: "modal" }} />
+            <Stack.Screen name="busca" options={{ presentation: "modal" }} />
+            <Stack.Screen
+              name="exercicios"
+              options={{ presentation: "modal" }}
+            />
+            <Stack.Screen
+              name="treino-novo"
+              options={{ presentation: "modal" }}
+            />
+            <Stack.Screen
+              name="meus-treinos"
+              options={{ presentation: "modal" }}
+            />
+            <Stack.Screen
+              name="treino-editor"
+              options={{ presentation: "modal" }}
+            />
+            <Stack.Screen
+              name="treino-ia"
+              options={{ presentation: "modal" }}
+            />
+            <Stack.Screen
+              name="editar-alimento"
+              // transparente: a tela de Refeições aparece desfocada atrás da folha
+              options={{
+                presentation: "transparentModal",
+                animation: "fade",
+                contentStyle: { backgroundColor: "transparent" },
+              }}
+            />
+            <Stack.Screen
+              name="scanner"
+              options={{ presentation: "fullScreenModal", animation: "fade" }}
+            />
+            <Stack.Screen
+              name="atalho/index"
+              options={{ presentation: "modal" }}
+            />
+            <Stack.Screen
+              name="atalho/[acao]"
+              options={{ animation: "none" }}
+            />
+          </Stack>
+          <ToastHost />
+        </WebFrame>
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
+});

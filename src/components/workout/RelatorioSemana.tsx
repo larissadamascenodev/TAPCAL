@@ -4,17 +4,27 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Glass, SectionHeader, Text } from '@/components/ui';
 import { daysBetween, fromDateKey } from '@/lib/dates';
-import { exercicioPorId, MUSCULO_LABELS } from '@/lib/exercicios';
+import { exercicioPorId } from '@/lib/exercicios';
 import { formatDayMonth, formatDecimal, formatInt, formatTons, WEEKDAY_SHORT } from '@/lib/format';
 import { minutosDaSessao } from '@/lib/treino/met';
 import { concluidas, proximosTreinos, repsLabel, volume, volumePorDia } from '@/lib/treino/plano';
-import { niveisDoMapa, seriesPorMusculo, sessoesNoPeriodo, totaisDoPeriodo, treinosMaisFeitos, type Periodo } from '@/lib/treino/relatorio';
+import {
+  cargasPorExercicio,
+  niveisDoMapa,
+  seriesPorGrupo,
+  seriesPorMusculo,
+  sessoesNoPeriodo,
+  totaisDoPeriodo,
+  treinosMaisFeitos,
+  type Periodo,
+} from '@/lib/treino/relatorio';
 import { DIA_NOME, diaDaData } from '@/lib/treino/semana';
 import { colors, fonts, radius, spacing } from '@/theme/theme';
 import type { DateKey } from '@/types';
 import type { PlanoDeTreino, SessaoDeTreino, TreinoDoDia } from '@/types/treino';
 
-import { MapaDeCalor } from './MapaMuscular';
+import { MapaDeCalor, MapaMuscular } from './MapaMuscular';
+import { RadarGrupos } from './RadarGrupos';
 
 type Props = {
   plano: PlanoDeTreino;
@@ -47,12 +57,13 @@ export function RelatorioSemana({ plano, planos, sessoes, hoje, sexo }: Props) {
   const doPeriodo = useMemo(() => sessoesNoPeriodo(sessoes, periodo, hoje), [sessoes, periodo, hoje]);
   const totais = totaisDoPeriodo(doPeriodo);
   const musculos = useMemo(() => seriesPorMusculo(doPeriodo), [doPeriodo]);
+  const grupos = useMemo(() => seriesPorGrupo(doPeriodo), [doPeriodo]);
+  const porExercicio = useMemo(() => cargasPorExercicio(doPeriodo), [doPeriodo]);
   const maisFeitos = useMemo(() => treinosMaisFeitos(doPeriodo, [...planos]), [doPeriodo, planos]);
   const vol = useMemo(() => volumePorDia(sessoes, hoje), [sessoes, hoje]);
   const proximos = useMemo(() => proximosTreinos(plano, sessoes, hoje, 3), [plano, sessoes, hoje]);
   const feitos = useMemo(() => concluidas(sessoes, 6), [sessoes]);
   const maxVol = Math.max(1, ...vol.map((v) => v.volumeKg));
-  const maxMusculo = musculos[0]?.series ?? 1;
   const maxTreino = maisFeitos[0]?.vezes ?? 1;
   const alternar = (id: string) => setAberto((a) => (a === id ? null : id));
 
@@ -77,6 +88,15 @@ export function RelatorioSemana({ plano, planos, sessoes, hoje, sexo }: Props) {
         <Numero rotulo="Queimadas" valor={`${formatInt(totais.kcal)}`} unidade="kcal" />
       </View>
 
+      {/* Por grupos musculares (radar) */}
+      <Glass contentStyle={styles.card}>
+        <Text style={styles.cardTitulo}>Por grupos musculares</Text>
+        <RadarGrupos valores={grupos} />
+        <Text variant="caption" tone="muted">
+          Séries de cada grupo {periodo === 'semana' ? 'nesta semana' : 'nos últimos 30 dias'}.
+        </Text>
+      </Glass>
+
       {/* Mapa de calor */}
       <Glass contentStyle={styles.card}>
         <Text style={styles.cardTitulo}>Músculos trabalhados</Text>
@@ -96,18 +116,6 @@ export function RelatorioSemana({ plano, planos, sessoes, hoje, sexo }: Props) {
                 mais séries
               </Text>
             </View>
-            <View style={styles.barrasH}>
-              {musculos.slice(0, 6).map((m, i) => (
-                <View key={m.musculo} style={styles.barraH}>
-                  <Text style={styles.barraNome}>{MUSCULO_LABELS[m.musculo]}</Text>
-                  <View style={styles.barraTrilho}>
-                    {/* Verde só no mais trabalhado; o resto em vidro claro. */}
-                    <View style={[styles.barraCheia, i > 0 && styles.barraClara, { width: `${(m.series / maxMusculo) * 100}%` }]} />
-                  </View>
-                  <Text style={styles.barraValor}>{m.series}</Text>
-                </View>
-              ))}
-            </View>
             <Text variant="caption" tone="muted">
               Séries por músculo principal.
             </Text>
@@ -116,6 +124,33 @@ export function RelatorioSemana({ plano, planos, sessoes, hoje, sexo }: Props) {
           <Text tone="secondary">Os músculos aparecem aqui depois do primeiro treino do período.</Text>
         )}
       </Glass>
+
+      {/* Por exercício */}
+      {porExercicio.length > 0 && (
+        <Glass flush>
+          <Text style={[styles.cardTitulo, styles.cardTituloFlush]}>Por exercício</Text>
+          {porExercicio.slice(0, 6).map((x, i, arr) => {
+            const ex = exercicioPorId(x.exercicioId);
+            return (
+              <View key={x.exercicioId} style={[styles.exRow, i < arr.length - 1 && styles.exLinha]}>
+                <View style={styles.exThumb}>{ex && <MapaMuscular principal={ex.musculoPrincipal} altura={40} podeVirar={false} sexo={sexo} />}</View>
+                <View style={styles.flex}>
+                  <Text style={styles.exNome} numberOfLines={1}>
+                    {ex?.nome ?? 'Exercício'}
+                  </Text>
+                  <Text variant="caption" tone="muted">
+                    {x.series} {x.series === 1 ? 'série' : 'séries'}
+                  </Text>
+                </View>
+                <Text style={styles.exCarga}>
+                  {formatDecimal(x.cargaKg)}
+                  <Text style={styles.tileUnidade}> kg</Text>
+                </Text>
+              </View>
+            );
+          })}
+        </Glass>
+      )}
 
       {/* Treinos mais feitos */}
       {maisFeitos.length > 0 && (
@@ -380,6 +415,37 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 21,
   },
+  cardTituloFlush: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 4,
+  },
+  exRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  exLinha: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.lineSoft,
+  },
+  exThumb: {
+    width: 34,
+    height: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  exNome: {
+    fontFamily: fonts.body.semibold,
+    fontSize: 14.5,
+  },
+  exCarga: {
+    fontFamily: fonts.display.semibold,
+    fontSize: 16,
+    fontVariant: ['tabular-nums'],
+  },
   mapa: {
     alignItems: 'center',
   },
@@ -393,9 +459,6 @@ const styles = StyleSheet.create({
     width: 16,
     height: 8,
     borderRadius: 4,
-  },
-  barrasH: {
-    gap: 10,
   },
   barraH: {
     flexDirection: 'row',

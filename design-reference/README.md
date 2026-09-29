@@ -121,4 +121,7 @@ Escolha feita entre as opções em `opcoes-treino/` (A, B e C): o topo da C e a 
 - `treino-v4-registrar-serie.png` — tocar numa série (treino em andamento) abre o modal com carga e repetições; "Concluir série" registra e o modal passa para a próxima com animação; a bolinha da série feita aparece com animação na lista.
 - `treino-v4-semana-mapa.png` — aba Semana: esta semana ou 30 dias; treinos, tempo e kcal; mapa de calor do corpo (frente e costas) e músculos mais trabalhados; treinos mais feitos; volume por dia.
 - `treino-v4-semana-listas.png` — próximos e concluídos abrem na própria aba (exercícios planejados; séries feitas com carga × repetições).
+- `treino-v4-adicionar.png` — "+ Adicionar exercício" no fim da linha do tempo (abre a biblioteca; vale para qualquer plano, inclusive o da IA).
+- `treino-v4-editar.png` — segurar um exercício (ou tocar em "Editar") abre o modo de edição: remover (−) e mudar a ordem (setas). Arrastar o exercício para o lado também mostra "Remover". As mudanças ficam no plano.
+- `treino-v4-semana-radar.png` — "Por grupos musculares": radar com as séries de Costas, Ombros, Abdômen, Braços, Peito e Pernas (referência enviada). Abaixo, "Por exercício" com a maior carga e as séries de cada um.
 - Tom: escuro e vidro; verde só em detalhes.
