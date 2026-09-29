@@ -97,3 +97,9 @@ Mockup interativo em `v4.html`; `v4.png` mostra as seis telas.
 - `treino-editor-copiar.png` — copiar o treino para outro dia (dia de descanso vira dia de treino; dia montado é substituído, com confirmação).
 - `treino-criar-exercicio.png` — "Não achou? Criar exercício": nome, músculo principal e equipamento; fica só na biblioteca da pessoa.
 - Reordenar é com os botões de subir e descer (sem arrastar), para não depender de biblioteca nova.
+
+## Treino (etapa 4: progressão de carga)
+
+- `treino-progressao-subir.png` — o campo Carga já vem com a carga nova e, embaixo, a linha verde com o motivo ("Suba para 60 kg: você fez 10, 10, 10, 10 na última vez").
+- `treino-progressao-manter.png` — manter ou reduzir aparecem na mesma linha, em cinza ("Mantenha 55 kg e busque 10 repetições").
+- A linha só aparece antes da primeira série do exercício; depois disso, os campos seguem a última série feita.

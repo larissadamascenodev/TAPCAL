@@ -17,9 +17,10 @@ import { MapaMuscular } from '@/components/workout/MapaMuscular';
 import { exercicioPorId, MUSCULO_LABELS } from '@/lib/exercicios';
 import { formatDecimal, formatDuration, formatInt } from '@/lib/format';
 import { bateRecorde, proximoExercicio, recorde, repsLabel, seriesFeitas, ultimasSeries } from '@/lib/treino/plano';
+import { historicoQueConta, sugerirCarga, type Sugestao } from '@/lib/treino/progressao';
 import { useAppStore } from '@/store/useAppStore';
 import { colors, fonts, radius, spacing } from '@/theme/theme';
-import type { ExercicioNoTreino, SessaoDeTreino, SessaoEmAndamento } from '@/types/treino';
+import type { ExercicioNoTreino, PlanoDeTreino, SessaoDeTreino, SessaoEmAndamento } from '@/types/treino';
 
 const KG_STEP = 2.5;
 
@@ -33,12 +34,21 @@ function useNow() {
   return now;
 }
 
-/** Carga e repetições iniciais: as da última série feita, ou da última vez, ou a carga inicial do plano. */
-function suggestion(ex: ExercicioNoTreino, session: SessaoEmAndamento, past: SessaoDeTreino[]) {
+/** Sugestão da progressão de carga para o exercício (null = sem histórico). */
+function progressao(ex: ExercicioNoTreino, past: SessaoDeTreino[], planos: PlanoDeTreino[]): Sugestao | null {
+  const info = exercicioPorId(ex.exercicioId);
+  return info ? sugerirCarga(ex, info, historicoQueConta(past, planos, ex.exercicioId)) : null;
+}
+
+/**
+ * Carga e repetições iniciais: as da última série feita hoje; senão, a
+ * sugestão da progressão (com base na última vez); senão, a carga inicial do plano.
+ */
+function suggestion(ex: ExercicioNoTreino, session: SessaoEmAndamento, past: SessaoDeTreino[], planos: PlanoDeTreino[]) {
   const here = session.series.filter((s) => s.exercicioNoTreinoId === ex.id).at(-1);
   if (here) return { kg: here.cargaKg, reps: here.reps };
-  const last = ultimasSeries(past, ex.exercicioId)?.series.at(-1);
-  if (last) return { kg: last.cargaKg, reps: last.reps };
+  const sug = progressao(ex, past, planos);
+  if (sug) return { kg: sug.cargaKg, reps: sug.repsAlvo };
   return { kg: ex.cargaInicialKg ?? 10, reps: ex.repsMin };
 }
 
@@ -54,7 +64,7 @@ export default function TreinoSessaoScreen() {
   const [index, setIndex] = useState(() => (session && treino ? proximoExercicio(treino, session) : 0));
   const exercise = treino?.exercicios[index];
   const [input, setInput] = useState(() =>
-    session && exercise ? suggestion(exercise, session, past) : { kg: 10, reps: 10 },
+    session && exercise ? suggestion(exercise, session, past, planos) : { kg: 10, reps: 10 },
   );
   const [restUntil, setRestUntil] = useState<number | null>(null);
 
@@ -68,11 +78,13 @@ export default function TreinoSessaoScreen() {
   const restLeft = restUntil ? Math.ceil((restUntil - now) / 1000) : 0;
   const lastTime = ultimasSeries(past, exercise.exercicioId)?.series ?? [];
   const record = recorde(past, exercise.exercicioId);
+  // A linha do motivo só aparece antes da primeira série do exercício hoje.
+  const sugestao = done === 0 ? progressao(exercise, past, planos) : null;
 
   const goTo = (i: number) => {
     const ex = treino.exercicios[i];
     setIndex(i);
-    setInput(suggestion(ex, session, past));
+    setInput(suggestion(ex, session, past, planos));
     setRestUntil(null);
   };
 
@@ -201,6 +213,19 @@ export default function TreinoSessaoScreen() {
               onPlus={() => setInput((v) => ({ ...v, reps: v.reps + 1 }))}
             />
           </Glass>
+        </View>
+      )}
+
+      {!exerciseDone && sugestao && (
+        <View style={[styles.motivo, sugestao.tipo === 'subir' || sugestao.tipo === 'mais-reps' ? styles.motivoSobe : null]} accessibilityLiveRegion="polite">
+          <Ionicons
+            name={sugestao.tipo === 'subir' || sugestao.tipo === 'mais-reps' ? 'trending-up' : sugestao.tipo === 'reduzir' ? 'trending-down' : 'repeat'}
+            size={16}
+            color={sugestao.tipo === 'subir' || sugestao.tipo === 'mais-reps' ? colors.lime : colors.ink2}
+          />
+          <Text variant="caption" style={styles.motivoText}>
+            {sugestao.motivo}
+          </Text>
         </View>
       )}
 
@@ -347,6 +372,26 @@ const styles = StyleSheet.create({
   inputs: {
     flexDirection: 'row',
     gap: 10,
+  },
+  motivo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: radius.lg,
+    backgroundColor: colors.glassFill,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  motivoSobe: {
+    backgroundColor: colors.limeWash,
+    borderColor: colors.limeEdge,
+  },
+  motivoText: {
+    flex: 1,
+    fontFamily: fonts.body.semibold,
+    color: colors.ink,
   },
   inputCard: {
     flex: 1,

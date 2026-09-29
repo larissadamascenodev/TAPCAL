@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals
 import mockAsyncStorage from '@react-native-async-storage/async-storage/jest/async-storage-mock';
 
 import { exercicioPorId } from '@/lib/exercicios';
+import { historicoQueConta, sugerirCarga } from '@/lib/treino/progressao';
 import { SAMPLE_PROFILE, SAMPLE_WORKOUT_PLANS, sampleSessions } from '@/data/sample';
 import { burnedOn, goalPlan, remainingToday, workoutToday } from '@/store/selectors';
 import { migrarStore, useAppStore } from '@/store/useAppStore';
@@ -173,6 +174,20 @@ describe('treino', () => {
     expect(exercicioPorId(ex.id)?.origem).toBe('usuario');
     store().clearAll();
     expect(exercicioPorId(ex.id)).toBeUndefined();
+  });
+
+  it('PRONTO QUANDO (etapa 4): depois de 12, 12, 12 no agachamento, o próximo treino sugere subir', () => {
+    store().salvarPlano(planoTeste());
+    store().comecarTreino('t-seg');
+    for (let i = 0; i < 3; i++) store().registrarSerie('e1', 60, 12);
+    jest.advanceTimersByTime(40 * 60_000);
+    store().finalizarTreino();
+
+    jest.setSystemTime(at(2026, 10, 5)); // segunda seguinte
+    const { sessoes, planos } = store();
+    const alvo = planos[0].treinos[0].exercicios[0];
+    const sug = sugerirCarga(alvo, exercicioPorId(alvo.exercicioId)!, historicoQueConta(sessoes, planos, alvo.exercicioId));
+    expect(sug).toMatchObject({ tipo: 'subir', cargaKg: 65, motivo: 'Suba para 65 kg: você fez 12, 12, 12 na última vez' });
   });
 
   it('apagar série renumera as seguintes', () => {
