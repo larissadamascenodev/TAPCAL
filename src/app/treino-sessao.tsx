@@ -221,12 +221,14 @@ export default function TreinoSessaoScreen() {
         </View>
         {descansando && descanso ? (
           <View style={styles.descansoBtns}>
-            <Redondo label="−15" sub="SEG" onPress={() => ajustarDescanso(-15)} />
+            <Redondo label="−15" sub="s" onPress={() => ajustarDescanso(-15)} />
             <Pressable accessibilityRole="button" accessibilityLabel="Pular o descanso" onPress={pularDescanso} style={({ pressed }) => [styles.pular, pressed && styles.pressed]}>
               <Ionicons name="play-skip-forward" size={15} color={colors.onInk} />
-              <Text style={styles.pularText}>PULAR</Text>
+              <Text style={styles.pularText} numberOfLines={1}>
+                PULAR DESCANSO
+              </Text>
             </Pressable>
-            <Redondo label="+15" sub="SEG" onPress={() => ajustarDescanso(15)} />
+            <Redondo label="+15" sub="s" onPress={() => ajustarDescanso(15)} />
           </View>
         ) : null}
 
@@ -311,8 +313,9 @@ export default function TreinoSessaoScreen() {
 function Redondo({ label, sub, onPress }: { label: string; sub: string; onPress: () => void }) {
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={`${label} segundos`} onPress={onPress} style={({ pressed }) => [styles.redondo, pressed && styles.pressed]}>
-      <Text style={styles.redondoText}>{label}</Text>
-      <Text style={styles.redondoSub}>{sub}</Text>
+      <Text style={styles.redondoText}>
+        {label} {sub}
+      </Text>
     </Pressable>
   );
 }
@@ -561,11 +564,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 14,
+    gap: 8,
     marginTop: -spacing.xs,
   },
   redondo: {
-    width: 58,
+    width: 72,
     height: 58,
     borderRadius: 29,
     alignItems: 'center',
@@ -580,25 +583,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 17,
   },
-  redondoSub: {
-    fontFamily: fonts.body.bold,
-    fontSize: 9,
-    letterSpacing: 0.6,
-    color: colors.ink3,
-  },
   pular: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     height: 58,
-    paddingHorizontal: 26,
+    paddingHorizontal: 10,
+    flex: 1,
+    justifyContent: 'center',
     borderRadius: 29,
     backgroundColor: colors.ink,
   },
   pularText: {
     fontFamily: fonts.display.bold,
-    fontSize: 13,
-    letterSpacing: 2.2,
+    fontSize: 11.5,
+    letterSpacing: 0.8,
     color: colors.onInk,
   },
   fatos: {

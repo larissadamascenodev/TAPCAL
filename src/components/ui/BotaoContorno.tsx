@@ -9,11 +9,11 @@ import { colors, fonts } from '@/theme/theme';
 import { Text } from './Text';
 
 const H = 58;
-const TRACO = 2;
+const TRACO = 1.5;
 /** Uma volta da luz em volta do botão (ms): devagar, sem nada brusco. */
-const VOLTA_MS = 5200;
-/** Tamanho do trecho de luz, em fração do contorno. */
-const TRECHO = 0.28;
+const VOLTA_MS = 6500;
+/** Tamanho do trecho de luz, em fração do contorno: só uma luzinha. */
+const TRECHO = 0.1;
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
@@ -67,7 +67,9 @@ export function BotaoContorno({ label, onPress, disabled, style }: Props) {
       {w > 0 && (
         <Svg width={w} height={H} style={styles.svg} pointerEvents="none">
           <Path d={d} fill="none" stroke={colors.line} strokeWidth={1} />
-          <AnimatedPath d={d} fill="none" stroke={colors.lime} strokeWidth={TRACO} strokeLinecap="round" strokeDasharray={`${trecho} ${perimetro - trecho}`} animatedProps={luz} />
+          {/* brilho largo e fraco por baixo, e o fio de luz por cima */}
+          <AnimatedPath d={d} fill="none" stroke={colors.tracoBrilho} strokeWidth={TRACO * 3} strokeLinecap="round" strokeDasharray={`${trecho} ${perimetro - trecho}`} animatedProps={luz} />
+          <AnimatedPath d={d} fill="none" stroke={colors.limeLight} strokeWidth={TRACO} strokeLinecap="round" strokeDasharray={`${trecho} ${perimetro - trecho}`} animatedProps={luz} />
         </Svg>
       )}
       <View pointerEvents="none" style={styles.brilho} />

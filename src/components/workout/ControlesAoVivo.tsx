@@ -34,7 +34,8 @@ const tique = () => {
  */
 export function ControlesAoVivo({ treino, sessao, historico, planos }: Props) {
   const agora = useAgora();
-  const { registrarSerie, iniciarDescanso, ajustarDescanso, pularDescanso, pularExercicio, finalizarTreino } = useAppStore();
+  const { registrarSerie, iniciarDescanso, ajustarDescanso, pularDescanso, pularExercicio, finalizarTreino, pausarTreino, retomarTreino } = useAppStore();
+  const pausado = !!sessao.pausadoEm;
   const [aberto, setAberto] = useState(false);
   // Última série feita (ou último exercício pulado): o treino do dia se fecha sozinho.
   const fecharSeAcabou = () => {
@@ -88,7 +89,32 @@ export function ControlesAoVivo({ treino, sessao, historico, planos }: Props) {
 
   return (
     <>
-      <BotaoContorno label="Concluir série" onPress={() => setAberto(true)} />
+      <View style={styles.descanso}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={pausado ? 'Continuar o treino' : 'Pausar o treino'}
+          onPress={() => {
+            tique();
+            if (pausado) retomarTreino();
+            else pausarTreino();
+          }}
+          style={({ pressed }) => [styles.redondo, pausado && styles.redondoOn, pressed && styles.pressed]}>
+          <Ionicons name={pausado ? 'play' : 'pause'} size={20} color={pausado ? colors.onLime : colors.ink} />
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Concluir série"
+          onPress={() => {
+            tique();
+            setAberto(true);
+          }}
+          style={({ pressed }) => [styles.pular, pressed && styles.pressed]}>
+          <Ionicons name="checkmark" size={16} color={colors.onInk} />
+          <Text style={styles.pularText} numberOfLines={1}>
+            CONCLUIR SÉRIE
+          </Text>
+        </Pressable>
+      </View>
       <ConcluirSerieModal
         visible={aberto}
         item={atual}
@@ -251,6 +277,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
     borderTopColor: colors.frostCardEdgeTop,
+  },
+  redondoOn: {
+    backgroundColor: colors.lime,
+    borderColor: colors.lime,
   },
   redondoText: {
     fontFamily: fonts.display.semibold,

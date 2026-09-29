@@ -32,6 +32,8 @@ type Props = {
   below?: ReactNode;
   /** Altura de `below`, para o fundo do topo cobrir ele também. */
   belowHeight?: number;
+  /** No meio do topo (ex.: a pílula do treino em andamento); com ela, o nome não aparece. */
+  centro?: ReactNode;
 };
 
 /**
@@ -39,7 +41,7 @@ type Props = {
  * direita. Assim que a tela começa a rolar, o nome do perfil aparece e o
  * fundo ganha um desfoque que some para baixo.
  */
-export function AppHeader({ name, streakDays, scrolled, below, belowHeight = 0 }: Props) {
+export function AppHeader({ name, streakDays, scrolled, below, belowHeight = 0, centro }: Props) {
   const insets = useSafeAreaInsets();
   const top = insets.top + spacing.sm;
   const height = top + APP_HEADER_H + belowHeight;
@@ -67,11 +69,17 @@ export function AppHeader({ name, streakDays, scrolled, below, belowHeight = 0 }
 
         <Animated.View
           accessibilityElementsHidden={!scrolled}
-          style={[styles.nameWrap, { opacity: scrolled ? 1 : 0, transform: [{ translateY: scrolled ? 0 : 6 }] }, FADE_IN]}>
+          style={[styles.nameWrap, { opacity: scrolled && !centro ? 1 : 0, transform: [{ translateY: scrolled ? 0 : 6 }] }, FADE_IN]}>
           <Text style={styles.name} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
             {name}
           </Text>
         </Animated.View>
+
+        {centro ? (
+          <View pointerEvents="box-none" style={styles.centro}>
+            {centro}
+          </View>
+        ) : null}
 
         <View style={styles.actions}>
           <StreakBadge days={streakDays} />
@@ -136,6 +144,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
+  },
+  centro: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   nameWrap: {
     flex: 1,

@@ -217,8 +217,6 @@ export function CardAoVivo({
   historico,
   planos,
   onAbrir,
-  onPausar,
-  onContinuar,
 }: {
   treino: TreinoDoDia;
   sessao: SessaoEmAndamento;
@@ -226,8 +224,6 @@ export function CardAoVivo({
   historico: readonly SessaoDeTreino[];
   planos: readonly PlanoDeTreino[];
   onAbrir: () => void;
-  onPausar: () => void;
-  onContinuar: () => void;
 }) {
   const agora = useAgora();
   const [tam, setTam] = useState({ w: 0, h: 0 });
@@ -292,19 +288,10 @@ export function CardAoVivo({
           ) : null}
         </Pressable>
         <View style={styles.divisor} />
-        {/* Direita: o tempo; tocar pausa ou continua */}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`${descansando ? 'Descanso' : 'Tempo de treino'} ${formatDuration(descansando ? restante : seg)}. ${pausado ? 'Continuar' : 'Pausar'}`}
-          onPress={pausado ? onContinuar : onPausar}
-          hitSlop={8}
-          style={({ pressed }) => [styles.tempoCol, pressed && styles.pressed]}>
+        <View style={styles.tempoCol}>
           <Text style={[styles.tempo, pausado && styles.tempoPausado]}>{formatDuration(descansando ? restante : seg)}</Text>
-          {descansando ? <Text style={styles.tempoRotulo}>DESCANSO</Text> : null}
-          <View style={[styles.play, pausado && styles.playOn]}>
-            <Ionicons name={pausado ? 'play' : 'pause'} size={14} color={pausado ? colors.onLime : colors.ink} />
-          </View>
-        </Pressable>
+          {descansando || pausado ? <Text style={styles.tempoRotulo}>{descansando ? 'DESCANSO' : 'PAUSADO'}</Text> : null}
+        </View>
       </Glass>
     </View>
   );
@@ -452,18 +439,6 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
-  play: {
-    width: 30,
-    height: 30,
-    marginTop: 8,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.glassFillStrong,
-  },
-  playOn: {
-    backgroundColor: colors.lime,
-  },
   selo: {
     width: 16,
     height: 16,
@@ -551,7 +526,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.lineSoft,
   },
   tempoCol: {
-    alignItems: 'center',
+    alignItems: 'flex-end',
   },
   tempoRotulo: {
     fontFamily: fonts.body.bold,

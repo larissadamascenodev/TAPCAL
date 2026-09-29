@@ -77,7 +77,7 @@ function naSemana(t: TreinoDoDia, plano: PlanoDeTreino | undefined, data: DateKe
  */
 export default function TreinoScreen() {
   const state = useAppStore();
-  const { today: day, planos, sessoes, sessaoAtiva, comecarTreino, pausarTreino, retomarTreino, atualizarPlano } = state;
+  const { today: day, planos, sessoes, sessaoAtiva, comecarTreino, atualizarPlano } = state;
   const sexo = state.profile?.sex;
   const today = day.date;
   const [dia, setDia] = useState<DiaSemana>(() => diaDaData(today));
@@ -115,7 +115,7 @@ export default function TreinoScreen() {
 
   if (!plano) {
     return (
-      <TabPage>
+      <TabPage semAoVivo>
         {header}
         <EmptyState icon="barbell-outline" title="Monte seu treino" message="Escolha os dias e os exercícios, ou deixe a IA montar para você." />
         <NeonButton label="Criar treino" onPress={() => router.push('/treino-novo')} />
@@ -167,7 +167,7 @@ export default function TreinoScreen() {
   };
 
   return (
-    <TabPage>
+    <TabPage semAoVivo>
       {header}
 
       <SemanaTreino hoje={today} estados={estados} selecionado={dia} onSelect={setDia} />
@@ -211,12 +211,12 @@ export default function TreinoScreen() {
           <Text style={styles.aoVivoTopo} numberOfLines={1}>
             {sessaoAtiva.data === today ? 'Hoje' : `Treino de ${diaCompleto(sessaoAtiva.diaPlanejado)}`} · {treinoAtivo.nome}
           </Text>
-          <CardAoVivo treino={treinoAtivo} sessao={sessaoAtiva} historico={sessoes} planos={planos} onAbrir={() => abrirSessao()} onPausar={pausarTreino} onContinuar={retomarTreino} />
+          <CardAoVivo treino={treinoAtivo} sessao={sessaoAtiva} historico={sessoes} planos={planos} onAbrir={() => abrirSessao()} />
           <ControlesAoVivo treino={treinoAtivo} sessao={sessaoAtiva} historico={sessoes} planos={planos} />
         </View>
       ) : (
         <>
-          {sessaoAtiva && treinoAtivo && <CardAoVivo treino={treinoAtivo} sessao={sessaoAtiva} historico={sessoes} planos={planos} onAbrir={() => abrirSessao()} onPausar={pausarTreino} onContinuar={retomarTreino} />}
+          {sessaoAtiva && treinoAtivo && <CardAoVivo treino={treinoAtivo} sessao={sessaoAtiva} historico={sessoes} planos={planos} onAbrir={() => abrirSessao()} />}
           {!t ? (
             <HeroDescanso kicker={kicker} proximo={upcoming[0] && `${dayLabel(upcoming[0].data, today).toLowerCase()} · ${upcoming[0].treino.nome}`} />
           ) : e.tipo === 'feito' && e.sessao ? (
