@@ -127,3 +127,14 @@ Escolha feita entre as opções em `opcoes-treino/` (A, B e C): o topo da C e a 
 - `treino-sessao-v5-descanso.png` — ao concluir uma série, o descanso aparece no lugar do corpo: anel em contagem regressiva, a próxima série (carga × repetições) e −15 s / Pular / +15 s.
 - `treino-sessao-v5-series.png` — séries feitas em linha do tempo (nós verdes com ✓, carga × repetições e a hora); segurar uma série apaga.
 - Tom: escuro e vidro; verde só em detalhes.
+
+## Treino — layout aplicado (tema e vidro atuais do app)
+
+Layout do mockup `treino-v7/`, com o tema e o vidro que já valem na Início e na Alimentação; verde só em detalhes. Imagens em `treino-aplicado/`.
+
+- `1-antes-de-iniciar.png` — dia, nome do treino (até 2 linhas), músculos com as cores do corpo e o número de exercícios; corpo à direita; "Iniciar treino".
+- `2-em-andamento.png` — no lugar da legenda, o mostrador de traços com o tempo e as séries; embaixo, o exercício da vez e os botões Pausar e Abrir.
+- `3-lista.png` — linha do tempo só com o exercício e "N de M séries"; atual tracejado fechando a cada série, feito com selo ✓. Segurar e arrastar muda a ordem.
+- `4-resumo-exercicio.png` — tocar num exercício abre o resumo no meio da tela: tempo, séries, volume, séries com descanso e recorde, última vez.
+- `5-editar.png` — Editar: alça para arrastar e deslizar para remover (sem setas).
+- `6-ao-vivo.png` / `7-descanso.png` — treino ao vivo: corpo solto, faixa última vez/recorde/meta, carga e repetições lado a lado (cargas inteiras, de 2 em 2 kg), séries em linha do tempo; descanso no mostrador de traços com −15 / Pular / +15.

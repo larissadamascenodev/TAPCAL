@@ -1,19 +1,19 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useIsFocused } from 'expo-router';
-import { useState } from 'react';
-import * as Haptics from 'expo-haptics';
+import { useRef, useState, type ReactNode } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
-import Animated, { ZoomIn } from 'react-native-reanimated';
+import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming, ZoomIn, type SharedValue } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
-import { exercicioPorId, MUSCULO_LABELS } from '@/lib/exercicios';
-import { formatDecimal } from '@/lib/format';
-import { proximoExercicio, repsLabel, ultimasSeries } from '@/lib/treino/plano';
-import { colors, fonts, gradients, spacing } from '@/theme/theme';
-import type { Cardio, ExercicioNoTreino, SerieFeita, SessaoDeTreino, TreinoDoDia } from '@/types/treino';
+import { exercicioPorId } from '@/lib/exercicios';
+import { proximoExercicio } from '@/lib/treino/plano';
+import { colors, fonts, gradients, radius, spacing } from '@/theme/theme';
+import type { Cardio, ExercicioNoTreino, SerieFeita, TreinoDoDia } from '@/types/treino';
 
 import { MapaMuscular } from './MapaMuscular';
 
@@ -26,23 +26,17 @@ type Props = {
   titulo: string;
   /** Séries já feitas (do treino em andamento ou do treino concluído). */
   series: readonly SerieFeita[];
-  /** Treinos anteriores, para "última vez". */
-  historico: readonly SessaoDeTreino[];
   sexo?: 'feminino' | 'masculino';
+  /** Tocar num exercício: abre o resumo dele (séries feitas, tempo). */
+  onVer: (exercicioNoTreinoId: string) => void;
   /**
-   * Em andamento: abre o treino ao vivo nesse exercício (também ao tocar numa
-   * série). Planejado: começa o treino por ele.
-   */
-  onAbrir?: (exercicioNoTreinoId: string) => void;
-  /**
-   * Edição do treino (vale também para plano da IA): adicionar no fim,
-   * remover (arrastando para o lado ou no modo de edição) e mudar a ordem.
-   * Segurar um exercício abre o modo de edição.
+   * Edição do treino (vale também para plano da IA). Fora do Editar: segurar
+   * e arrastar muda a ordem. No Editar: a alça arrasta e deslizar remove.
    */
   edicao?: {
     onAdicionar: () => void;
     onRemover: (exercicioNoTreinoId: string) => void;
-    onMover: (exercicioNoTreinoId: string, delta: -1 | 1) => void;
+    onMoverPara: (exercicioNoTreinoId: string, indice: number) => void;
   };
 };
 
@@ -53,13 +47,10 @@ const tique = () => {
 const NO = 40;
 const NO_R = 18;
 const NO_C = 2 * Math.PI * NO_R;
+/** Segurar por este tempo (ms) para começar a arrastar fora do Editar. */
+const SEGURAR = 320;
 
-const hora = (iso: string) => {
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '' : `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-};
-
-/** Depois do selo, a linha verde desce até o próximo exercício. */
+/** Depois do selo, a linha desce até o próximo exercício. */
 const DESCER = {
   animationName: { from: { height: '0%' as const }, to: { height: '100%' as const } },
   animationDuration: 520,
@@ -71,29 +62,43 @@ const DESCER = {
 const nomeCardio = (c: Cardio) => (c.atividade === 'eliptico' ? 'elíptico' : c.atividade);
 
 /**
- * Exercícios do dia em linha do tempo (sem cartões): cada exercício é um ponto
- * na linha; o atual tem um reflexo de vidro e o ponto em destaque. Fechado,
- * mostra só o exercício; aberto, as séries. O atual (ou o primeiro) já vem aberto.
+ * Exercícios do dia em linha do tempo: cada exercício é um ponto na linha,
+ * com o nome e quantas séries já foram feitas. O atual é um círculo tracejado
+ * que fecha a cada série; feito, vira um selo com ✓. Tocar abre o resumo.
  */
-export function ListaExerciciosDoDia({ treino, modo, titulo, series, historico, sexo, onAbrir, edicao }: Props) {
+export function ListaExerciciosDoDia({ treino, modo, titulo, series, sexo, onVer, edicao }: Props) {
   const [editando, setEditando] = useState(false);
   // O selo de "feito" entra com animação quando a pessoa volta para a lista
   // (as séries são marcadas no treino ao vivo, com esta tela escondida).
   const focado = useIsFocused();
   const [vistos, setVistos] = useState<readonly string[]>([]);
-  const completos = treino.exercicios.filter((e) => modo !== 'planejado' && series.filter((s) => s.exercicioNoTreinoId === e.id).length >= e.series).map((e) => e.id);
+  const feitasDe = (id: string) => series.filter((s) => s.exercicioNoTreinoId === id).length;
+  const completos = treino.exercicios.filter((e) => modo !== 'planejado' && feitasDe(e.id) >= e.series).map((e) => e.id);
   if (focado && completos.some((id) => !vistos.includes(id))) setVistos(completos);
   const selados = new Set(completos.filter((id) => focado || vistos.includes(id)));
-  const idAtual =
-    modo === 'andamento'
-      ? treino.exercicios[proximoExercicio(treino, { series: [...series] })]?.id
-      : modo === 'planejado'
-        ? treino.exercicios[0]?.id
-        : undefined;
-  // A escolha da pessoa vale enquanto o exercício atual não muda; quando ele
-  // termina, a lista volta a abrir o próximo sozinha.
-  const [escolha, setEscolha] = useState<{ id: string | null; base: string | undefined } | null>(null);
-  const aberto = escolha && escolha.base === idAtual ? escolha.id : (idAtual ?? null);
+  const idAtual = modo === 'andamento' ? treino.exercicios[proximoExercicio(treino, { series: [...series] })]?.id : undefined;
+
+  // Arrastar para mudar a ordem: alturas medidas de cada linha, qual está
+  // sendo arrastada, quanto andou e para que posição vai.
+  const alturasRef = useRef<number[]>([]);
+  const alturas = useSharedValue<number[]>([]);
+  const arrastando = useSharedValue(-1);
+  const dy = useSharedValue(0);
+  const alvo = useSharedValue(-1);
+  const n = treino.exercicios.length;
+  const medir = (i: number, h: number) => {
+    const lista = alturasRef.current.slice(0, n);
+    lista[i] = h;
+    alturasRef.current = lista;
+    alturas.value = [...lista];
+  };
+  const soltar = (id: string, de: number, para: number) => {
+    if (edicao && para >= 0 && para !== de) edicao.onMoverPara(id, para);
+    arrastando.value = -1;
+    dy.value = 0;
+    alvo.value = -1;
+  };
+  const arrasto = { alturas, arrastando, dy, alvo, onSoltar: soltar, onAltura: medir };
 
   return (
     <View>
@@ -105,92 +110,74 @@ export function ListaExerciciosDoDia({ treino, modo, titulo, series, historico, 
           </Pressable>
         ) : (
           <Text variant="caption" tone="muted">
-            {treino.exercicios.length} {treino.exercicios.length === 1 ? 'exercício' : 'exercícios'}
+            {n} {n === 1 ? 'exercício' : 'exercícios'}
           </Text>
         )}
       </View>
       {editando && (
         <Text variant="caption" tone="muted" style={styles.dicaEdicao}>
-          Mude a ordem com as setas ou tire o que não vai fazer. Vale para as próximas vezes deste treino.
+          Segure a alça e arraste para mudar a ordem. Deslize para o lado para remover. Vale para as próximas vezes deste treino.
         </Text>
       )}
+
       {treino.exercicios.map((e, i) => {
-        const feitas = series.filter((s) => s.exercicioNoTreinoId === e.id);
-        const ultimo = i === treino.exercicios.length - 1 && !treino.cardio && !edicao;
+        const feitas = feitasDe(e.id);
         if (editando && edicao) {
+          const nome = exercicioPorId(e.exercicioId)?.nome ?? 'exercício';
           return (
-            <ItemEdicao
-              key={e.id}
-              item={e}
-              ordem={i + 1}
-              primeiro={i === 0}
-              ultimoDaLista={i === treino.exercicios.length - 1}
-              sexo={sexo}
-              onRemover={() => edicao.onRemover(e.id)}
-              onMover={(d) => edicao.onMover(e.id, d)}
-            />
+            <Arrastavel key={e.id} id={e.id} index={i} pelaAlca {...arrasto}>
+              {(alca) => (
+                <ReanimatedSwipeable
+                  friction={2}
+                  rightThreshold={60}
+                  overshootRight={false}
+                  renderRightActions={(_p, _t, metodos) => (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Remover ${nome} do treino`}
+                      onPress={() => {
+                        metodos.close();
+                        edicao.onRemover(e.id);
+                      }}
+                      style={styles.remover}>
+                      <Ionicons name="trash-outline" size={18} color={colors.warnText} />
+                      <Text style={styles.removerText}>Remover</Text>
+                    </Pressable>
+                  )}>
+                  <ItemEdicao item={e} ordem={i + 1} sexo={sexo} alca={alca} />
+                </ReanimatedSwipeable>
+              )}
+            </Arrastavel>
           );
         }
-        const linha = (
-          <Item
-            key={e.id}
-            item={e}
-            ordem={i + 1}
-            modo={modo}
-            atual={e.id === idAtual}
-            feitas={feitas}
-            selo={selados.has(e.id)}
-            historico={historico}
-            sexo={sexo}
-            aberto={aberto === e.id}
-            ultimo={ultimo}
-            onToggle={() => setEscolha({ id: aberto === e.id ? null : e.id, base: idAtual })}
-            onAbrir={onAbrir && (() => onAbrir(e.id))}
-            onLongPress={
-              edicao &&
-              (() => {
-                tique();
-                setEditando(true);
-              })
-            }
-          />
-        );
-        if (!edicao) return linha;
-        // Arrastar para o lado mostra "Remover".
+        const completo = modo !== 'planejado' && feitas >= e.series;
         return (
-          <ReanimatedSwipeable
-            key={e.id}
-            friction={2}
-            rightThreshold={60}
-            overshootRight={false}
-            renderRightActions={(_p, _t, metodos) => (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`Remover ${exercicioPorId(e.exercicioId)?.nome ?? 'exercício'} do treino`}
-                onPress={() => {
-                  metodos.close();
-                  edicao.onRemover(e.id);
-                }}
-                style={styles.remover}>
-                <Ionicons name="trash-outline" size={18} color={colors.warnText} />
-                <Text style={styles.removerText}>Remover</Text>
-              </Pressable>
-            )}>
-            {linha}
-          </ReanimatedSwipeable>
+          <Arrastavel key={e.id} id={e.id} index={i} desligado={!edicao} {...arrasto}>
+            {() => (
+              <Item
+                item={e}
+                ordem={i + 1}
+                modo={modo}
+                estado={completo ? 'feito' : e.id === idAtual ? 'atual' : 'depois'}
+                feitas={feitas}
+                selo={selados.has(e.id)}
+                sexo={sexo}
+                ultimo={i === n - 1 && !treino.cardio && !edicao}
+                onPress={() => onVer(e.id)}
+              />
+            )}
+          </Arrastavel>
         );
       })}
+
       {edicao && (
         <View style={styles.item}>
           <View style={styles.trilho}>
             <View style={[styles.no, styles.noAdd]}>
-              <Ionicons name="add" size={16} color={colors.lime} />
+              <Ionicons name="add" size={17} color={colors.ink2} />
             </View>
           </View>
-          <Pressable
-            accessibilityRole="button"
-            onPress={edicao.onAdicionar}
-            style={({ pressed }) => [styles.conteudo, styles.adicionar, pressed && styles.pressed]}>
+          <Pressable accessibilityRole="button" onPress={edicao.onAdicionar} style={({ pressed }) => [styles.conteudo, styles.adicionar, pressed && styles.pressed]}>
             <Text style={styles.adicionarText}>Adicionar exercício</Text>
           </Pressable>
         </View>
@@ -198,8 +185,8 @@ export function ListaExerciciosDoDia({ treino, modo, titulo, series, historico, 
       {treino.cardio && (
         <View style={styles.item}>
           <View style={styles.trilho}>
-            <View style={styles.no}>
-              <Ionicons name="heart" size={12} color={colors.ink2} />
+            <View style={[styles.no, styles.noCardio]}>
+              <Ionicons name="heart-outline" size={15} color={colors.ink2} />
             </View>
           </View>
           <View style={[styles.conteudo, styles.cardio]}>
@@ -214,54 +201,119 @@ export function ListaExerciciosDoDia({ treino, modo, titulo, series, historico, 
   );
 }
 
-/** Exercício no modo de edição: remover e mudar a ordem. */
-function ItemEdicao({
-  item,
-  ordem,
-  primeiro,
-  ultimoDaLista,
-  sexo,
-  onRemover,
-  onMover,
-}: {
-  item: ExercicioNoTreino;
-  ordem: number;
-  primeiro: boolean;
-  ultimoDaLista: boolean;
-  sexo?: 'feminino' | 'masculino';
-  onRemover: () => void;
-  onMover: (delta: -1 | 1) => void;
+type ArrastoProps = {
+  alturas: SharedValue<number[]>;
+  arrastando: SharedValue<number>;
+  dy: SharedValue<number>;
+  alvo: SharedValue<number>;
+  onSoltar: (id: string, de: number, para: number) => void;
+  onAltura: (index: number, altura: number) => void;
+};
+
+/**
+ * Linha que pode ser arrastada para cima ou para baixo. Fora do Editar,
+ * começa segurando a linha; no Editar, pela alça (que o filho recebe).
+ */
+function Arrastavel({
+  id,
+  index,
+  pelaAlca,
+  desligado,
+  alturas,
+  arrastando,
+  dy,
+  alvo,
+  onSoltar,
+  onAltura,
+  children,
+}: ArrastoProps & {
+  id: string;
+  index: number;
+  pelaAlca?: boolean;
+  desligado?: boolean;
+  children: (alca: ReactNode) => ReactNode;
 }) {
+  const pan = Gesture.Pan()
+    .enabled(!desligado)
+    .activateAfterLongPress(pelaAlca ? 0 : SEGURAR)
+    .onStart(() => {
+      arrastando.set(index);
+      alvo.set(index);
+      dy.set(0);
+      runOnJS(tique)();
+    })
+    .onUpdate((e) => {
+      dy.set(e.translationY);
+      const hs = alturas.value;
+      let topo = 0;
+      for (let k = 0; k < index; k++) topo += hs[k] ?? 0;
+      const centro = topo + (hs[index] ?? 0) / 2 + e.translationY;
+      // Posição nova = quantas outras linhas ficam acima do centro da arrastada.
+      let y = 0;
+      let novo = 0;
+      for (let k = 0; k < hs.length; k++) {
+        if (k === index) continue;
+        if (centro > y + (hs[k] ?? 0) / 2) novo++;
+        y += hs[k] ?? 0;
+      }
+      if (novo !== alvo.value) runOnJS(tique)();
+      alvo.set(novo);
+    })
+    .onEnd(() => {
+      runOnJS(onSoltar)(id, index, alvo.value);
+    })
+    .onFinalize((_e, ok) => {
+      if (!ok) {
+        arrastando.set(-1);
+        dy.set(0);
+      }
+    });
+  if (pelaAlca) pan.failOffsetX([-24, 24]);
+
+  const estilo = useAnimatedStyle(() => {
+    const a = arrastando.value;
+    if (a < 0) return { zIndex: 0, transform: [{ translateY: 0 }, { scale: 1 }] };
+    if (a === index) return { zIndex: 10, transform: [{ translateY: dy.value }, { scale: 1.03 }] };
+    const h = alturas.value[a] ?? 0;
+    const t = alvo.value;
+    const desloca = a < index && index <= t ? -h : a > index && index >= t ? h : 0;
+    return { zIndex: 0, transform: [{ translateY: withTiming(desloca, { duration: 160 }) }, { scale: 1 }] };
+  });
+
+  const alca = pelaAlca ? (
+    <GestureDetector gesture={pan}>
+      <View accessible accessibilityLabel="Arrastar para mudar a ordem" hitSlop={8} style={styles.alca}>
+        <Ionicons name="reorder-three" size={24} color={colors.ink3} />
+      </View>
+    </GestureDetector>
+  ) : null;
+
+  const linha = (
+    <Animated.View style={estilo} onLayout={(e) => onAltura(index, e.nativeEvent.layout.height)}>
+      {children(alca)}
+    </Animated.View>
+  );
+  return pelaAlca ? linha : <GestureDetector gesture={pan}>{linha}</GestureDetector>;
+}
+
+/** Exercício no modo de edição: alça para arrastar; deslizar remove. */
+function ItemEdicao({ item, ordem, sexo, alca }: { item: ExercicioNoTreino; ordem: number; sexo?: 'feminino' | 'masculino'; alca: ReactNode }) {
   const ex = exercicioPorId(item.exercicioId);
-  const nome = ex?.nome ?? 'Exercício';
   return (
-    <View style={styles.item}>
-      <View style={styles.trilho}>
-        <View style={styles.no}>
-          <Text style={styles.noText}>{String(ordem).padStart(2, '0')}</Text>
-        </View>
-        <View style={styles.linha} />
+    <View style={styles.edicao}>
+      <View style={styles.edicaoNum}>
+        <Text style={[styles.noText, styles.edicaoNumText]}>{String(ordem).padStart(2, '0')}</Text>
       </View>
-      <View style={[styles.conteudo, styles.edicaoLinha]}>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Remover ${nome}`} hitSlop={6} onPress={onRemover} style={styles.menos}>
-          <Ionicons name="remove" size={16} color={colors.warnText} />
-        </Pressable>
-        <View style={styles.thumb}>{ex && <MapaMuscular principal={ex.musculoPrincipal} altura={40} podeVirar={false} sexo={sexo} />}</View>
-        <View style={styles.flex}>
-          <Text style={styles.nome} numberOfLines={1}>
-            {nome}
-          </Text>
-          <Text variant="caption" tone="muted">
-            {item.series} × {repsLabel(item)}
-          </Text>
-        </View>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Subir ${nome}`} disabled={primeiro} hitSlop={4} onPress={() => onMover(-1)} style={[styles.seta, primeiro && styles.setaOff]}>
-          <Ionicons name="chevron-up" size={18} color={colors.ink} />
-        </Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Descer ${nome}`} disabled={ultimoDaLista} hitSlop={4} onPress={() => onMover(1)} style={[styles.seta, ultimoDaLista && styles.setaOff]}>
-          <Ionicons name="chevron-down" size={18} color={colors.ink} />
-        </Pressable>
+      <View style={styles.thumb}>{ex && <MapaMuscular principal={ex.musculoPrincipal} altura={46} podeVirar={false} sexo={sexo} />}</View>
+      <View style={styles.flex}>
+        <Text style={styles.nome} numberOfLines={2}>
+          {ex?.nome ?? 'Exercício'}
+        </Text>
+        <Text variant="caption" tone="muted">
+          {item.series} {item.series === 1 ? 'série' : 'séries'}
+        </Text>
       </View>
+      {alca}
     </View>
   );
 }
@@ -269,11 +321,11 @@ function ItemEdicao({
 /**
  * Ponto do exercício na linha do tempo:
  * - o atual (treino rodando) é um círculo aberto, tracejado, que vai se
- *   fechando em verde a cada série feita;
- * - feito, vira um selo verde com o check (entra com um "pop");
+ *   fechando a cada série feita;
+ * - feito, vira um selo com o ✓ (entra com um "pop");
  * - os outros, só o número.
  */
-function NoDoExercicio({ ordem, estado, progresso, selo }: { ordem: number; estado: 'feito' | 'atual' | 'proximo' | 'depois'; progresso: number; selo: boolean }) {
+function NoDoExercicio({ ordem, estado, progresso, selo }: { ordem: number; estado: 'feito' | 'atual' | 'depois'; progresso: number; selo: boolean }) {
   const numero = String(ordem).padStart(2, '0');
   if (estado === 'feito' && selo) {
     return (
@@ -287,7 +339,7 @@ function NoDoExercicio({ ordem, estado, progresso, selo }: { ordem: number; esta
     return (
       <View style={styles.noAberto}>
         <Svg width={NO} height={NO} style={styles.noSvg}>
-          <Circle cx={NO / 2} cy={NO / 2} r={NO_R} fill="none" stroke={colors.limeEdge} strokeWidth={2} strokeDasharray="2.5 4" strokeLinecap="round" />
+          <Circle cx={NO / 2} cy={NO / 2} r={NO_R} fill="none" stroke={colors.line2} strokeWidth={2} strokeDasharray="2.5 4" strokeLinecap="round" />
           {p > 0 && (
             <Circle
               cx={NO / 2}
@@ -307,8 +359,8 @@ function NoDoExercicio({ ordem, estado, progresso, selo }: { ordem: number; esta
     );
   }
   return (
-    <View style={[styles.no, estado === 'proximo' && styles.noProximo]}>
-      <Text style={[styles.noText, estado === 'proximo' && styles.noTextProximo]}>{numero}</Text>
+    <View style={styles.no}>
+      <Text style={styles.noText}>{numero}</Text>
     </View>
   );
 }
@@ -317,148 +369,62 @@ function Item({
   item,
   ordem,
   modo,
-  atual,
+  estado,
   feitas,
   selo,
-  historico,
   sexo,
-  aberto,
   ultimo,
-  onToggle,
-  onAbrir,
-  onLongPress,
+  onPress,
 }: {
   item: ExercicioNoTreino;
   ordem: number;
   modo: Modo;
-  atual: boolean;
-  feitas: readonly SerieFeita[];
+  estado: 'feito' | 'atual' | 'depois';
+  feitas: number;
   /** Mostra o selo de feito (a animação dele toca quando a lista está à vista). */
   selo: boolean;
-  historico: readonly SessaoDeTreino[];
   sexo?: 'feminino' | 'masculino';
-  aberto: boolean;
   ultimo: boolean;
-  onToggle: () => void;
-  onAbrir?: () => void;
-  onLongPress?: () => void;
+  onPress: () => void;
 }) {
   const ex = exercicioPorId(item.exercicioId);
   const nome = ex?.nome ?? 'Exercício';
-  const completo = modo !== 'planejado' && feitas.length >= item.series;
-  const reps = repsLabel(item);
-  const antes = ultimasSeries([...historico], item.exercicioId)?.series ?? [];
-  const linhas = Math.max(item.series, feitas.length);
-  const estado = completo ? 'feito' : atual && modo === 'andamento' ? 'atual' : atual ? 'proximo' : 'depois';
-  const aoVivo = modo === 'andamento' && !!onAbrir;
+  const completo = estado === 'feito';
+  const meta =
+    modo === 'planejado'
+      ? `${item.series} ${item.series === 1 ? 'série' : 'séries'}`
+      : `${Math.min(feitas, item.series)} de ${item.series} ${item.series === 1 ? 'série' : 'séries'}`;
 
   return (
     <View style={styles.item}>
       <View style={styles.trilho}>
         <View style={styles.noWrap}>
-          <NoDoExercicio ordem={ordem} estado={estado} progresso={Math.min(1, feitas.length / Math.max(1, item.series))} selo={selo} />
+          <NoDoExercicio ordem={ordem} estado={estado} progresso={Math.min(1, feitas / Math.max(1, item.series))} selo={selo} />
         </View>
-        {!ultimo && (
-          <View style={styles.linha}>
-            {completo && selo && <Animated.View style={[styles.linhaFeita, DESCER]} />}
-          </View>
-        )}
+        {!ultimo && <View style={styles.linha}>{completo && selo && <Animated.View style={[styles.linhaFeita, DESCER]} />}</View>}
       </View>
 
-      <View style={styles.conteudo}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ expanded: aberto }}
-          accessibilityLabel={`${ordem}. ${nome}${modo !== 'planejado' ? `, ${feitas.length} de ${item.series} séries` : `, ${item.series} séries`}`}
-          onPress={onToggle}
-          onLongPress={onLongPress}
-          delayLongPress={350}
-          style={({ pressed }) => [styles.cabeca, pressed && styles.pressed]}>
-          {(atual || aberto) && (
-            <LinearGradient pointerEvents="none" colors={gradients.timelineAtual} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={styles.reflexo} />
-          )}
-          <View style={[styles.thumb, completo && styles.thumbFeito]}>
-            {ex && <MapaMuscular principal={ex.musculoPrincipal} altura={46} podeVirar={false} sexo={sexo} />}
-          </View>
-          <View style={styles.flex}>
-            {estado === 'atual' ? <Text style={styles.agoraRotulo}>Agora</Text> : null}
-            <Text style={[styles.nome, completo && styles.nomeFeito]} numberOfLines={2}>
-              {nome}
-            </Text>
-            <View style={styles.meta}>
-              <Text variant="caption" tone="muted" numberOfLines={1} style={styles.flexShrink}>
-                {ex ? MUSCULO_LABELS[ex.musculoPrincipal] : ''} · {item.series} × {reps}
-              </Text>
-              {modo !== 'planejado' && (
-                <View style={styles.pontos} accessibilityLabel={`${Math.min(feitas.length, item.series)} de ${item.series} séries feitas`}>
-                  {Array.from({ length: item.series }, (_, k) => (
-                    <View key={k} style={[styles.pontoSerie, k < feitas.length && styles.pontoSerieFeito]} />
-                  ))}
-                </View>
-              )}
-            </View>
-          </View>
-          <Ionicons name={aberto ? 'chevron-up' : 'chevron-down'} size={17} color={colors.ink3} />
-        </Pressable>
-
-        {aberto && (
-          <View style={styles.series}>
-            {Array.from({ length: linhas }, (_, k) => {
-              const s = feitas[k];
-              const agora = !s && modo === 'andamento' && k === feitas.length;
-              const ult = antes[k];
-              return (
-                <Pressable
-                  key={k}
-                  disabled={!aoVivo}
-                  accessibilityRole={aoVivo ? 'button' : undefined}
-                  accessibilityLabel={`Série ${k + 1}${s ? `, feita: ${formatDecimal(s.cargaKg)} kg × ${s.reps}` : ''}`}
-                  accessibilityHint={aoVivo ? 'Abre o treino ao vivo neste exercício' : undefined}
-                  onPress={onAbrir}
-                  style={({ pressed }) => [styles.serie, agora && styles.serieAgora, pressed && styles.pressed]}>
-                  {s ? (
-                    <Animated.View entering={ZoomIn.duration(260)} style={[styles.bolinha, styles.bolinhaFeita]}>
-                      <Ionicons name="checkmark" size={11} color={colors.onLime} />
-                    </Animated.View>
-                  ) : (
-                    <View style={[styles.bolinha, agora && styles.bolinhaAgora]}>
-                      <Text style={[styles.bolinhaText, agora && styles.bolinhaTextAgora]}>{k + 1}</Text>
-                    </View>
-                  )}
-                  <View style={styles.flex}>
-                    <Text style={[styles.serieTitulo, !s && !agora && styles.serieFutura]}>
-                      {s ? `${formatDecimal(s.cargaKg)} kg × ${s.reps}` : `Série ${k + 1} · ${reps} repetições`}
-                    </Text>
-                    <Text variant="caption" tone="muted">
-                      {s
-                        ? `série ${k + 1} · feita às ${hora(s.concluidaEm)}`
-                        : agora
-                          ? 'é a vez desta série'
-                          : ult
-                            ? `última vez: ${formatDecimal(ult.cargaKg)} kg × ${ult.reps}`
-                            : k === 0 && item.cargaInicialKg
-                              ? `carga inicial: ${formatDecimal(item.cargaInicialKg)} kg`
-                              : `descanso de ${item.descansoSeg} s`}
-                    </Text>
-                  </View>
-                  {aoVivo && agora ? <Ionicons name="chevron-forward" size={16} color={colors.lime} /> : null}
-                </Pressable>
-              );
-            })}
-            {item.observacao ? (
-              <Text variant="caption" tone="secondary" style={styles.obs}>
-                {item.observacao}
-              </Text>
-            ) : null}
-            {onAbrir && (
-              <Pressable accessibilityRole="button" onPress={onAbrir} hitSlop={8} style={({ pressed }) => [styles.acao, pressed && styles.pressed]}>
-                <Text style={styles.acaoText}>{modo === 'andamento' ? 'Abrir no treino ao vivo' : 'Começar por este'}</Text>
-                <Ionicons name="chevron-forward" size={15} color={colors.ink} />
-              </Pressable>
-            )}
-          </View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${ordem}. ${nome}, ${meta}`}
+        accessibilityHint="Abre o resumo do exercício"
+        onPress={onPress}
+        style={({ pressed }) => [styles.conteudo, styles.cabeca, pressed && styles.pressed]}>
+        {estado === 'atual' && (
+          <LinearGradient pointerEvents="none" colors={gradients.timelineAtual} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={styles.reflexo} />
         )}
-      </View>
+        <View style={styles.thumb}>{ex && <MapaMuscular principal={ex.musculoPrincipal} altura={46} podeVirar={false} sexo={sexo} />}</View>
+        <View style={styles.flex}>
+          {estado === 'atual' ? <Text style={styles.agoraRotulo}>Agora</Text> : null}
+          <Text style={[styles.nome, completo && styles.nomeFeito]} numberOfLines={2}>
+            {nome}
+          </Text>
+          <Text variant="caption" tone="muted">
+            {meta}
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={16} color={colors.ink3} />
+      </Pressable>
     </View>
   );
 }
@@ -472,13 +438,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'baseline',
     justifyContent: 'space-between',
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   dia: {
     fontFamily: fonts.display.semibold,
     fontSize: 18,
     lineHeight: 24,
     letterSpacing: -0.4,
+  },
+  editar: {
+    fontFamily: fonts.body.bold,
+    fontSize: 14,
+    color: colors.ink2,
+  },
+  editarOn: {
+    color: colors.ink,
+  },
+  dicaEdicao: {
+    marginBottom: spacing.md,
   },
   item: {
     flexDirection: 'row',
@@ -491,7 +468,7 @@ const styles = StyleSheet.create({
   noWrap: {
     width: NO,
     height: NO,
-    marginTop: 12,
+    marginTop: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -505,8 +482,13 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.line,
   },
-  noProximo: {
+  noAdd: {
+    marginTop: 12,
+    borderStyle: 'dashed',
     borderColor: colors.line2,
+  },
+  noCardio: {
+    marginTop: 12,
   },
   noAberto: {
     width: NO,
@@ -529,22 +511,20 @@ const styles = StyleSheet.create({
     borderWidth: 2.5,
     borderColor: colors.limeLight,
     transform: [{ rotate: '-8deg' }],
-    shadowColor: colors.lime,
-    shadowOpacity: 0.45,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 0 },
   },
+  // Número centralizado de verdade no círculo (sem o respiro da fonte).
   noText: {
+    width: NO,
+    textAlign: 'center',
     fontFamily: fonts.display.semibold,
     fontSize: 13,
+    lineHeight: 16,
+    includeFontPadding: false,
     color: colors.ink3,
     fontVariant: ['tabular-nums'],
   },
-  noTextProximo: {
-    color: colors.ink,
-  },
   noTextAtual: {
-    color: colors.lime,
+    color: colors.ink,
   },
   linha: {
     flex: 1,
@@ -556,17 +536,18 @@ const styles = StyleSheet.create({
   },
   linhaFeita: {
     width: 2,
-    backgroundColor: colors.lime,
+    backgroundColor: colors.ink2,
   },
   conteudo: {
     flex: 1,
     minWidth: 0,
-    paddingBottom: spacing.md,
   },
   cabeca: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    minHeight: 76,
+    marginVertical: 4,
     paddingVertical: 8,
     paddingHorizontal: 10,
     marginLeft: -10,
@@ -588,136 +569,73 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.glassFill,
-    borderWidth: 1,
-    borderColor: colors.lineSoft,
-  },
-  thumbFeito: {
-    opacity: 0.6,
   },
   agoraRotulo: {
     fontFamily: fonts.body.bold,
     fontSize: 10.5,
     letterSpacing: 1.6,
     textTransform: 'uppercase',
-    color: colors.lime,
-    marginBottom: 1,
+    color: colors.ink2,
   },
   nome: {
     fontFamily: fonts.body.bold,
-    fontSize: 16,
-    lineHeight: 21,
+    fontSize: 15.5,
+    lineHeight: 20,
   },
   nomeFeito: {
     color: colors.ink2,
   },
-  meta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 2,
+  cardio: {
+    paddingTop: 18,
+    paddingBottom: spacing.md,
   },
-  flexShrink: {
-    flexShrink: 1,
+  adicionar: {
+    justifyContent: 'center',
+    minHeight: 64,
   },
-  series: {
-    gap: 4,
-    paddingTop: spacing.sm,
+  adicionarText: {
+    fontFamily: fonts.body.bold,
+    fontSize: 15,
+    color: colors.ink,
   },
-  serie: {
+  edicao: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    marginLeft: -10,
-    borderRadius: 14,
-  },
-  serieAgora: {
-    backgroundColor: colors.limeWash,
+    minHeight: 72,
+    marginBottom: 8,
+    paddingVertical: 10,
+    paddingLeft: 12,
+    paddingRight: 6,
+    borderRadius: radius.lg,
+    backgroundColor: colors.glassSubtle,
     borderWidth: 1,
-    borderColor: colors.limeEdge,
+    borderColor: colors.lineSoft,
   },
-  bolinha: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+  edicaoNum: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
-    borderColor: colors.line2,
+    borderColor: colors.line,
   },
-  bolinhaFeita: {
-    backgroundColor: colors.lime,
-    borderColor: colors.lime,
+  edicaoNumText: {
+    width: 30,
+    fontSize: 11,
   },
-  bolinhaAgora: {
-    borderColor: colors.lime,
-    borderStyle: 'dashed',
-  },
-  bolinhaText: {
-    fontFamily: fonts.body.bold,
-    fontSize: 10.5,
-    color: colors.ink3,
-  },
-  bolinhaTextAgora: {
-    color: colors.lime,
-  },
-  pontos: {
-    flexDirection: 'row',
-    gap: 3,
-  },
-  pontoSerie: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
-    backgroundColor: colors.track,
-  },
-  pontoSerieFeito: {
-    backgroundColor: colors.lime,
-  },
-  obs: {
-    marginTop: 4,
-  },
-  serieTitulo: {
-    fontFamily: fonts.body.semibold,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  serieFutura: {
-    color: colors.ink2,
-  },
-  acao: {
-    flexDirection: 'row',
+  alca: {
+    width: 40,
+    height: 44,
     alignItems: 'center',
-    gap: 4,
-    alignSelf: 'flex-start',
-    marginTop: 2,
-    paddingVertical: 6,
-  },
-  acaoText: {
-    fontFamily: fonts.body.bold,
-    fontSize: 14,
-  },
-  cardio: {
-    paddingTop: 18,
-  },
-  editar: {
-    fontFamily: fonts.body.bold,
-    fontSize: 14,
-    color: colors.ink2,
-  },
-  editarOn: {
-    color: colors.lime,
-  },
-  dicaEdicao: {
-    marginTop: -spacing.sm,
-    marginBottom: spacing.md,
+    justifyContent: 'center',
   },
   remover: {
     width: 104,
-    marginVertical: 6,
+    marginBottom: 8,
     marginLeft: 8,
-    borderRadius: 18,
+    borderRadius: radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
@@ -729,49 +647,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body.bold,
     fontSize: 12.5,
     color: colors.warnText,
-  },
-  noAdd: {
-    borderStyle: 'dashed',
-    borderColor: colors.line2,
-  },
-  adicionar: {
-    justifyContent: 'center',
-    minHeight: 58,
-    paddingTop: 14,
-  },
-  adicionarText: {
-    fontFamily: fonts.body.bold,
-    fontSize: 15,
-    color: colors.lime,
-  },
-  edicaoLinha: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingTop: 10,
-  },
-  menos: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.warnTint,
-    borderWidth: 1,
-    borderColor: colors.warnEdge,
-  },
-  seta: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.glassFill,
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  setaOff: {
-    opacity: 0.3,
   },
   pressed: {
     opacity: 0.7,

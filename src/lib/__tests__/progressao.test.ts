@@ -14,12 +14,12 @@ const supinoBarra = ex('supino-reto-barra');
 const supinoHalteres = ex('supino-reto-halteres');
 
 describe('incremento de carga', () => {
-  it('barra, máquina e polia +2,5 kg; compostos de pernas e glúteos +5 kg; halteres +2 kg', () => {
-    expect(incremento(supinoBarra)).toBe(2.5);
+  it('barra, máquina e polia +2 kg; compostos de pernas e glúteos +5 kg; halteres +2 kg (sempre inteiro)', () => {
+    expect(incremento(supinoBarra)).toBe(2);
     expect(incremento(agachamento)).toBe(5);
     expect(incremento(supinoHalteres)).toBe(2);
-    expect(incremento({ equipamentos: ['maquina'], tipo: 'isolado', musculoPrincipal: 'quadriceps' })).toBe(2.5);
-    expect(incremento({ equipamentos: ['polia'], tipo: 'isolado', musculoPrincipal: 'triceps' })).toBe(2.5);
+    expect(incremento({ equipamentos: ['maquina'], tipo: 'isolado', musculoPrincipal: 'quadriceps' })).toBe(2);
+    expect(incremento({ equipamentos: ['polia'], tipo: 'isolado', musculoPrincipal: 'triceps' })).toBe(2);
   });
 });
 
@@ -35,8 +35,12 @@ describe('sugestão de carga', () => {
       repsAlvo: 10,
       motivo: 'Suba para 65 kg: você fez 12, 12, 12 na última vez',
     });
-    expect(sugerirCarga(faixa, supinoBarra, [series(60, [12, 12, 12])])?.motivo).toBe('Suba para 62,5 kg: você fez 12, 12, 12 na última vez');
+    expect(sugerirCarga(faixa, supinoBarra, [series(60, [12, 12, 12])])?.motivo).toBe('Suba para 62 kg: você fez 12, 12, 12 na última vez');
     expect(sugerirCarga(faixa, supinoHalteres, [series(20, [12, 13, 12])])?.cargaKg).toBe(22);
+  });
+
+  it('carga antiga quebrada (62,5) sobe para um número inteiro', () => {
+    expect(sugerirCarga(faixa, supinoBarra, [series(62.5, [12, 12, 12])])?.cargaKg).toBe(65);
   });
 
   it('topo da faixa com cargas diferentes não sobe', () => {
@@ -61,9 +65,9 @@ describe('sugestão de carga', () => {
     });
     expect(sugerirCarga(faixa, supinoBarra, [series(60, [10, 9, 8]), series(60, [9, 8, 8])])).toEqual({
       tipo: 'reduzir',
-      cargaKg: 55,
+      cargaKg: 54,
       repsAlvo: 10,
-      motivo: 'Reduza para 55 kg: ficou abaixo de 10 repetições nas 2 últimas vezes',
+      motivo: 'Reduza para 54 kg: ficou abaixo de 10 repetições nas 2 últimas vezes',
     });
     // halteres andam de 2 em 2 kg; a redução sempre baixa pelo menos um passo
     expect(sugerirCarga(faixa, supinoHalteres, [series(12, [8, 7, 7]), series(12, [9, 8, 7])])?.cargaKg).toBe(10);

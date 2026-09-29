@@ -3,8 +3,9 @@
  * exercício foi feito e sugere a carga do próximo treino, com o motivo:
  *
  * - bateu o topo da faixa em todas as séries, com a mesma carga → subir
- *   (barra, smith, máquina e polia +2,5 kg; compostos de pernas e glúteos
- *   +5 kg; halteres +2 kg; peso do corpo: +1 repetição por série);
+ *   (barra, smith, máquina e polia +2 kg; compostos de pernas e glúteos
+ *   +5 kg; halteres +2 kg; peso do corpo: +1 repetição por série). As cargas
+ *   sugeridas são sempre inteiras: na academia a gente arredonda (nada de 42,5);
  * - ficou abaixo do mínimo em alguma série → manter; se aconteceu nas 2
  *   últimas sessões, reduzir cerca de 10%;
  * - entre uma coisa e outra → manter e buscar mais repetições.
@@ -42,18 +43,13 @@ export type Sugestao = {
 
 type ExercicioInfo = Pick<Exercicio, 'equipamentos' | 'tipo' | 'musculoPrincipal'>;
 
-/** Incremento de carga do exercício (kg) e o passo para arredondar. */
-export function incremento(ex: ExercicioInfo): number {
-  if (ex.equipamentos.includes('halteres') || ex.equipamentos.includes('kettlebell')) return 2;
-  if (ex.equipamentos.some((q) => COM_ANILHAS.has(q))) {
-    return ex.tipo === 'composto' && PERNAS_E_GLUTEOS.has(ex.musculoPrincipal) ? 5 : 2.5;
-  }
-  return 2.5;
-}
+/** Passo em que a carga anda (e com que a redução arredonda): 2 kg. */
+export const PASSO_KG = 2;
 
-/** Passo em que a carga anda (para arredondar a redução): 2 kg em halteres, 2,5 kg no resto. */
-function passo(ex: ExercicioInfo): number {
-  return ex.equipamentos.includes('halteres') || ex.equipamentos.includes('kettlebell') ? 2 : 2.5;
+/** Incremento de carga do exercício (kg, sempre inteiro). */
+export function incremento(ex: ExercicioInfo): number {
+  if (ex.equipamentos.some((q) => COM_ANILHAS.has(q)) && ex.tipo === 'composto' && PERNAS_E_GLUTEOS.has(ex.musculoPrincipal)) return 5;
+  return PASSO_KG;
 }
 
 /** A sessão é da semana de alívio do bloco (só planos da IA têm bloco). */
@@ -124,14 +120,14 @@ export function sugerirCarga(
       const reps = Math.max(...ultima.map((s) => s.reps)) + 1;
       return { tipo: 'mais-reps', cargaKg: 0, repsAlvo: reps, motivo: `Faça ${reps} repetições por série: você fez ${listaReps(ultima)} na última vez` };
     }
-    const nova = carga + incremento(ex);
+    const nova = Math.round(carga + incremento(ex));
     return { tipo: 'subir', cargaKg: nova, repsAlvo: alvo.repsMin, motivo: `Suba para ${kg(nova)}: você fez ${listaReps(ultima)} na última vez` };
   }
 
   if (abaixoDoMinimo(ultima, alvo)) {
     const seguidas = historico.length >= SESSOES_PARA_REDUZIR && historico.slice(0, SESSOES_PARA_REDUZIR).every((s) => abaixoDoMinimo(s, alvo));
     if (seguidas && !semCarga) {
-      const p = passo(ex);
+      const p = PASSO_KG;
       const nova = Math.max(0, Math.min(carga - p, Math.round((carga * (1 - FRACAO_REDUCAO)) / p) * p));
       return {
         tipo: 'reduzir',

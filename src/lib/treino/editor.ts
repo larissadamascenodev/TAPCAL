@@ -92,6 +92,18 @@ export function moverExercicio(t: TreinoDoDia, id: string, delta: -1 | 1): Trein
   return { ...t, exercicios: lista };
 }
 
+/** Leva um exercício para outra posição (arrastar na lista); fora dos limites, vai para a ponta. */
+export function moverExercicioPara(t: TreinoDoDia, id: string, novoIndice: number): TreinoDoDia {
+  const i = t.exercicios.findIndex((e) => e.id === id);
+  if (i < 0) return t;
+  const j = Math.max(0, Math.min(t.exercicios.length - 1, Math.round(novoIndice)));
+  if (i === j) return t;
+  const lista = [...t.exercicios];
+  const [item] = lista.splice(i, 1);
+  lista.splice(j, 0, item);
+  return { ...t, exercicios: lista };
+}
+
 const limitar = (n: number, min: number, max: number) => Math.min(max, Math.max(min, Math.round(n)));
 
 /**

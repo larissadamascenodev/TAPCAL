@@ -1,5 +1,7 @@
 import type { ReactNode, RefObject } from 'react';
-import { ScrollView, StyleSheet, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { StyleSheet, View, type NativeScrollEvent, type NativeSyntheticEvent, type ScrollView as RNScrollView } from 'react-native';
+// Rolagem do gesture-handler: quando um gesto de dentro (arrastar um exercício) começa, a rolagem para.
+import { ScrollView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, spacing, tabBar } from '@/theme/theme';
@@ -21,7 +23,7 @@ type Props = {
   /** Posição da rolagem, em pontos a partir do topo. */
   onScrollY?: (y: number) => void;
   /** Para a tela poder voltar a rolagem ao topo (ex.: ao trocar de aba). */
-  scrollRef?: RefObject<ScrollView | null>;
+  scrollRef?: RefObject<RNScrollView | null>;
 };
 
 /** Moldura de toda tela: fundo escuro com o verde suave, área segura e rolagem. */

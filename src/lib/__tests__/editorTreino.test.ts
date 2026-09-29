@@ -11,6 +11,7 @@ import {
   exercicioPadrao,
   limparDia,
   moverExercicio,
+  moverExercicioPara,
   planoDoRascunho,
   problemasDoRascunho,
   rascunhoDoPlano,
@@ -46,6 +47,12 @@ describe('editor do treino personalizado', () => {
     expect(moverExercicio(t, c.id, -1).exercicios.map((e) => e.id)).toEqual([a.id, c.id, b.id]);
     expect(moverExercicio(t, a.id, -1)).toBe(t); // o primeiro não sobe
     expect(moverExercicio(t, c.id, 1)).toBe(t); // o último não desce
+    // arrastar: leva direto para a posição, e fora dos limites vai para a ponta
+    expect(moverExercicioPara(t, a.id, 2).exercicios.map((e) => e.id)).toEqual([b.id, c.id, a.id]);
+    expect(moverExercicioPara(t, c.id, 0).exercicios.map((e) => e.id)).toEqual([c.id, a.id, b.id]);
+    expect(moverExercicioPara(t, b.id, 9).exercicios.map((e) => e.id)).toEqual([a.id, c.id, b.id]);
+    expect(moverExercicioPara(t, b.id, 1)).toBe(t);
+    expect(moverExercicioPara(t, 'nao-existe', 0)).toBe(t);
     expect(removerExercicio(t, b.id).exercicios.map((e) => e.id)).toEqual([a.id, c.id]);
     expect(tirarDaBiblioteca(t, 'stiff-barra').exercicios).toHaveLength(2);
   });

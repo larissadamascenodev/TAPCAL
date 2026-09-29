@@ -111,6 +111,11 @@ export const colors = {
   plateEdge: 'rgba(255,255,255,0.4)',
 
   headerFill: 'rgba(5,5,6,0.72)',
+
+  // Mostrador de traços (tempo de treino e descanso): aceso, apagado e o brilho do traço da vez
+  tracoAceso: 'rgba(255,255,255,0.85)',
+  tracoApagado: 'rgba(255,255,255,0.12)',
+  tracoBrilho: 'rgba(209,251,57,0.28)',
 } as const;
 
 /** Cor de cada macro, igual em todas as telas. */

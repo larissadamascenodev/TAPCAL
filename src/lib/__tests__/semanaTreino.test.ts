@@ -1,7 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 
 import { kcalAtividade, kcalDaSessao, minutosDaSessao, tempoDeTreinoMs } from '@/lib/treino/met';
-import { kcalEstimadas, kcalQueimadas, minutosEstimados, numerosDaSemana, proximosTreinos, repsLabel } from '@/lib/treino/plano';
+import { kcalEstimadas, kcalQueimadas, minutosEstimados, numerosDaSemana, proximosTreinos, repsLabel, resumoDoExercicio } from '@/lib/treino/plano';
 import { datasDaSemana, diaDaData, estadoDoDia, notaFeitoEm } from '@/lib/treino/semana';
 import type { PlanoDeTreino, SessaoDeTreino, TreinoDoDia } from '@/types/treino';
 
@@ -121,5 +121,34 @@ describe('cronômetro com pausa', () => {
     expect(tempoDeTreinoMs({ inicio, pausaMs: 15 * 60_000 }, agora)).toBe(45 * 60_000);
     expect(tempoDeTreinoMs({ inicio, pausaMs: 5 * 60_000, pausadoEm: '2026-09-29T10:40:00.000Z' }, agora)).toBe(35 * 60_000);
     expect(minutosDaSessao(inicio, '2026-09-29T11:00:00.000Z', 20 * 60_000)).toBe(40);
+  });
+});
+
+describe('resumo do exercício', () => {
+  const serie = (ex: string, numero: number, hora: string, carga = 40, reps = 10) => ({
+    exercicioNoTreinoId: ex,
+    exercicioId: ex,
+    numero,
+    cargaKg: carga,
+    reps,
+    concluidaEm: `2026-09-29T${hora}:00.000Z`,
+  });
+  const sessao = {
+    inicio: '2026-09-29T18:00:00.000Z',
+    series: [serie('a', 1, '18:04'), serie('a', 2, '18:06'), serie('b', 1, '18:10', 20, 12), serie('b', 2, '18:12', 20, 12)],
+  };
+
+  it('primeiro exercício conta desde o início do treino; o seguinte, desde a última série do anterior', () => {
+    const a = resumoDoExercicio(sessao, 'a');
+    expect(a.tempoMs).toBe(6 * 60 * 1000);
+    expect(a.descansosSeg).toEqual([null, 120]);
+    expect(a.volumeKg).toBe(800);
+    const b = resumoDoExercicio(sessao, 'b');
+    expect(b.tempoMs).toBe(6 * 60 * 1000);
+    expect(b.series.map((s) => s.numero)).toEqual([1, 2]);
+  });
+
+  it('exercício sem séries: tudo zerado', () => {
+    expect(resumoDoExercicio(sessao, 'c')).toEqual({ series: [], tempoMs: 0, descansosSeg: [], volumeKg: 0 });
   });
 });

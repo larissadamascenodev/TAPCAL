@@ -136,3 +136,31 @@ export function volumePorDia(sessoes: readonly SessaoDeTreino[], hoje: DateKey, 
 export function treinosNoMes(sessoes: readonly SessaoDeTreino[], hoje: DateKey): number {
   return sessoes.filter((s) => s.data.startsWith(hoje.slice(0, 7))).length;
 }
+
+export type ResumoDoExercicio = {
+  /** Séries feitas do exercício, em ordem. */
+  series: SerieFeita[];
+  /** Tempo gasto no exercício (ms): do fim do que veio antes (ou do início do treino) até a última série. */
+  tempoMs: number;
+  /** Descanso antes de cada série, em segundos (a primeira não tem). */
+  descansosSeg: (number | null)[];
+  volumeKg: number;
+};
+
+const ms = (iso: string) => new Date(iso).getTime();
+
+/** Resumo de um exercício numa sessão (em andamento ou concluída): tempo, descansos e volume. */
+export function resumoDoExercicio(sessao: Pick<SessaoDeTreino, 'inicio' | 'series'>, exercicioNoTreinoId: string): ResumoDoExercicio {
+  const series = sessao.series.filter((s) => s.exercicioNoTreinoId === exercicioNoTreinoId).sort((a, b) => ms(a.concluidaEm) - ms(b.concluidaEm));
+  if (!series.length) return { series, tempoMs: 0, descansosSeg: [], volumeKg: 0 };
+  const primeira = ms(series[0].concluidaEm);
+  const antes = sessao.series.map((s) => ms(s.concluidaEm)).filter((t) => t < primeira);
+  const comeco = antes.length ? Math.max(...antes) : ms(sessao.inicio);
+  const fim = ms(series[series.length - 1].concluidaEm);
+  return {
+    series,
+    tempoMs: Math.max(0, fim - comeco),
+    descansosSeg: series.map((s, i) => (i === 0 ? null : Math.round((ms(s.concluidaEm) - ms(series[i - 1].concluidaEm)) / 1000))),
+    volumeKg: volume(series),
+  };
+}
