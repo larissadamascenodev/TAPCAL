@@ -89,6 +89,10 @@ type Actions = {
   /** Pausa o cronômetro do treino (o tempo parado não conta). */
   pausarTreino: () => void;
   retomarTreino: () => void;
+  /** Descanso entre séries: começa, ajusta (± segundos) e pula. Fica no treino para a aba Treino mostrar. */
+  iniciarDescanso: (segundos: number) => void;
+  ajustarDescanso: (segundos: number) => void;
+  pularDescanso: () => void;
   /** Cria um exercício só desta pessoa e devolve ele (para já entrar no treino). */
   criarExercicio: (novo: NovoExercicio) => Exercicio;
   salvarRespostasTreinoIA: (r: RespostasTreinoIA) => void;
@@ -274,7 +278,7 @@ export const useAppStore = create<AppState>()(
           const cardio = planos.find((p) => p.id === s.planoId)?.treinos.find((t) => t.id === s.treinoDoDiaId)?.cardio;
           const fim = nowIso();
           // Terminar pausado: a pausa em curso também fica fora da conta.
-          const { pausadoEm, ...resto } = s;
+          const { pausadoEm, descansoAte, descansoSeg, ...resto } = s;
           const pausaMs = (s.pausaMs ?? 0) + (pausadoEm ? Math.max(0, Date.parse(fim) - Date.parse(pausadoEm)) : 0);
           const base = pausaMs ? { ...resto, pausaMs } : resto;
           const sessao: SessaoDeTreino = { ...base, fim, kcal: kcalDaSessao(base, fim, peso, cardio) };
@@ -293,6 +297,28 @@ export const useAppStore = create<AppState>()(
           if (!s?.pausadoEm) return;
           const { pausadoEm, ...resto } = s;
           set({ sessaoAtiva: { ...resto, pausaMs: (s.pausaMs ?? 0) + Math.max(0, now().getTime() - Date.parse(pausadoEm)) } });
+        },
+
+        iniciarDescanso: (segundos) => {
+          const s = get().sessaoAtiva;
+          if (!s || segundos <= 0) return;
+          set({ sessaoAtiva: { ...s, descansoAte: new Date(now().getTime() + segundos * 1000).toISOString(), descansoSeg: segundos } });
+        },
+
+        ajustarDescanso: (segundos) => {
+          const s = get().sessaoAtiva;
+          if (!s?.descansoAte) return;
+          const agora = now().getTime();
+          const ate = Math.max(agora + 1000, Date.parse(s.descansoAte) + segundos * 1000);
+          const total = Math.max(s.descansoSeg ?? 0, Math.ceil((ate - agora) / 1000));
+          set({ sessaoAtiva: { ...s, descansoAte: new Date(ate).toISOString(), descansoSeg: total } });
+        },
+
+        pularDescanso: () => {
+          const s = get().sessaoAtiva;
+          if (!s?.descansoAte) return;
+          const { descansoAte, descansoSeg, ...resto } = s;
+          set({ sessaoAtiva: resto });
         },
 
         salvarRespostasTreinoIA: (r) => set({ respostasTreinoIA: r }),

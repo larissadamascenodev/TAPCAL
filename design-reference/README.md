@@ -133,7 +133,7 @@ Escolha feita entre as opções em `opcoes-treino/` (A, B e C): o topo da C e a 
 Layout do mockup `treino-v7/`, com o tema e o vidro que já valem na Início e na Alimentação; verde só em detalhes. Imagens em `treino-aplicado/`.
 
 - `1-antes-de-iniciar.png` — dia, nome do treino (até 2 linhas), músculos com as cores do corpo e o número de exercícios; corpo à direita; "Iniciar treino".
-- `2-em-andamento.png` — no lugar da legenda, o mostrador de traços com o tempo e as séries; embaixo, o exercício da vez e os botões Pausar e Abrir.
+- `2-em-andamento.png` / `2b-descansando.png` — treino rodando: no lugar do topo, o card do exercício atual ("AGORA · SÉRIE 2 DE 4", nome e um tracinho por série — feitas em branco, a atual em verde) com o tempo solto à direita. A linha verde dá uma volta no card a cada minuto. No descanso, o tempo vira o descanso e a linha (branca) conta o descanso. Tocar abre o treino ao vivo. Mockups em `ao-vivo/card-v2.html` (opção C aprovada, com o tempo solto).
 - `3-lista.png` — linha do tempo só com o exercício e "N de M séries"; atual tracejado fechando a cada série, feito com selo ✓. Segurar e arrastar muda a ordem.
 - `4-resumo-exercicio.png` — tocar num exercício abre o resumo no meio da tela: tempo, séries, volume, séries com descanso e recorde, última vez.
 - `5-editar.png` — Editar: alça para arrastar e deslizar para remover (sem setas).

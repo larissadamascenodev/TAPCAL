@@ -209,6 +209,28 @@ describe('treino', () => {
     expect(s.kcal).toBe(146);
   });
 
+  it('descanso fica no treino: começa, ajusta, pula e não vai para o histórico', () => {
+    store().salvarPlano(planoTeste());
+    store().comecarTreino('t-seg');
+    store().registrarSerie('e1', 60, 12);
+    store().iniciarDescanso(90);
+    const inicio = Date.now();
+    expect(Date.parse(store().sessaoAtiva!.descansoAte!)).toBe(inicio + 90_000);
+    expect(store().sessaoAtiva!.descansoSeg).toBe(90);
+    store().ajustarDescanso(15);
+    expect(Date.parse(store().sessaoAtiva!.descansoAte!)).toBe(inicio + 105_000);
+    expect(store().sessaoAtiva!.descansoSeg).toBe(105);
+    store().ajustarDescanso(-500); // nunca termina antes de 1 s a partir de agora
+    expect(Date.parse(store().sessaoAtiva!.descansoAte!)).toBe(inicio + 1000);
+    store().pularDescanso();
+    expect('descansoAte' in store().sessaoAtiva!).toBe(false);
+    store().iniciarDescanso(60);
+    store().finalizarTreino();
+    const [s] = store().sessoes;
+    expect('descansoAte' in s).toBe(false);
+    expect('descansoSeg' in s).toBe(false);
+  });
+
   it('apagar série renumera as seguintes', () => {
     store().salvarPlano(planoTeste());
     store().comecarTreino('t-seg');

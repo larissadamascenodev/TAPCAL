@@ -158,4 +158,7 @@ export type SessaoDeTreino = {
 export type SessaoEmAndamento = Omit<SessaoDeTreino, 'fim' | 'kcal'> & {
   /** ISO de quando foi pausado (ausente = rodando). */
   pausadoEm?: string;
+  /** Descanso entre séries em curso: termina em (ISO) e dura (s). Some ao pular ou ao acabar. */
+  descansoAte?: string;
+  descansoSeg?: number;
 };

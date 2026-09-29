@@ -48,7 +48,7 @@ const hora = (iso: string) => {
 export default function TreinoSessaoScreen() {
   const insets = useSafeAreaInsets();
   const { sessaoAtiva: session, planos, sessoes: past } = useAppStore();
-  const { registrarSerie, apagarSerie, finalizarTreino, cancelarTreino, pausarTreino, retomarTreino } = useAppStore();
+  const { registrarSerie, apagarSerie, finalizarTreino, cancelarTreino, pausarTreino, retomarTreino, iniciarDescanso, ajustarDescanso, pularDescanso } = useAppStore();
   // Vindo da aba Treino: abre direto no exercício tocado.
   const { ex: exInicial } = useLocalSearchParams<{ ex?: string }>();
   const sexo = useAppStore((s) => s.profile?.sex);
@@ -65,7 +65,6 @@ export default function TreinoSessaoScreen() {
   });
   const exercise = treino?.exercicios[index];
   const [input, setInput] = useState(() => (session && exercise ? valoresDaProximaSerie(exercise, session, past, planos) : { kg: 10, reps: 10 }));
-  const [descanso, setDescanso] = useState<{ ate: number; total: number } | null>(null);
 
   if (!session || !treino || !exercise) return <Redirect href="/treino" />;
 
@@ -75,6 +74,8 @@ export default function TreinoSessaoScreen() {
   const isLast = index === treino.exercicios.length - 1;
   const elapsed = tempoDeTreinoMs(session, now) / 1000;
   const pausado = !!session.pausadoEm;
+  // O descanso fica no treino (a aba Treino mostra o mesmo tempo).
+  const descanso = session.descansoAte ? { ate: Date.parse(session.descansoAte), total: session.descansoSeg ?? 60 } : null;
   const restante = descanso ? Math.max(0, Math.ceil((descanso.ate - now) / 1000)) : 0;
   const descansando = restante > 0 && !exerciseDone;
   const lastTime = ultimasSeries(past, exercise.exercicioId)?.series ?? [];
@@ -86,7 +87,7 @@ export default function TreinoSessaoScreen() {
     const ex = treino.exercicios[i];
     setIndex(i);
     setInput(valoresDaProximaSerie(ex, session, past, planos));
-    setDescanso(null);
+    pularDescanso();
   };
 
   const finish = () => {
@@ -102,7 +103,7 @@ export default function TreinoSessaoScreen() {
     const isRecord = bateRecorde([...past, session], exercise.exercicioId, input.kg, input.reps);
     registrarSerie(exercise.id, input.kg, input.reps);
     toast(isRecord ? `Novo recorde: ${formatDecimal(input.kg)} kg` : 'Série registrada');
-    if (done + 1 < exercise.series) setDescanso({ ate: Date.now() + exercise.descansoSeg * 1000, total: exercise.descansoSeg });
+    if (done + 1 < exercise.series) iniciarDescanso(exercise.descansoSeg);
   };
 
   const onMain = () => {
@@ -128,8 +129,6 @@ export default function TreinoSessaoScreen() {
     ]);
   };
 
-  const ajustarDescanso = (seg: number) =>
-    setDescanso((d) => (d ? { ate: Math.max(Date.now() + 1000, d.ate + seg * 1000), total: Math.max(d.total, Math.ceil((d.ate + seg * 1000 - Date.now()) / 1000)) } : d));
 
   const exSets = session.series.filter((s) => s.exercicioNoTreinoId === exercise.id);
   const rows = Array.from({ length: Math.max(exercise.series, exSets.length) }, (_, i) => exSets[i] ?? null);
@@ -223,7 +222,7 @@ export default function TreinoSessaoScreen() {
         {descansando && descanso ? (
           <View style={styles.descansoBtns}>
             <Redondo label="−15" sub="SEG" onPress={() => ajustarDescanso(-15)} />
-            <Pressable accessibilityRole="button" accessibilityLabel="Pular o descanso" onPress={() => setDescanso(null)} style={({ pressed }) => [styles.pular, pressed && styles.pressed]}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Pular o descanso" onPress={pularDescanso} style={({ pressed }) => [styles.pular, pressed && styles.pressed]}>
               <Ionicons name="play-skip-forward" size={15} color={colors.onInk} />
               <Text style={styles.pularText}>PULAR</Text>
             </Pressable>
