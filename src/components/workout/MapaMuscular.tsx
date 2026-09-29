@@ -63,6 +63,11 @@ export function MapaMuscular({ principal, secundarios = [], sexo = 'feminino', a
 }
 
 const styles = StyleSheet.create({
+  foco: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+  },
   wrap: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -73,3 +78,25 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
 });
+
+/** Frente e costas lado a lado, com vários músculos em destaque (foco do treino). */
+export function MapaDeFoco({ musculos, sexo = 'feminino', altura = 200 }: { musculos: readonly Musculo[]; sexo?: 'feminino' | 'masculino'; altura?: number }) {
+  const data: ExtendedBodyPart[] = [...new Set(musculos.map(slugDoDesenho))].map((slug) => ({ slug, intensity: 1 }));
+  const corpo = (side: 'front' | 'back') => (
+    <Body
+      data={data}
+      side={side}
+      gender={sexo === 'feminino' ? 'female' : 'male'}
+      scale={altura / 400}
+      colors={[colors.musclePrimary]}
+      defaultFill={colors.bodyFill}
+      border={colors.bodyEdge}
+    />
+  );
+  return (
+    <View style={styles.foco} accessible accessibilityRole="image" accessibilityLabel="Mapa dos músculos de foco, de frente e de costas">
+      {corpo('front')}
+      {corpo('back')}
+    </View>
+  );
+}

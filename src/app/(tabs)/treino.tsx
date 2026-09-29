@@ -12,6 +12,7 @@ import { daysBetween, fromDateKey } from '@/lib/dates';
 import { exercicioPorId } from '@/lib/exercicios';
 import { formatDayMonth, formatInt, formatTons, WEEKDAY_SHORT } from '@/lib/format';
 import { minutosDaSessao } from '@/lib/treino/met';
+import { ehSemanaDeAlivio, horaDaProximaFase, semanaDoBloco, seriesNaSemana } from '@/lib/treino/progressao';
 import {
   concluidas,
   kcalEstimadas,
@@ -90,6 +91,7 @@ export default function TreinoScreen() {
         {plano && (
           <Text variant="caption" tone="muted" numberOfLines={1}>
             {plano.nome} · {plano.treinos.length} {plano.treinos.length === 1 ? 'dia' : 'dias'} por semana
+            {semanaDoBloco(plano, today) ? ` · semana ${semanaDoBloco(plano, today)} de ${plano.ia?.semanasNoBloco}` : ''}
           </Text>
         )}
       </View>
@@ -117,7 +119,9 @@ export default function TreinoScreen() {
   }
 
   const e = estados[dia];
-  const t = e.treino;
+  // Na semana de alívio (plano da IA), cada exercício aparece com menos séries.
+  const alivio = ehSemanaDeAlivio(plano, today);
+  const t = e.treino && { ...e.treino, exercicios: e.treino.exercicios.map((x) => ({ ...x, series: seriesNaSemana(x.series, plano, today) })) };
   const data = semana[DIAS.indexOf(dia)];
   const emAndamento = sessaoAtiva && t && sessaoAtiva.treinoDoDiaId === t.id;
   const kicker = `${e.hoje ? 'HOJE · ' : ''}${DIA_NOME[dia].toUpperCase()}`;
@@ -126,6 +130,30 @@ export default function TreinoScreen() {
     <TabPage>
       {header}
       <SemanaTreino hoje={today} estados={estados} selecionado={dia} onSelect={setDia} />
+
+      {alivio && (
+        <View style={styles.alivio}>
+          <Ionicons name="leaf-outline" size={18} color={colors.tideText} />
+          <View style={styles.flex}>
+            <Text variant="bodyStrong" style={{ color: colors.tideText }}>
+              Semana de alívio: menos séries, mesma técnica
+            </Text>
+            <Text variant="caption" tone="secondary">
+              Mantenha as cargas. O corpo se recupera e volta mais forte no próximo bloco.
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {horaDaProximaFase(plano, today) && (
+        <Glass contentStyle={styles.fase}>
+          <Text variant="bodyStrong">{alivio ? 'Seu bloco termina nesta semana' : 'Seu bloco de 5 semanas terminou'}</Text>
+          <Text variant="caption" tone="secondary">
+            Monte a próxima fase com as mesmas respostas: exercícios novos e o cardio sobe um pouco.
+          </Text>
+          <NeonButton label="Montar a próxima fase" onPress={() => router.push({ pathname: '/treino-ia', params: { proximaFase: '1' } })} style={styles.faseBtn} />
+        </Glass>
+      )}
 
       {sessaoAtiva && !emAndamento && (
         <Pressable accessibilityRole="button" onPress={() => router.push('/treino-sessao')} style={styles.banner}>
@@ -148,7 +176,7 @@ export default function TreinoScreen() {
             <Text style={styles.heroTitle}>Dia de recuperar</Text>
             {upcoming[0] && (
               <Text tone="secondary" style={styles.heroNote}>
-                Próximo: {dayLabel(upcoming[0].data, today).toLowerCase()} · {upcoming[0].treino.nome.toLowerCase()}
+                Próximo: {dayLabel(upcoming[0].data, today).toLowerCase()} · {upcoming[0].treino.nome}
               </Text>
             )}
           </>
@@ -185,6 +213,15 @@ export default function TreinoScreen() {
                 );
               })}
             </View>
+
+            {t.cardio && (
+              <View style={styles.cardioRow}>
+                <Ionicons name="walk-outline" size={16} color={colors.ink2} />
+                <Text variant="caption" tone="secondary">
+                  No fim: {t.cardio.minutos} min de {t.cardio.atividade === 'eliptico' ? 'elíptico' : t.cardio.atividade}, ritmo {t.cardio.intensidade}
+                </Text>
+              </View>
+            )}
 
             {emAndamento ? (
               <NeonButton label="Continuar treino" onPress={() => router.push('/treino-sessao')} style={styles.heroBtn} />
@@ -364,6 +401,28 @@ const styles = StyleSheet.create({
   },
   center: {
     textAlign: 'center',
+  },
+  alivio: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    padding: 14,
+    borderRadius: radius.lg,
+    backgroundColor: colors.tideTint,
+    borderWidth: 1,
+    borderColor: colors.tideEdge,
+  },
+  fase: {
+    gap: 6,
+    padding: 16,
+  },
+  cardioRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: spacing.md,
+  },
+  faseBtn: {
+    marginTop: spacing.sm,
   },
   header: {
     flexDirection: 'row',

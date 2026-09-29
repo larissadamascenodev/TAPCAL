@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { DishTitle, SheetBadge } from '@/components/nutrition/PlateSheet';
-import { Glass, GlassModal, Text, toast } from '@/components/ui';
+import { Glass, GlassModal, Text } from '@/components/ui';
 import { colors, fonts } from '@/theme/theme';
 
 /** Criar treino: montar do meu jeito (editor) ou com a IA (etapa 5). */
@@ -21,8 +21,7 @@ export default function TreinoNovoScreen() {
         icon="sparkles"
         title="Montar com IA"
         text="Responde algumas perguntas e a IA monta o treino para você."
-        badge="EM BREVE"
-        onPress={() => toast('O treino com IA chega numa próxima etapa')}
+        onPress={() => router.replace('/treino-ia')}
       />
     </GlassModal>
   );

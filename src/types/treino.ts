@@ -119,6 +119,8 @@ export type PlanoDeTreino = {
     inicioBloco: string;
     /** 5 (4 normais + 1 de alívio). */
     semanasNoBloco: number;
+    /** Número da fase (1 = primeiro bloco); o cardio sobe um pouco a cada fase. */
+    bloco?: number;
     explicacao: string;
   };
 };

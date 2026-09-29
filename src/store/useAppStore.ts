@@ -36,7 +36,7 @@ import type {
   WorkoutPlan,
   WorkoutSession,
 } from '@/types';
-import type { Exercicio, PlanoDeTreino, SessaoDeTreino, SessaoEmAndamento } from '@/types/treino';
+import type { Exercicio, PlanoDeTreino, RespostasTreinoIA, SessaoDeTreino, SessaoEmAndamento } from '@/types/treino';
 
 export type NewFoodItem = Omit<FoodItem, 'id' | 'createdAt'>;
 
@@ -53,6 +53,8 @@ type Data = {
   sessaoAtiva: SessaoEmAndamento | null;
   /** Exercícios criados pela pessoa ("Não achou? Criar exercício"). */
   exerciciosUsuario: Exercicio[];
+  /** Respostas do mini-onboarding do treino com IA (vêm preenchidas da segunda vez). */
+  respostasTreinoIA: RespostasTreinoIA | null;
 };
 
 type Actions = {
@@ -86,6 +88,7 @@ type Actions = {
   cancelarTreino: () => void;
   /** Cria um exercício só desta pessoa e devolve ele (para já entrar no treino). */
   criarExercicio: (novo: NovoExercicio) => Exercicio;
+  salvarRespostasTreinoIA: (r: RespostasTreinoIA) => void;
 
   loadSample: () => void;
   clearAll: () => void;
@@ -106,6 +109,7 @@ function blankData(): Data {
     sessoes: [],
     sessaoAtiva: null,
     exerciciosUsuario: [],
+    respostasTreinoIA: null,
   };
 }
 
@@ -122,6 +126,7 @@ export function sampleData(): Data {
     sessoes,
     sessaoAtiva: null,
     exerciciosUsuario: [],
+    respostasTreinoIA: null,
   };
 }
 
@@ -271,6 +276,8 @@ export const useAppStore = create<AppState>()(
 
         cancelarTreino: () => set({ sessaoAtiva: null }),
 
+        salvarRespostasTreinoIA: (r) => set({ respostasTreinoIA: r }),
+
         criarExercicio: (novo) => {
           const ex = exercicioDoUsuario(novo);
           set({ exerciciosUsuario: [...get().exerciciosUsuario, ex] });
@@ -296,6 +303,7 @@ export const useAppStore = create<AppState>()(
         sessoes: s.sessoes,
         sessaoAtiva: s.sessaoAtiva,
         exerciciosUsuario: s.exerciciosUsuario,
+        respostasTreinoIA: s.respostasTreinoIA,
       }),
       // Ao reabrir o app num dia novo, zera refeições e água.
       onRehydrateStorage: () => (state) => state?.ensureToday(),

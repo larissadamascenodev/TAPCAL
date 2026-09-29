@@ -17,7 +17,7 @@ import { MapaMuscular } from '@/components/workout/MapaMuscular';
 import { exercicioPorId, MUSCULO_LABELS } from '@/lib/exercicios';
 import { formatDecimal, formatDuration, formatInt } from '@/lib/format';
 import { bateRecorde, proximoExercicio, recorde, repsLabel, seriesFeitas, ultimasSeries } from '@/lib/treino/plano';
-import { historicoQueConta, sugerirCarga, type Sugestao } from '@/lib/treino/progressao';
+import { historicoQueConta, seriesNaSemana, sugerirCarga, type Sugestao } from '@/lib/treino/progressao';
 import { useAppStore } from '@/store/useAppStore';
 import { colors, fonts, radius, spacing } from '@/theme/theme';
 import type { ExercicioNoTreino, PlanoDeTreino, SessaoDeTreino, SessaoEmAndamento } from '@/types/treino';
@@ -56,9 +56,10 @@ export default function TreinoSessaoScreen() {
   const { sessaoAtiva: session, planos, sessoes: past } = useAppStore();
   const { registrarSerie, apagarSerie, finalizarTreino, cancelarTreino } = useAppStore();
   const sexo = useAppStore((s) => s.profile?.sex);
-  const treino = session
-    ? planos.find((p) => p.id === session.planoId)?.treinos.find((t) => t.id === session.treinoDoDiaId)
-    : undefined;
+  const plano = session ? planos.find((p) => p.id === session.planoId) : undefined;
+  const doPlano = session ? plano?.treinos.find((t) => t.id === session.treinoDoDiaId) : undefined;
+  // Na semana de alívio (plano da IA), menos séries e as mesmas cargas.
+  const treino = doPlano && session && { ...doPlano, exercicios: doPlano.exercicios.map((e) => ({ ...e, series: seriesNaSemana(e.series, plano, session.data) })) };
   const now = useNow();
 
   const [index, setIndex] = useState(() => (session && treino ? proximoExercicio(treino, session) : 0));

@@ -63,6 +63,25 @@ export function ehSemanaDeAlivio(plano: Pick<PlanoDeTreino, 'ia'> | undefined, d
   return semana >= 0 && semana % ia.semanasNoBloco === ia.semanasNoBloco - 1;
 }
 
+/** Séries do exercício na semana de `data`: na de alívio, cerca de 40% menos (× 0,6, mínimo 1). */
+export function seriesNaSemana(series: number, plano: Pick<PlanoDeTreino, 'ia'> | undefined, data: DateKey): number {
+  return ehSemanaDeAlivio(plano, data) ? Math.max(1, Math.round(series * 0.6)) : series;
+}
+
+/** Semana do bloco em que `data` está (1 a semanasNoBloco); null se o plano não tem bloco ou já acabou. */
+export function semanaDoBloco(plano: Pick<PlanoDeTreino, 'ia'> | undefined, data: DateKey): number | null {
+  const ia = plano?.ia;
+  if (!ia) return null;
+  const semana = Math.floor(daysBetween(ia.inicioBloco, data) / 7) + 1;
+  return semana >= 1 && semana <= ia.semanasNoBloco ? semana : null;
+}
+
+/** O bloco já está na última semana (alívio) ou terminou: hora de montar a próxima fase. */
+export function horaDaProximaFase(plano: Pick<PlanoDeTreino, 'ia'> | undefined, data: DateKey): boolean {
+  const ia = plano?.ia;
+  return !!ia && Math.floor(daysBetween(ia.inicioBloco, data) / 7) + 1 >= ia.semanasNoBloco;
+}
+
 /** Séries do exercício em cada sessão que conta, da mais recente para a mais antiga. */
 export function historicoQueConta(
   sessoes: readonly SessaoDeTreino[],

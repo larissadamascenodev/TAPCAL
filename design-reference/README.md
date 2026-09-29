@@ -103,3 +103,11 @@ Mockup interativo em `v4.html`; `v4.png` mostra as seis telas.
 - `treino-progressao-subir.png` — o campo Carga já vem com a carga nova e, embaixo, a linha verde com o motivo ("Suba para 60 kg: você fez 10, 10, 10, 10 na última vez").
 - `treino-progressao-manter.png` — manter ou reduzir aparecem na mesma linha, em cinza ("Mantenha 55 kg e busque 10 repetições").
 - A linha só aparece antes da primeira série do exercício; depois disso, os campos seguem a última série feita.
+
+## Treino (etapa 5: treino com IA)
+
+- `treino-ia-foco.png` — uma pergunta por tela, com a barra de progresso e "Pergunta X de Y". No foco, o corpo de frente e de costas acende os músculos escolhidos.
+- `treino-ia-lesao.png` — lesões com o aviso de que o app não substitui um profissional.
+- `treino-ia-resultado.png` — "Seu treino está pronto": a semana, um card por dia (séries × repetições), "Por que esse treino" com a explicação e os números das regras, e "De onde vêm os números" (expansível). Botões: Começar a usar, Gerar outro e Editar. Etiqueta "Exemplo" quando o Supabase não está configurado; aviso discreto quando a IA não respondeu e as regras escolheram.
+- `treino-ia-alivio.png` — 5ª semana do bloco: aviso "Semana de alívio: menos séries, mesma técnica" e o card "Montar a próxima fase".
+- As telas de apoio ("Você vê os músculos de cada exercício" e "De onde vêm os números") aparecem só na primeira vez.

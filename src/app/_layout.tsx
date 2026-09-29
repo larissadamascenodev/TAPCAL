@@ -78,6 +78,7 @@ export default function RootLayout() {
           <Stack.Screen name="treino-novo" options={{ presentation: 'modal' }} />
           <Stack.Screen name="meus-treinos" options={{ presentation: 'modal' }} />
           <Stack.Screen name="treino-editor" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="treino-ia" options={{ presentation: 'modal' }} />
           <Stack.Screen
             name="editar-alimento"
             // transparente: a tela de Refeições aparece desfocada atrás da folha
