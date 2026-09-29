@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fundo do app</title>
+<style>
+@font-face{font-family:"SoraL";font-weight:700;src:url("../../node_modules/@expo-google-fonts/sora/700Bold/Sora_700Bold.ttf")}
+@font-face{font-family:"SoraL";font-weight:600;src:url("../../node_modules/@expo-google-fonts/sora/600SemiBold/Sora_600SemiBold.ttf")}
+@font-face{font-family:"ManropeL";font-weight:700;src:url("../../node_modules/@expo-google-fonts/manrope/700Bold/Manrope_700Bold.ttf")}
+@font-face{font-family:"ManropeL";font-weight:600;src:url("../../node_modules/@expo-google-fonts/manrope/600SemiBold/Manrope_600SemiBold.ttf")}
+@font-face{font-family:"ManropeL";font-weight:500;src:url("../../node_modules/@expo-google-fonts/manrope/500Medium/Manrope_500Medium.ttf")}
+:root{
+  color-scheme:dark;
+  --ground:#030304;
+  --ink:#F7F8F4;--ink2:rgba(247,248,244,.7);--ink3:rgba(247,248,244,.45);--ink4:rgba(247,248,244,.22);
+  --onInk:#0A0A0C;
+  /* o verde volta só como detalhe: ponto ao vivo, traço da vez, selo de feito, ícone ativo */
+  --lime:#D1FB39;--limeSoft:rgba(209,251,57,.55);
+  --line:rgba(255,255,255,.13);--soft:rgba(255,255,255,.07);--track:rgba(255,255,255,.1);
+  --display:"SoraL",system-ui,sans-serif;--body:"ManropeL",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:#000;color:var(--ink);font-family:var(--body)}
+svg{display:block}
+.page{padding:34px 28px 40px;width:max-content;background:#000}
+.page h1{margin:0;font-family:var(--display);font-size:30px;letter-spacing:-.03em}
+.page h1 span{color:var(--lime)}
+.lead{margin:8px 0 26px;max-width:1000px;color:var(--ink2);font-size:15px;line-height:1.5}
+.telas{display:flex;gap:30px;align-items:flex-start}
+.cap{margin:0 0 12px;text-align:center;font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3)}
+.nota{width:410px;margin:14px 0 0;color:var(--ink2);font-size:13px;line-height:1.5}
+.nota b{color:var(--ink)}
+.phone{width:410px;border-radius:56px;padding:10px;background:linear-gradient(160deg,#2b2b30,#0d0d10 40%,#1d1d22);box-shadow:0 0 0 1px rgba(255,255,255,.06)}
+.screen{position:relative;overflow:hidden;border-radius:46px;background:var(--ground);height:844px;padding:0 16px;isolation:isolate}
+/* fundo: preto profundo; só um brilho branco frio bem no alto (sem manchas verdes) */
+.screen::before{content:"";position:absolute;left:-40px;right:-40px;top:-140px;height:360px;z-index:-1;background:radial-gradient(60% 55% at 50% 30%,rgba(255,255,255,.07),transparent 70%)}
+.status{display:flex;justify-content:space-between;align-items:center;height:50px;padding:6px 18px 0;font-family:var(--display);font-weight:600;font-size:15px}
+.status .isl{width:120px;height:34px;border-radius:20px;background:#000}
+.bat{width:26px;height:12px;border:1.5px solid var(--ink2);border-radius:4px;position:relative}.bat::after{content:"";position:absolute;inset:2px 6px 2px 2px;background:var(--ink);border-radius:1px}
+.flex{flex:1;min-width:0}
+.eyebrow{font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3)}
+
+/*
+ * VIDRO LÍQUIDO TRANSPARENTE (não fosco): quase sem preenchimento, desfoque leve
+ * que deixa ver o que está atrás, borda de luz (clara em cima/esquerda, some no
+ * meio, volta fraca embaixo/direita) e um brilho especular curvo no topo.
+ */
+.lg{position:relative;isolation:isolate;background:rgba(255,255,255,.025);backdrop-filter:blur(6px) saturate(180%) brightness(1.15);-webkit-backdrop-filter:blur(6px) saturate(180%) brightness(1.15);box-shadow:inset 0 0 0 1px rgba(255,255,255,.06),inset 0 1px 1px rgba(255,255,255,.35),inset 0 -1px 1px rgba(255,255,255,.08),0 18px 40px -22px rgba(0,0,0,.9)}
+.lg::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;z-index:-1;pointer-events:none;background:linear-gradient(135deg,rgba(255,255,255,.55),rgba(255,255,255,.08) 30%,rgba(255,255,255,0) 50%,rgba(255,255,255,.06) 70%,rgba(255,255,255,.3));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+.lg::after{content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;pointer-events:none;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,0) 45%),radial-gradient(90% 60% at 15% 0%,rgba(255,255,255,.06),transparent 60%)}
+.ibtn{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;flex:none}
+.ibtn svg{width:19px;height:19px}
+.btn-w{position:relative;display:flex;align-items:center;justify-content:center;gap:10px;height:58px;border-radius:29px;font-family:var(--display);font-weight:700;font-size:14px;letter-spacing:.22em;text-transform:uppercase;color:var(--onInk);background:linear-gradient(180deg,#FFFFFF,#E9EAE5);box-shadow:inset 0 1px 0 #fff,inset 0 -2px 6px rgba(0,0,0,.1),0 14px 34px -12px rgba(255,255,255,.35)}
+.btn-w svg{width:16px;height:16px}
+.btn-g{display:flex;align-items:center;justify-content:center;gap:9px;height:58px;border-radius:29px;font-family:var(--display);font-weight:700;font-size:13px;letter-spacing:.18em;text-transform:uppercase}
+.btn-g svg{width:15px;height:15px}
+.corpo{display:block;filter:grayscale(.15) brightness(1.05);-webkit-mask-image:radial-gradient(closest-side,#000 82%,transparent);mask-image:radial-gradient(closest-side,#000 82%,transparent);mix-blend-mode:lighten}
+.nav{position:absolute;left:16px;right:16px;bottom:26px;display:flex;gap:10px;align-items:center;z-index:5}
+.nav .pill{flex:1;height:64px;border-radius:32px;display:flex;justify-content:space-around;align-items:center}
+.nav .pill span{width:54px;height:48px;border-radius:24px;display:grid;place-items:center;color:var(--ink2)}
+.nav .pill span.on{background:rgba(255,255,255,.12);color:var(--lime)}
+.nav svg{width:22px;height:22px}
+.nav .fab{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;color:var(--lime)}
+.home{position:absolute;left:50%;bottom:9px;width:134px;height:5px;border-radius:3px;background:rgba(255,255,255,.6);transform:translateX(-50%);z-index:9}
+
+.top{display:flex;align-items:center;gap:10px;margin-top:4px}
+.avatar{width:42px;height:42px;border-radius:50%;padding:2px;background:conic-gradient(from 200deg,var(--lime),#fff,var(--lime))}
+.avatar b{display:grid;place-items:center;width:100%;height:100%;border-radius:50%;background:#0b0c0a;font-family:var(--display);font-size:16px}
+.streak{margin-left:auto;display:flex;align-items:center;gap:6px;height:42px;padding:0 14px 0 10px;border-radius:21px;font-family:var(--display);font-weight:600}
+.streak i{width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 50% 60%,#FF8A5C,#ff5a2a 60%,transparent 62%)}
+.titulo-aba{display:flex;align-items:center;gap:8px;margin-top:14px}
+.titulo-aba h2{margin:0;font-family:var(--display);font-weight:600;font-size:30px;letter-spacing:-.035em;line-height:1.1}
+.titulo-aba small{display:block;font-size:13px;color:var(--ink3);margin-top:2px}
+.week{display:grid;grid-template-columns:repeat(7,1fr);margin-top:14px}
+.wd{display:grid;justify-items:center;gap:6px;font-size:10.5px;font-weight:700;letter-spacing:.1em;color:var(--ink3)}
+.wd b{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;font-family:var(--display);font-size:15px;font-weight:600;color:var(--ink2)}
+.wd.today{color:var(--ink)} .wd.today b{color:var(--ink);box-shadow:inset 0 0 0 2px var(--lime)}
+.wd i{width:4px;height:4px;border-radius:50%;background:var(--ink4)} .wd.ok i{background:none;width:auto;height:auto;font-style:normal;color:var(--lime);font-size:10px;line-height:4px}
+
+/* HERO: dia, nome, músculos logo abaixo do nome, "8 exercícios" embaixo; corpo à direita */
+.hero{position:relative;margin-top:16px}
+.hero h3{margin:8px 0 0;font-family:var(--display);font-size:22px;font-weight:600;letter-spacing:-.03em;line-height:1.2;max-width:340px}
+.hero .area{position:relative;display:flex;align-items:center;height:236px;margin-top:4px}
+.hero .esq{flex:1;display:grid;gap:18px;align-content:center}
+.legenda{display:grid;gap:9px}
+.legenda span{display:flex;align-items:center;gap:9px;font-size:13.5px;font-weight:600;color:var(--ink2)}
+.legenda i{width:8px;height:8px;border-radius:50%;background:var(--lime);box-shadow:0 0 8px rgba(209,251,57,.6)}
+.legenda i.m{background:var(--limeSoft);box-shadow:none}
+.qtd{display:flex;align-items:baseline;gap:8px}
+.qtd b{font-family:var(--display);font-size:40px;font-weight:700;letter-spacing:-.05em;line-height:1}
+.qtd small{font-size:13px;color:var(--ink3);font-weight:700}
+.hero .corpo-wrap{position:relative;width:128px;height:236px;flex:none}
+.hero .corpo{height:236px;width:auto;margin:auto}
+.hero .corpo-wrap::after{content:"";position:absolute;left:18px;right:18px;bottom:0;height:12px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.16),transparent)}
+.acoes{display:flex;gap:10px;margin-top:12px}
+.acoes > *{flex:1}
+
+/* mostrador do treino em andamento (mesmo desenho do descanso) no lugar da legenda */
+.dialT{position:relative;width:196px;height:196px}
+.dialT svg.ticks{position:absolute;inset:0}
+.dialT .in{position:absolute;inset:0;display:grid;place-items:center;align-content:center}
+.dialT .live{display:flex;align-items:center;gap:6px;font-size:9.5px;font-weight:800;letter-spacing:.18em;color:var(--ink2)}
+.dialT .live i{width:6px;height:6px;border-radius:50%;background:var(--lime);box-shadow:0 0 8px var(--lime)}
+.dialT .in b{margin-top:4px;font-family:var(--display);font-size:38px;font-weight:700;letter-spacing:-.05em;line-height:1.05;font-variant-numeric:tabular-nums}
+.dialT .in small{margin-top:2px;font-size:11.5px;font-weight:700;color:var(--ink3)}
+.agoraMini{margin-top:10px;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:18px}
+.agoraMini .t{font-size:13.5px;font-weight:700;line-height:1.25}
+.agoraMini small{display:block;font-size:11.5px;color:var(--ink3);font-weight:600;margin-top:1px}
+.agoraMini .n{flex:none;font-family:var(--display);font-size:13px;font-weight:600;color:var(--lime)}
+
+.tabs{display:flex;padding:4px;margin-top:18px;border-radius:24px}
+.tabs span{flex:1;height:38px;border-radius:19px;display:grid;place-items:center;font-size:14px;font-weight:700;color:var(--ink2)}
+.tabs span.on{background:rgba(255,255,255,.92);color:#111;box-shadow:inset 0 1px 0 #fff}
+.sech{display:flex;justify-content:space-between;align-items:baseline;margin:20px 0 10px}
+.sech h4{margin:0;font-family:var(--display);font-size:18px;font-weight:600;letter-spacing:-.02em}
+.sech span{font-size:14px;font-weight:700;color:var(--ink2)}
+
+/* linha do tempo dos exercícios (aprovada) */
+.tl{position:relative}
+.trilho{position:absolute;left:19px;width:2px;border-radius:1px;background:var(--line)}
+.trilho.ok{background:linear-gradient(var(--lime),rgba(209,251,57,.35))}
+.ex{position:relative;display:flex;gap:14px;align-items:center;min-height:76px;padding:10px 0}
+.no{position:relative;z-index:1;flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-weight:600;font-size:13px;line-height:1;font-variant-numeric:tabular-nums;color:var(--ink3);background:var(--ground);border:1.5px solid var(--line)}
+.no.atual{color:var(--ink);border:2px dashed rgba(255,255,255,.3)}
+.no.atual::after{content:"";position:absolute;inset:-2px;border-radius:50%;background:conic-gradient(var(--lime) calc(var(--p)*1turn),transparent 0);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 2.5px),#000 calc(100% - 2px));mask:radial-gradient(farthest-side,transparent calc(100% - 2.5px),#000 calc(100% - 2px))}
+.no.feito{background:var(--lime);border:none;color:#152000;transform:rotate(-8deg);box-shadow:0 0 0 3px rgba(255,255,255,.9),0 6px 18px -4px rgba(209,251,57,.5)}
+.no.feito svg{width:19px;height:19px}
+.thumb{flex:none;width:46px;height:54px;border-radius:15px;overflow:hidden;display:grid;place-items:center}
+.thumb img{height:50px;mix-blend-mode:lighten}
+.ex .nome{font-size:15.5px;font-weight:700;line-height:1.25}
+.ex .meta{margin-top:3px;font-size:12.5px;color:var(--ink3);font-weight:600}
+.ex.feito .nome{color:var(--ink2)}
+.ex.cur .hl{position:absolute;inset:4px -8px 4px 52px;border-radius:20px;z-index:-1}
+.ex .chev{flex:none;color:var(--ink4)} .ex .chev svg{width:16px;height:16px}
+.ex .agora{font-size:10px;font-weight:800;letter-spacing:.16em;color:var(--lime)}
+
+/* MODAL (refinado) */
+.fundoTela{position:absolute;inset:0;padding:0 16px}
+.veu{position:absolute;inset:0;z-index:7;background:rgba(0,0,0,.35);backdrop-filter:blur(5px) saturate(140%)}
+.modal{position:absolute;left:14px;right:14px;top:150px;z-index:8;padding:22px 20px 18px;border-radius:34px}
+.modal .grab{width:36px;height:4px;border-radius:2px;background:var(--ink4);margin:-8px auto 14px}
+.modal .x{position:absolute;right:14px;top:14px;width:34px;height:34px;border-radius:50%;display:grid;place-items:center}
+.modal .x svg{width:13px;height:13px}
+.modal .cab{display:flex;gap:14px;align-items:center}
+.modal .cab .thumb{width:62px;height:72px;border-radius:20px}
+.modal .cab .thumb img{height:66px}
+.selo{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:12px;background:rgba(209,251,57,.14);color:var(--lime);font-size:11px;font-weight:800;letter-spacing:.08em;box-shadow:inset 0 0 0 1px rgba(209,251,57,.35)}
+.selo svg{width:11px;height:11px}
+.modal h3{margin:8px 0 0;font-family:var(--display);font-size:21px;font-weight:600;letter-spacing:-.02em;line-height:1.2}
+.modal .sub{margin-top:3px;font-size:12.5px;color:var(--ink3);font-weight:600}
+.nums{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:18px}
+.nums div{padding:12px 12px 11px;border-radius:18px;display:grid;gap:4px}
+.nums small{font-size:10px;font-weight:800;letter-spacing:.14em;color:var(--ink3)}
+.nums b{font-family:var(--display);font-size:19px;font-weight:600;letter-spacing:-.02em}
+.nums b span{font-size:11.5px;color:var(--ink3);font-family:var(--body);margin-left:2px}
+.modal .rodapeM{display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:12px;border-top:1px solid var(--soft);font-size:12.5px;color:var(--ink3);font-weight:600}
+.modal .rodapeM b{color:var(--ink)}
+
+/* séries em linha do tempo (modal e ao vivo) */
+.sl{position:relative;margin-top:12px}
+.sl .rail{position:absolute;left:11px;top:26px;bottom:26px;width:2px;background:var(--line)}
+.sl .rail i{position:absolute;left:0;top:0;width:2px;height:var(--h);background:linear-gradient(var(--lime),rgba(209,251,57,.4))}
+.sr{position:relative;display:flex;align-items:center;gap:14px;height:54px}
+.sr .d{position:relative;z-index:1;flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--ground);border:1.5px solid var(--line);font-size:10.5px;font-weight:800;color:var(--ink3)}
+.sr .d.ok{background:var(--lime);border-color:var(--lime);color:#152000}
+.sr .d.ok svg{width:12px;height:12px}
+.sr .d.cur{border:2px dashed var(--lime);color:var(--lime);background:var(--ground)}
+.sr .t{flex:1;min-width:0}
+.sr .t b{display:block;font-family:var(--display);font-size:16px;font-weight:600;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.sr .t small{display:block;margin-top:1px;font-size:12px;color:var(--ink3);font-weight:600}
+.sr .r{font-size:12px;color:var(--ink3);font-weight:700;font-variant-numeric:tabular-nums;text-align:right}
+.sr .r em{display:block;font-style:normal;color:var(--ink2)}
+.sr.cur .t b{color:var(--ink)}
+.sr.cur .t small{color:var(--lime)}
+.sr.fut .t b{color:var(--ink3);font-family:var(--body);font-size:14px}
+.pr{display:inline-flex;align-items:center;height:18px;padding:0 7px;margin-left:8px;border-radius:9px;background:var(--lime);color:#152000;font-size:9.5px;font-weight:800;letter-spacing:.08em;vertical-align:2px}
+
+/* AO VIVO */
+.lv-top{display:flex;align-items:center;justify-content:space-between;margin-top:4px}
+.relogio{display:flex;align-items:center;gap:10px;height:42px;padding:0 16px;border-radius:21px}
+.relogio i{width:7px;height:7px;border-radius:50%;background:var(--lime);box-shadow:0 0 8px var(--lime)}
+.relogio b{font-family:var(--display);font-size:17px;font-variant-numeric:tabular-nums}
+.relogio svg{width:14px;height:14px;color:var(--ink2)}
+.tracos{display:flex;gap:5px;margin-top:16px}
+.tracos i{flex:1;height:4px;border-radius:2px;background:var(--track);overflow:hidden;position:relative}
+.tracos i::after{content:"";position:absolute;inset:0 auto 0 0;width:calc(var(--p,0)*100%);background:var(--ink);border-radius:2px}
+.tracos i.cur::after{background:var(--lime)}
+.lv-tit{margin-top:18px}
+.lv-tit h3{margin:6px 0 0;font-family:var(--display);font-size:24px;font-weight:600;letter-spacing:-.03em;line-height:1.15}
+.mus{display:flex;gap:14px;margin-top:10px;font-size:12.5px;font-weight:600;color:var(--ink2)}
+.mus span{display:flex;align-items:center;gap:6px}
+.mus i{width:7px;height:7px;border-radius:50%;background:var(--lime)} .mus i.m{background:var(--limeSoft)}
+.palco{position:relative;height:230px;margin-top:6px;display:grid;place-items:center}
+.palco::before{content:"";position:absolute;width:214px;height:214px;border-radius:50%;border:1px solid var(--soft)}
+.palco::after{content:"";position:absolute;bottom:8px;width:140px;height:16px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.14),transparent)}
+.palco .corpo{height:216px;position:relative;z-index:1}
+.virar{position:absolute;right:6px;bottom:10px;z-index:2}
+.virar .ibtn{width:38px;height:38px}
+.fatos{display:grid;grid-template-columns:1fr 1fr 1fr;padding:12px 0;border-top:1px solid var(--soft);border-bottom:1px solid var(--soft)}
+.fatos div{padding:0 12px;display:grid;gap:3px}
+.fatos div+div{border-left:1px solid var(--soft)}
+.fatos small{font-size:10px;font-weight:800;letter-spacing:.14em;color:var(--ink3)}
+.fatos b{font-family:var(--display);font-size:15px;font-weight:600;white-space:nowrap}
+/* carga e repetições: dois vidros lado a lado, número grande e − | + numa pílula */
+.ajustes{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.aj{padding:14px 12px 12px;border-radius:28px;display:grid;justify-items:center}
+.aj small{font-size:10.5px;font-weight:800;letter-spacing:.16em;color:var(--ink3)}
+.aj .v{display:flex;align-items:baseline;gap:4px;margin-top:6px}
+.aj .v b{font-family:var(--display);font-size:50px;font-weight:700;letter-spacing:-.05em;line-height:1;font-variant-numeric:tabular-nums}
+.aj .v span{font-size:13px;color:var(--ink3);font-weight:700}
+.aj .dica{margin-top:4px;height:18px;font-size:11.5px;font-weight:700;color:var(--ink3)}
+.aj .dica.up{color:var(--lime)}
+.aj .pm{display:flex;width:100%;height:46px;margin-top:10px;border-radius:23px;overflow:hidden}
+.aj .pm span{flex:1;display:grid;place-items:center;font-size:22px;font-weight:500}
+.aj .pm span+span{border-left:1px solid var(--line)}
+.series-h{display:flex;justify-content:space-between;align-items:baseline;margin:22px 0 0}
+.series-h b{font-family:var(--display);font-size:16px;font-weight:600}
+.series-h small{font-size:12.5px;color:var(--ink3);font-weight:700}
+.rodape{position:absolute;left:16px;right:16px;bottom:30px;z-index:5}
+.fade{position:absolute;left:0;right:0;bottom:0;height:140px;background:linear-gradient(transparent,rgba(3,3,4,.96) 60%);z-index:4}
+
+/* descanso (aprovado) */
+.desc{position:relative;height:300px;margin-top:4px;display:grid;place-items:center}
+.desc .corpo{position:absolute;height:200px;opacity:.08}
+.dial{position:relative;width:268px;height:268px}
+.dial svg.ticks{position:absolute;inset:0}
+.dial .in{position:absolute;inset:0;display:grid;place-items:center;align-content:center}
+.dial .in small{font-size:10.5px;font-weight:800;letter-spacing:.22em;color:var(--ink3)}
+.dial .in b{font-family:var(--display);font-size:64px;font-weight:700;letter-spacing:-.05em;line-height:1.05;font-variant-numeric:tabular-nums}
+.dial .in .prox{margin-top:6px;display:flex;align-items:center;height:28px;padding:0 12px;border-radius:14px;font-size:12px;font-weight:700;color:var(--ink2)}
+.ctrl{display:flex;justify-content:center;align-items:center;gap:14px;margin-top:4px}
+.ctrl .c{width:60px;height:60px;border-radius:50%;display:grid;place-items:center;align-content:center;font-family:var(--display);font-size:14px;font-weight:600}
+.ctrl .c small{font-family:var(--body);font-size:9.5px;color:var(--ink3);font-weight:700;letter-spacing:.06em}
+.ctrl .pular{height:60px;padding:0 26px;border-radius:30px;display:flex;align-items:center;gap:8px;background:#fff;color:var(--onInk);font-family:var(--display);font-weight:700;font-size:13px;letter-spacing:.18em}
+.ctrl .pular svg{width:14px;height:14px}
+</style>
+<style>
+/* vidro mais "líquido": um pouco mais claro e com desfoque maior, que pega a cor do fundo */
+.lg{background:rgba(255,255,255,.07);backdrop-filter:blur(22px) saturate(190%) brightness(1.1);-webkit-backdrop-filter:blur(22px) saturate(190%) brightness(1.1)}
+.screen::before{display:none}
+.screen{background-attachment:local}
+
+/* CENA: fundo com profundidade (bokeh), igual às referências — é o que faz o vidro parecer vidro */
+.screen{background:#070A08}
+.cena{position:absolute;inset:0;z-index:-1;overflow:hidden;background:linear-gradient(180deg,#0E1512 0%,#0A0F0C 45%,#070908 100%)}
+.cena i{position:absolute;border-radius:50%;filter:blur(var(--b,40px));opacity:var(--o,1)}
+.cena .veu{position:absolute;inset:0;background:linear-gradient(180deg,rgba(5,7,6,.15),rgba(5,7,6,.35) 55%,rgba(5,7,6,.7));}
+.cena .grao{position:absolute;inset:0;opacity:.09;mix-blend-mode:overlay;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E")}
+/* variações de vidro, lado a lado */
+.g-frost .lg{background:rgba(255,255,255,.08);backdrop-filter:blur(26px) saturate(150%);-webkit-backdrop-filter:blur(26px) saturate(150%)}
+.g-frost .lg > *{position:relative}
+.g-frost .lg::after{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");opacity:.14;mix-blend-mode:overlay;inset:0;-webkit-mask:none;mask:none}
+.g-clear .lg{background:rgba(255,255,255,.03);backdrop-filter:blur(3px) saturate(170%) brightness(1.15);-webkit-backdrop-filter:blur(3px) saturate(170%) brightness(1.15);box-shadow:inset 0 0 0 1px rgba(255,255,255,.1),inset 0 1px 1px rgba(255,255,255,.55),inset 0 -1px 1px rgba(255,255,255,.18),inset 0 0 18px rgba(255,255,255,.06),0 18px 40px -22px rgba(0,0,0,.8)}
+.g-blur .lg{background:rgba(255,255,255,.12);backdrop-filter:blur(44px) saturate(200%) brightness(1.2);-webkit-backdrop-filter:blur(44px) saturate(200%) brightness(1.2)}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><defs>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-chev-r" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-chev-d" viewBox="0 0 24 24"><path d="M5 9l7 7 7-7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-expand" viewBox="0 0 24 24"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1.2" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1.2" fill="currentColor"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></symbol>
+  <symbol id="i-skip" viewBox="0 0 24 24"><path d="M5 6v12l9-6zM16 6v12" fill="currentColor" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+  <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="19" cy="12" r="2" fill="currentColor"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5M12 6.5C14 5 17 4.5 20.5 5v13c-3.5-.5-6.5 0-8.5 1.5M12 6.5v13" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
+  <symbol id="i-albums" viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M6.5 5h11" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0112 0v5l1.5 2h-15L6 16zM10 20a2 2 0 004 0" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
+  <symbol id="i-flip" viewBox="0 0 24 24"><path d="M4 12a8 8 0 0114-5.3M20 12a8 8 0 01-14 5.3M18 3v4h-4M6 21v-4h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
+  <symbol id="i-fork" viewBox="0 0 24 24"><path d="M7 3v8M5 3v5a2 2 0 004 0V3M7 11v10M17 3c-2 2-2 6 0 8v10" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-dumb" viewBox="0 0 24 24"><path d="M3 10v4M6 7v10M18 7v10M21 10v4M6 12h12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-scan" viewBox="0 0 24 24"><path d="M4 9V6a2 2 0 012-2h3M15 4h3a2 2 0 012 2v3M20 15v3a2 2 0 01-2 2h-3M9 20H6a2 2 0 01-2-2v-3" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></symbol>
+</defs></svg>
+
+<div class="page">
+  <h1>Fundo com profundidade <span>+ 3 tipos de vidro</span></h1>
+  <p class="lead">Como nas referências: o fundo é uma cena escura com profundidade (verde-folha, luzes âmbar desfocadas e um céu frio no canto, com grão fino) e o vidro fica por cima. Mesmo fundo nas três; muda só o tipo de vidro. Dá para oferecer depois: usar uma foto sua como fundo.</p>
+  <div class="telas">
+<!-- 2 -->
+<div>
+<p class="cap">A · Frosted (fosco com grão)</p>
+<div class="phone"><div class="screen g-frost"><div class="cena">
+    <i style="left:-120px;top:-110px;width:360px;height:300px;background:#7FA6B8;--b:70px;--o:.45"></i>
+    <i style="left:170px;top:-60px;width:320px;height:320px;background:#1F3B26;--b:60px"></i>
+    <i style="left:230px;top:120px;width:190px;height:190px;background:#E0782E;--b:46px;--o:.55"></i>
+    <i style="left:-70px;top:360px;width:230px;height:230px;background:#D4652A;--b:56px;--o:.42"></i>
+    <i style="left:120px;top:470px;width:320px;height:260px;background:#2A4A2C;--b:60px;--o:.9"></i>
+    <i style="left:300px;top:640px;width:140px;height:140px;background:#E9A04A;--b:40px;--o:.45"></i>
+    <i style="left:-40px;top:720px;width:260px;height:200px;background:#1B2E22;--b:50px"></i>
+    <i style="left:60px;top:250px;width:60px;height:60px;background:#F2B563;--b:18px;--o:.35"></i>
+    <i style="left:330px;top:420px;width:48px;height:48px;background:#F2B563;--b:14px;--o:.3"></i>
+    <div class="veu"></div><div class="grao"></div>
+  </div>
+
+  <div class="status"><span>13:12</span><span class="isl"></span><span class="bat"></span></div>
+  <div class="top"><div class="avatar"><b>L</b></div><div class="streak lg"><i></i>4</div><span class="ibtn lg"><svg><use href="#i-bell"/></svg></span></div>
+  <div class="hero" style="margin-top:20px">
+    <div class="eyebrow">Hoje · terça-feira</div>
+    <h3>Quadríceps, posterior, glúteos e panturrilha</h3>
+    <div class="area">
+      <div class="esq" style="justify-items:start">
+        <div class="dialT"><svg class="ticks" id="dialT" viewBox="0 0 196 196"></svg>
+          <div class="in"><span class="live"><i></i>AO VIVO</span><b>19:20</b><small>7 de 27 séries</small></div></div>
+      </div>
+      <div class="corpo-wrap"><img class="corpo" src="../treino-v6/corpo-pernas-costas.png" alt=""></div>
+    </div>
+    <div class="agoraMini lg"><div class="flex"><div class="t">Agachamento livre com barra</div><small>Agora · série 4 de 4</small></div><span class="n">2/8</span></div>
+  </div>
+  <div class="acoes"><div class="btn-g lg"><svg><use href="#i-pause"/></svg>Pausar</div><div class="btn-w"><svg><use href="#i-expand"/></svg>Abrir</div></div>
+  <div class="tabs lg"><span class="on">Exercícios</span><span>Cardio</span><span>Semana</span></div>
+  <div class="sech"><h4>Hoje · terça-feira</h4><span>Editar</span></div>
+  <div class="tl">
+    <div class="trilho ok" style="top:58px;height:90px"></div>
+    <div class="ex feito"><div class="no feito"><svg><use href="#i-check"/></svg></div><div class="thumb lg"><img src="../treino-v6/corpo-pernas-frente.png" alt=""></div><div class="flex"><div class="nome">Leg press 45°</div><div class="meta">3 de 3 séries</div></div></div>
+  </div>
+  <div class="nav"><div class="pill lg"><span><svg><use href="#i-home"/></svg></span><span><svg><use href="#i-fork"/></svg></span><span class="on"><svg><use href="#i-dumb"/></svg></span><span><svg><use href="#i-chart"/></svg></span></div><div class="fab lg"><svg><use href="#i-scan"/></svg></div></div>
+  <div class="home"></div>
+</div></div>
+<p class="nota">Vidro com desfoque médio e um grão fino, como o "Frosted" da referência: dá para sentir as cores e luzes de trás, sem atrapalhar a leitura. <b>Minha recomendação</b> para os cards e botões.</p>
+</div>
+<!-- 2 -->
+<div>
+<p class="cap">B · Clear (transparente, iOS)</p>
+<div class="phone"><div class="screen g-clear"><div class="cena">
+    <i style="left:-120px;top:-110px;width:360px;height:300px;background:#7FA6B8;--b:70px;--o:.45"></i>
+    <i style="left:170px;top:-60px;width:320px;height:320px;background:#1F3B26;--b:60px"></i>
+    <i style="left:230px;top:120px;width:190px;height:190px;background:#E0782E;--b:46px;--o:.55"></i>
+    <i style="left:-70px;top:360px;width:230px;height:230px;background:#D4652A;--b:56px;--o:.42"></i>
+    <i style="left:120px;top:470px;width:320px;height:260px;background:#2A4A2C;--b:60px;--o:.9"></i>
+    <i style="left:300px;top:640px;width:140px;height:140px;background:#E9A04A;--b:40px;--o:.45"></i>
+    <i style="left:-40px;top:720px;width:260px;height:200px;background:#1B2E22;--b:50px"></i>
+    <i style="left:60px;top:250px;width:60px;height:60px;background:#F2B563;--b:18px;--o:.35"></i>
+    <i style="left:330px;top:420px;width:48px;height:48px;background:#F2B563;--b:14px;--o:.3"></i>
+    <div class="veu"></div><div class="grao"></div>
+  </div>
+
+  <div class="status"><span>13:12</span><span class="isl"></span><span class="bat"></span></div>
+  <div class="top"><div class="avatar"><b>L</b></div><div class="streak lg"><i></i>4</div><span class="ibtn lg"><svg><use href="#i-bell"/></svg></span></div>
+  <div class="hero" style="margin-top:20px">
+    <div class="eyebrow">Hoje · terça-feira</div>
+    <h3>Quadríceps, posterior, glúteos e panturrilha</h3>
+    <div class="area">
+      <div class="esq" style="justify-items:start">
+        <div class="dialT"><svg class="ticks" id="dialT" viewBox="0 0 196 196"></svg>
+          <div class="in"><span class="live"><i></i>AO VIVO</span><b>19:20</b><small>7 de 27 séries</small></div></div>
+      </div>
+      <div class="corpo-wrap"><img class="corpo" src="../treino-v6/corpo-pernas-costas.png" alt=""></div>
+    </div>
+    <div class="agoraMini lg"><div class="flex"><div class="t">Agachamento livre com barra</div><small>Agora · série 4 de 4</small></div><span class="n">2/8</span></div>
+  </div>
+  <div class="acoes"><div class="btn-g lg"><svg><use href="#i-pause"/></svg>Pausar</div><div class="btn-w"><svg><use href="#i-expand"/></svg>Abrir</div></div>
+  <div class="tabs lg"><span class="on">Exercícios</span><span>Cardio</span><span>Semana</span></div>
+  <div class="sech"><h4>Hoje · terça-feira</h4><span>Editar</span></div>
+  <div class="tl">
+    <div class="trilho ok" style="top:58px;height:90px"></div>
+    <div class="ex feito"><div class="no feito"><svg><use href="#i-check"/></svg></div><div class="thumb lg"><img src="../treino-v6/corpo-pernas-frente.png" alt=""></div><div class="flex"><div class="nome">Leg press 45°</div><div class="meta">3 de 3 séries</div></div></div>
+  </div>
+  <div class="nav"><div class="pill lg"><span><svg><use href="#i-home"/></svg></span><span><svg><use href="#i-fork"/></svg></span><span class="on"><svg><use href="#i-dumb"/></svg></span><span><svg><use href="#i-chart"/></svg></span></div><div class="fab lg"><svg><use href="#i-scan"/></svg></div></div>
+  <div class="home"></div>
+</div></div>
+<p class="nota">Vidro quase sem desfoque, com borda de luz forte, como o "Clear" do iOS: dá para ver o fundo através dele. Mais bonito, mas o texto perde um pouco de leitura.</p>
+</div>
+<!-- 2 -->
+<div>
+<p class="cap">C · Blur (desfoque forte, One UI)</p>
+<div class="phone"><div class="screen g-blur"><div class="cena">
+    <i style="left:-120px;top:-110px;width:360px;height:300px;background:#7FA6B8;--b:70px;--o:.45"></i>
+    <i style="left:170px;top:-60px;width:320px;height:320px;background:#1F3B26;--b:60px"></i>
+    <i style="left:230px;top:120px;width:190px;height:190px;background:#E0782E;--b:46px;--o:.55"></i>
+    <i style="left:-70px;top:360px;width:230px;height:230px;background:#D4652A;--b:56px;--o:.42"></i>
+    <i style="left:120px;top:470px;width:320px;height:260px;background:#2A4A2C;--b:60px;--o:.9"></i>
+    <i style="left:300px;top:640px;width:140px;height:140px;background:#E9A04A;--b:40px;--o:.45"></i>
+    <i style="left:-40px;top:720px;width:260px;height:200px;background:#1B2E22;--b:50px"></i>
+    <i style="left:60px;top:250px;width:60px;height:60px;background:#F2B563;--b:18px;--o:.35"></i>
+    <i style="left:330px;top:420px;width:48px;height:48px;background:#F2B563;--b:14px;--o:.3"></i>
+    <div class="veu"></div><div class="grao"></div>
+  </div>
+
+  <div class="status"><span>13:12</span><span class="isl"></span><span class="bat"></span></div>
+  <div class="top"><div class="avatar"><b>L</b></div><div class="streak lg"><i></i>4</div><span class="ibtn lg"><svg><use href="#i-bell"/></svg></span></div>
+  <div class="hero" style="margin-top:20px">
+    <div class="eyebrow">Hoje · terça-feira</div>
+    <h3>Quadríceps, posterior, glúteos e panturrilha</h3>
+    <div class="area">
+      <div class="esq" style="justify-items:start">
+        <div class="dialT"><svg class="ticks" id="dialT" viewBox="0 0 196 196"></svg>
+          <div class="in"><span class="live"><i></i>AO VIVO</span><b>19:20</b><small>7 de 27 séries</small></div></div>
+      </div>
+      <div class="corpo-wrap"><img class="corpo" src="../treino-v6/corpo-pernas-costas.png" alt=""></div>
+    </div>
+    <div class="agoraMini lg"><div class="flex"><div class="t">Agachamento livre com barra</div><small>Agora · série 4 de 4</small></div><span class="n">2/8</span></div>
+  </div>
+  <div class="acoes"><div class="btn-g lg"><svg><use href="#i-pause"/></svg>Pausar</div><div class="btn-w"><svg><use href="#i-expand"/></svg>Abrir</div></div>
+  <div class="tabs lg"><span class="on">Exercícios</span><span>Cardio</span><span>Semana</span></div>
+  <div class="sech"><h4>Hoje · terça-feira</h4><span>Editar</span></div>
+  <div class="tl">
+    <div class="trilho ok" style="top:58px;height:90px"></div>
+    <div class="ex feito"><div class="no feito"><svg><use href="#i-check"/></svg></div><div class="thumb lg"><img src="../treino-v6/corpo-pernas-frente.png" alt=""></div><div class="flex"><div class="nome">Leg press 45°</div><div class="meta">3 de 3 séries</div></div></div>
+  </div>
+  <div class="nav"><div class="pill lg"><span><svg><use href="#i-home"/></svg></span><span><svg><use href="#i-fork"/></svg></span><span class="on"><svg><use href="#i-dumb"/></svg></span><span><svg><use href="#i-chart"/></svg></span></div><div class="fab lg"><svg><use href="#i-scan"/></svg></div></div>
+  <div class="home"></div>
+</div></div>
+<p class="nota">Desfoque forte e mais claro, como o "Blur" da One UI: as cores de trás viram manchas suaves. Mais leitura, menos transparência.</p>
+</div>
+<!-- 2 -->
+  </div>
+</div>
+<script>
+function mostrador(el, size, rIn, rOut, frac, n) {
+  const c = size / 2; let s = '';
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * 2 * Math.PI - Math.PI / 2, on = i / n < frac, head = Math.abs(i / n - frac) < 0.5 / n + 0.001;
+    const r1 = head ? rIn - 6 : rIn;
+    s += `<line x1="${c + r1 * Math.cos(a)}" y1="${c + r1 * Math.sin(a)}" x2="${c + rOut * Math.cos(a)}" y2="${c + rOut * Math.sin(a)}" stroke="${head ? '#D1FB39' : on ? 'rgba(255,255,255,.85)' : 'rgba(255,255,255,.12)'}" stroke-width="${head ? 4 : 2.4}" stroke-linecap="round" ${head ? 'style="filter:drop-shadow(0 0 6px #D1FB39)"' : ''}/>`;
+  }
+  el.innerHTML = s;
+}
+document.querySelectorAll('.dialT svg').forEach((el) => mostrador(el, 196, 80, 94, 7 / 27, 54));
+</script>
+</body>
+</html>
