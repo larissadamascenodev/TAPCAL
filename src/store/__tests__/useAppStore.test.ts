@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import mockAsyncStorage from '@react-native-async-storage/async-storage/jest/async-storage-mock';
 
+import { exercicioPorId } from '@/lib/exercicios';
 import { SAMPLE_PROFILE, SAMPLE_WORKOUT_PLANS, sampleSessions } from '@/data/sample';
 import { burnedOn, goalPlan, remainingToday, workoutToday } from '@/store/selectors';
 import { migrarStore, useAppStore } from '@/store/useAppStore';
@@ -154,6 +155,24 @@ describe('treino', () => {
     expect(store().planos[2].treinos[0].id).not.toBe('t-seg');
     store().apagarPlano('q');
     expect(store().planos.map((p) => p.id)).not.toContain('q');
+  });
+
+  it('editar um plano troca ele no lugar, sem mexer em qual está ativo', () => {
+    store().salvarPlano(planoTeste());
+    store().salvarPlano({ ...planoTeste(), id: 'q', nome: 'Outro' });
+    store().atualizarPlano({ ...planoTeste(), ativo: false, nome: 'Pernas' });
+    expect(store().planos.map((p) => [p.id, p.nome, p.ativo])).toEqual([
+      ['p', 'Pernas', false],
+      ['q', 'Outro', true],
+    ]);
+  });
+
+  it('exercício criado pela pessoa fica guardado e aparece na biblioteca', () => {
+    const ex = store().criarExercicio({ nome: 'Remada no TRX', musculo: 'upper-back', equipamento: 'elastico' });
+    expect(store().exerciciosUsuario).toEqual([ex]);
+    expect(exercicioPorId(ex.id)?.origem).toBe('usuario');
+    store().clearAll();
+    expect(exercicioPorId(ex.id)).toBeUndefined();
   });
 
   it('apagar série renumera as seguintes', () => {

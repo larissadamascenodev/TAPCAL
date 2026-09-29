@@ -21,8 +21,10 @@ import {
 } from '@/data/sample';
 import { toDateKey } from '@/lib/dates';
 import { emptyDay, rolloverDay } from '@/lib/day';
+import { registrarExerciciosDoUsuario } from '@/lib/exercicios';
 import { updateFoodInMeals, type FoodPatch } from '@/lib/foodEdit';
 import { newId } from '@/lib/id';
+import { exercicioDoUsuario, type NovoExercicio } from '@/lib/treino/editor';
 import { kcalDaSessao } from '@/lib/treino/met';
 import { converterPlanos } from '@/lib/treino/migracao';
 import type {
@@ -34,7 +36,7 @@ import type {
   WorkoutPlan,
   WorkoutSession,
 } from '@/types';
-import type { PlanoDeTreino, SessaoDeTreino, SessaoEmAndamento } from '@/types/treino';
+import type { Exercicio, PlanoDeTreino, SessaoDeTreino, SessaoEmAndamento } from '@/types/treino';
 
 export type NewFoodItem = Omit<FoodItem, 'id' | 'createdAt'>;
 
@@ -49,6 +51,8 @@ type Data = {
   sessoes: SessaoDeTreino[];
   /** Treino em andamento, se houver. */
   sessaoAtiva: SessaoEmAndamento | null;
+  /** Exercícios criados pela pessoa ("Não achou? Criar exercício"). */
+  exerciciosUsuario: Exercicio[];
 };
 
 type Actions = {
@@ -68,6 +72,8 @@ type Actions = {
 
   /** Guarda um plano novo; por padrão vira o ativo (o anterior fica em Meus treinos). */
   salvarPlano: (plano: PlanoDeTreino, ativar?: boolean) => void;
+  /** Substitui um plano existente pela versão editada (mesmo id). */
+  atualizarPlano: (plano: PlanoDeTreino) => void;
   ativarPlano: (id: string) => void;
   duplicarPlano: (id: string) => void;
   apagarPlano: (id: string) => void;
@@ -78,6 +84,8 @@ type Actions = {
   /** Termina o treino: calcula as kcal e guarda (sem nenhuma série, descarta). */
   finalizarTreino: () => void;
   cancelarTreino: () => void;
+  /** Cria um exercício só desta pessoa e devolve ele (para já entrar no treino). */
+  criarExercicio: (novo: NovoExercicio) => Exercicio;
 
   loadSample: () => void;
   clearAll: () => void;
@@ -97,6 +105,7 @@ function blankData(): Data {
     planos: [],
     sessoes: [],
     sessaoAtiva: null,
+    exerciciosUsuario: [],
   };
 }
 
@@ -112,6 +121,7 @@ export function sampleData(): Data {
     planos: plano ? [plano] : [],
     sessoes,
     sessaoAtiva: null,
+    exerciciosUsuario: [],
   };
 }
 
@@ -177,6 +187,8 @@ export const useAppStore = create<AppState>()(
           const outros = get().planos.map((p) => (ativar ? { ...p, ativo: false } : p));
           set({ planos: [...outros, { ...plano, ativo: ativar }] });
         },
+
+        atualizarPlano: (plano) => set({ planos: get().planos.map((p) => (p.id === plano.id ? plano : p)) }),
 
         ativarPlano: (id) => set({ planos: get().planos.map((p) => ({ ...p, ativo: p.id === id })) }),
 
@@ -259,6 +271,12 @@ export const useAppStore = create<AppState>()(
 
         cancelarTreino: () => set({ sessaoAtiva: null }),
 
+        criarExercicio: (novo) => {
+          const ex = exercicioDoUsuario(novo);
+          set({ exerciciosUsuario: [...get().exerciciosUsuario, ex] });
+          return ex;
+        },
+
         loadSample: () => set(sampleData()),
         clearAll: () => set(blankData()),
       };
@@ -277,12 +295,19 @@ export const useAppStore = create<AppState>()(
         planos: s.planos,
         sessoes: s.sessoes,
         sessaoAtiva: s.sessaoAtiva,
+        exerciciosUsuario: s.exerciciosUsuario,
       }),
       // Ao reabrir o app num dia novo, zera refeições e água.
       onRehydrateStorage: () => (state) => state?.ensureToday(),
     },
   ),
 );
+
+// A biblioteca (lib/exercicios) enxerga os exercícios criados pela pessoa.
+registrarExerciciosDoUsuario(useAppStore.getState().exerciciosUsuario);
+useAppStore.subscribe((s, antes) => {
+  if (s.exerciciosUsuario !== antes.exerciciosUsuario) registrarExerciciosDoUsuario(s.exerciciosUsuario);
+});
 
 /**
  * Migração dos dados salvos. v1 → v2: os treinos antigos viram um plano no

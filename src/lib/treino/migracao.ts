@@ -5,7 +5,6 @@
  */
 
 import { EXERCICIOS } from '@/data/exercicios';
-import { newId } from '@/lib/id';
 import { normalize } from '@/lib/taco';
 import type { WorkoutPlan, WorkoutSession } from '@/types';
 import type { DiaSemana, ExercicioNoTreino, PlanoDeTreino, SerieFeita, SessaoDeTreino, TreinoDoDia } from '@/types/treino';
@@ -122,18 +121,3 @@ export function converterPlanos(
   return { plano, sessoes };
 }
 
-/**
- * Plano novo a partir do montador "do meu jeito" (que ainda gera os treinos no
- * formato antigo): ids novos para não se misturar com planos guardados.
- */
-export function planoDoMontador(treinos: readonly WorkoutPlan[], nome: string, criadoEm = new Date().toISOString()): PlanoDeTreino | null {
-  const { plano } = converterPlanos(treinos, [], 70, criadoEm);
-  if (!plano) return null;
-  const id = newId();
-  return {
-    ...plano,
-    id,
-    nome,
-    treinos: plano.treinos.map((t) => ({ ...t, id: `${id}-${t.dia}`, exercicios: t.exercicios.map((e) => ({ ...e, id: newId() })) })),
-  };
-}

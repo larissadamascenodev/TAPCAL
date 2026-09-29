@@ -23,6 +23,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { colors, fonts, radius, spacing } from '@/theme/theme';
 import type { Equipamento, Exercicio, Musculo } from '@/types/treino';
 
+import { CriarExercicioSheet } from './CriarExercicioSheet';
 import { MapaMuscular } from './MapaMuscular';
 
 /** Quantos exercícios a lista mostra de cada vez (cada miniatura é um desenho). */
@@ -48,7 +49,11 @@ export function ExerciseLibrary({ picked, onToggle }: Props) {
   const [ladoCorpo, setLadoCorpo] = useState<'front' | 'back'>('front');
   const [limite, setLimite] = useState(PAGINA);
   const [aberto, setAberto] = useState<Exercicio | null>(null);
-  const resultados = useMemo(() => buscarExercicios({ busca, musculo, equipamento }), [busca, musculo, equipamento]);
+  const [criando, setCriando] = useState(false);
+  // Muda quando a pessoa cria um exercício, para a busca incluir o novo.
+  const meus = useAppStore((s) => s.exerciciosUsuario);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- `meus` entra para refazer a busca com o exercício novo
+  const resultados = useMemo(() => buscarExercicios({ busca, musculo, equipamento }), [busca, musculo, equipamento, meus]);
   const escolhendo = !!onToggle;
 
   const filtrar = (m: Musculo | null) => {
@@ -168,7 +173,31 @@ export function ExerciseLibrary({ picked, onToggle }: Props) {
             <Text style={styles.moreText}>Ver mais {Math.min(PAGINA, resultados.length - limite)}</Text>
           </Pressable>
         )}
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => setCriando(true)}
+          style={({ pressed }) => [styles.create, pressed && styles.pressed]}>
+          <Ionicons name="add-circle-outline" size={20} color={colors.lime} />
+          <View style={styles.flex}>
+            <Text style={styles.createTitle}>Não achou? Criar exercício</Text>
+            <Text variant="caption" tone="muted">
+              Nome, músculo e equipamento. Fica só na sua biblioteca.
+            </Text>
+          </View>
+        </Pressable>
       </View>
+
+      <CriarExercicioSheet
+        visible={criando}
+        nomeInicial={resultados.length ? '' : busca}
+        onClose={() => setCriando(false)}
+        onCriado={(ex) => {
+          setBusca('');
+          setMusculo(null);
+          setEquipamento(null);
+          if (escolhendo) onToggle?.(ex.id);
+        }}
+      />
 
       <DetalheExercicio
         exercicio={aberto}
@@ -255,9 +284,15 @@ function DetalheExercicio({
                 <Fact label="Equipamento" value={exercicio.equipamentos.map((q) => EQUIPAMENTO_LABELS[q]).join(', ')} />
               </View>
 
-              <Text variant="label" tone="muted">
-                Como fazer
-              </Text>
+              {exercicio.origem === 'usuario' ? (
+                <Text variant="caption" tone="muted">
+                  Exercício criado por você.
+                </Text>
+              ) : (
+                <Text variant="label" tone="muted">
+                  Como fazer
+                </Text>
+              )}
               <View style={styles.steps}>
                 {exercicio.instrucoes.map((passo, i) => (
                   <View key={i} style={styles.step}>
@@ -418,6 +453,23 @@ const styles = StyleSheet.create({
   checkOn: {
     backgroundColor: colors.lime,
     borderColor: colors.lime,
+  },
+  create: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: spacing.sm,
+    padding: 14,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: colors.limeEdge,
+    backgroundColor: colors.limeWash,
+  },
+  createTitle: {
+    fontFamily: fonts.body.bold,
+    fontSize: 14.5,
+    color: colors.lime,
   },
   more: {
     alignItems: 'center',

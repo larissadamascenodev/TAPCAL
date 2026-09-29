@@ -80,7 +80,6 @@ Mockup interativo em `v4.html`; `v4.png` mostra as seis telas.
 - `treino-semana.png` — números da semana, volume dos últimos 7 dias, próximos treinos e concluídos.
 - `treino-biblioteca.png` — biblioteca (SPEC etapa 1): busca por nome e nomes alternativos, filtros por músculo e equipamento, corpo tocável para filtrar e miniatura com o mapa muscular.
 - `treino-exercicio.png` — detalhe do exercício: mapa muscular (principal em verde neon, secundários em verde claro, botão de virar), músculos, equipamento, "Como fazer" e histórico. Quando houver GIF licenciado, ele entra no lugar do mapa.
-- `treino-novo-dias.png` / `treino-novo-revisao.png` — criar treino personalizado: dias → divisão → foco → revisão com os exercícios de cada treino.
 
 ## Treino (etapa 2: plano da semana, sessões e calorias)
 
@@ -89,3 +88,12 @@ Mockup interativo em `v4.html`; `v4.png` mostra as seis telas.
 - `inicio-treino-kcal.png` — as kcal do treino entram no orçamento do dia em que ele foi feito ("Treino +130 kcal no orçamento de hoje").
 - `treino-meus-treinos.png` — Meus treinos: um ativo por vez; ativar, duplicar e apagar.
 - `rotina-trabalho.png` — rotina de trabalho (sentada, dinâmica, pesada) no lugar do nível de atividade; o treino não entra mais no fator.
+
+## Treino (etapa 3: montar do meu jeito)
+
+- `treino-editor-dias.png` — nome do plano (padrão "Meu treino") e os dias de segunda a domingo.
+- `treino-editor-dia.png` — editor do dia: abas dos dias (✓ = montado, ponto laranja = vazio), nome do treino com sugestões, exercícios na ordem com subir/descer/tirar, "Adicionar exercícios" (vários de uma vez), copiar para outro dia e limpar o dia. O salvar só libera quando todo dia tem exercício.
+- `treino-editor-exercicio.png` — editar um exercício: séries, repetições em faixa ou número fixo, descanso (45 a 180 s), carga inicial e observação.
+- `treino-editor-copiar.png` — copiar o treino para outro dia (dia de descanso vira dia de treino; dia montado é substituído, com confirmação).
+- `treino-criar-exercicio.png` — "Não achou? Criar exercício": nome, músculo principal e equipamento; fica só na biblioteca da pessoa.
+- Reordenar é com os botões de subir e descer (sem arrastar), para não depender de biblioteca nova.

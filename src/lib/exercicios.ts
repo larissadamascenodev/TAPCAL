@@ -84,8 +84,20 @@ export const NIVEL_LABELS: Record<Exercicio['nivel'], string> = {
 
 const POR_ID = new Map(EXERCICIOS.map((e) => [e.id, e]));
 
+/** Exercícios criados pela pessoa (o store registra aqui sempre que a lista muda). */
+let doUsuario: readonly Exercicio[] = [];
+
+export function registrarExerciciosDoUsuario(lista: readonly Exercicio[]): void {
+  doUsuario = lista;
+}
+
+/** Biblioteca completa: os criados pela pessoa primeiro, depois os do TapCal. */
+export function todosExercicios(): readonly Exercicio[] {
+  return doUsuario.length ? [...doUsuario, ...EXERCICIOS] : EXERCICIOS;
+}
+
 export function exercicioPorId(id: string | undefined): Exercicio | undefined {
-  return id ? POR_ID.get(id) : undefined;
+  return id ? (POR_ID.get(id) ?? doUsuario.find((e) => e.id === id)) : undefined;
 }
 
 export type Filtro = { busca?: string; musculo?: Musculo | null; equipamento?: Equipamento | null };
@@ -94,7 +106,7 @@ export type Filtro = { busca?: string; musculo?: Musculo | null; equipamento?: E
  * Busca por nome e nomes alternativos (sem acento, palavras em qualquer ordem),
  * com filtro por músculo (principal) e equipamento. Mantém a ordem da biblioteca.
  */
-export function buscarExercicios({ busca = '', musculo = null, equipamento = null }: Filtro, lista: readonly Exercicio[] = EXERCICIOS): Exercicio[] {
+export function buscarExercicios({ busca = '', musculo = null, equipamento = null }: Filtro, lista: readonly Exercicio[] = todosExercicios()): Exercicio[] {
   const palavras = normalize(busca).split(/\s+/).filter(Boolean);
   return lista.filter((e) => {
     if (musculo && e.musculoPrincipal !== musculo) return false;

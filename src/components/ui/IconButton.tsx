@@ -10,22 +10,26 @@ type Props = {
   size?: number;
   /** Fundo mais escuro, para ficar sobre fotos. */
   dark?: boolean;
+  disabled?: boolean;
   style?: StyleProp<ViewStyle>;
 };
 
 /** Botão redondo de vidro com ícone (buscar, fechar, histórico…). */
-export function IconButton({ icon, label, onPress, size = 42, dark, style }: Props) {
+export function IconButton({ icon, label, onPress, size = 42, dark, disabled, style }: Props) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
+      accessibilityState={disabled ? { disabled } : undefined}
       hitSlop={6}
+      disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [
         styles.base,
         { width: size, height: size, borderRadius: size / 2 },
         dark && styles.dark,
         pressed && styles.pressed,
+        disabled && styles.disabled,
         style,
       ]}>
       <Ionicons name={icon} size={Math.round(size * 0.43)} color={colors.ink} />
@@ -46,5 +50,8 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.7,
+  },
+  disabled: {
+    opacity: 0.3,
   },
 });

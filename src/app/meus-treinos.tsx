@@ -78,6 +78,7 @@ export default function MeusTreinosScreen() {
             </Text>
             <View style={styles.actions}>
               {!p.ativo && <Action icon="checkmark-circle-outline" label="Ativar" accent onPress={() => ativar(p)} />}
+              <Action icon="create-outline" label="Editar" onPress={() => router.push({ pathname: '/treino-editor', params: { planoId: p.id } })} />
               <Action
                 icon="copy-outline"
                 label="Duplicar"
@@ -186,6 +187,7 @@ const styles = StyleSheet.create({
   },
   actions: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing.sm,
     marginTop: 4,
   },
