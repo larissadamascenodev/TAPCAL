@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TapCal Treino — 3 opções</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=Manrope:wght@500;600;700&display=swap">
+<style>
+@font-face{font-family:"SoraL";font-weight:700;src:url("fonts/Sora_700Bold.ttf")}
+@font-face{font-family:"SoraL";font-weight:600;src:url("fonts/Sora_600SemiBold.ttf")}
+@font-face{font-family:"ManropeL";font-weight:700;src:url("fonts/Manrope_700Bold.ttf")}
+@font-face{font-family:"ManropeL";font-weight:600;src:url("fonts/Manrope_600SemiBold.ttf")}
+@font-face{font-family:"ManropeL";font-weight:500;src:url("fonts/Manrope_500Medium.ttf")}
+:root{
+  color-scheme:dark;
+  /* tokens de src/theme/theme.ts */
+  --ground:#050506;--panel:#0C0C0F;
+  --ink:#F4F5F0;--ink2:rgba(244,245,240,.66);--ink3:rgba(244,245,240,.42);
+  --lime:#D1FB39;--lime2:#E4FF7A;--mint:#2ED3A0;--ok:#8FF0BF;--onlime:#152000;--warn:#FF8A5C;
+  --limeTint:rgba(209,251,57,.16);--limeEdge:rgba(209,251,57,.45);--limeWash:rgba(209,251,57,.08);
+  --glass:rgba(255,255,255,.035);--glass2:rgba(255,255,255,.06);--glass3:rgba(255,255,255,.12);
+  --edge:rgba(255,255,255,.12);--edgeTop:rgba(255,255,255,.30);--line:rgba(255,255,255,.14);--soft:rgba(255,255,255,.07);--track:rgba(255,255,255,.10);
+  --display:"SoraL","Sora",system-ui,sans-serif;--body:"ManropeL","Manrope",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:#000;color:var(--ink);font-family:var(--body)}
+.opcao{padding:34px 28px 40px;background:radial-gradient(1200px 500px at 50% -10%,rgba(209,251,57,.06),transparent 60%),#000;width:max-content}
+.opcao h2{margin:0;font-family:var(--display);font-weight:700;font-size:30px;letter-spacing:-.03em}
+.opcao h2 span{color:var(--lime)}
+.opcao p.lead{margin:8px 0 26px;max-width:800px;color:var(--ink2);font-size:15px;line-height:1.5}
+.telas{display:flex;gap:34px}
+.tela-cap{margin:0 0 12px;text-align:center;font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3)}
+.phone{width:410px;border-radius:56px;padding:10px;background:linear-gradient(160deg,#2b2b30,#0d0d10 40%,#1d1d22);box-shadow:0 40px 90px -40px rgba(209,251,57,.25),0 0 0 1px rgba(255,255,255,.06)}
+.screen{position:relative;overflow:hidden;border-radius:46px;background:var(--ground);height:844px;padding:0 16px;isolation:isolate}
+.screen::before{content:"";position:absolute;inset:-80px -60px auto;height:420px;z-index:-1;background:radial-gradient(260px 220px at 20% 20%,rgba(209,251,57,.14),transparent 70%),radial-gradient(220px 200px at 90% 10%,rgba(46,211,160,.10),transparent 70%);filter:blur(10px)}
+.status{display:flex;justify-content:space-between;align-items:center;height:50px;padding:6px 18px 0;font-family:var(--display);font-weight:600;font-size:15px}
+.status .isl{width:120px;height:34px;border-radius:20px;background:#000}
+.status .bat{width:26px;height:12px;border:1.5px solid var(--ink2);border-radius:4px;position:relative}
+.status .bat::after{content:"";position:absolute;inset:2px 6px 2px 2px;background:var(--ink);border-radius:1px}
+.glass{position:relative;background:var(--glass);border:1px solid var(--edge);border-top-color:var(--edgeTop);border-radius:28px;backdrop-filter:blur(26px) saturate(150%);-webkit-backdrop-filter:blur(26px) saturate(150%);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 20px 40px -24px rgba(0,0,0,.8)}
+.ibtn{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:var(--glass2);border:1px solid var(--line)}
+.ibtn svg{width:19px;height:19px}
+.topbar{display:flex;align-items:center;gap:10px;margin-top:6px}
+.avatar{width:42px;height:42px;border-radius:50%;padding:2px;background:linear-gradient(135deg,var(--lime),var(--mint))}
+.avatar b{display:grid;place-items:center;width:100%;height:100%;border-radius:50%;background:#0b0c0a;font-family:var(--display);font-size:16px}
+.streak{margin-left:auto;display:flex;align-items:center;gap:6px;height:42px;padding:0 14px 0 10px;border-radius:21px;background:var(--glass2);border:1px solid var(--line);font-family:var(--display);font-weight:600}
+.streak i{width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 50% 60%,#FF8A5C,#ff5a2a 60%,transparent 62%)}
+.h1{font-family:var(--display);font-weight:600;font-size:30px;letter-spacing:-.035em;margin:0}
+.eyebrow{font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--lime)}
+.muted{color:var(--ink3)}.sec{color:var(--ink2)}
+.chip{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:13px;font-size:11.5px;font-weight:700;background:rgba(255,255,255,.07);border:1px solid var(--line);color:var(--ink2)}
+.neon{position:relative;display:flex;align-items:center;justify-content:center;gap:10px;height:56px;border-radius:28px;font-family:var(--display);font-weight:700;font-size:14px;letter-spacing:.28em;text-transform:uppercase;color:var(--ink);background:linear-gradient(#141816,#101312) padding-box,linear-gradient(90deg,var(--lime),var(--mint),var(--lime)) border-box;border:1.5px solid transparent;box-shadow:0 0 24px -6px rgba(209,251,57,.45),inset 0 1px 0 rgba(255,255,255,.08)}
+.neon.sm{height:46px;font-size:12px;letter-spacing:.22em}
+.corpo{background-repeat:no-repeat;mix-blend-mode:lighten;filter:contrast(1.6) brightness(1.1);-webkit-mask-image:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent);mask-image:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent)}
+.nav{position:absolute;left:16px;right:16px;bottom:26px;display:flex;gap:10px;align-items:center;z-index:5}
+.nav .pill{flex:1;height:66px;border-radius:33px;display:flex;justify-content:space-around;align-items:center;background:rgba(28,28,34,.55);border:1px solid var(--line);border-top-color:var(--edgeTop);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px)}
+.nav .pill span{width:54px;height:50px;border-radius:25px;display:grid;place-items:center}
+.nav .pill span.on{background:rgba(255,255,255,.14)}
+.nav .pill svg{width:22px;height:22px}
+.nav .fab{width:66px;height:66px;border-radius:50%;display:grid;place-items:center;background:rgba(28,28,34,.55);border:1px solid var(--line);border-top-color:var(--edgeTop)}
+.home{position:absolute;left:50%;bottom:9px;width:134px;height:5px;border-radius:3px;background:rgba(255,255,255,.6);transform:translateX(-50%);z-index:6}
+.fade{position:absolute;left:0;right:0;bottom:0;height:170px;background:linear-gradient(transparent,rgba(5,5,6,.92) 55%);z-index:4;pointer-events:none}
+.ring{--p:.4;width:100%;height:100%;border-radius:50%;background:conic-gradient(var(--lime) calc(var(--p)*1turn),var(--track) 0);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - var(--w,6px)),#000 calc(100% - var(--w,6px) + 1px));mask:radial-gradient(farthest-side,transparent calc(100% - var(--w,6px)),#000 calc(100% - var(--w,6px) + 1px))}
+.check{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--lime);color:var(--onlime);font-size:12px;font-weight:800}
+.bar{height:6px;border-radius:3px;background:var(--track);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--lime);border-radius:3px}
+.dots{display:flex;gap:4px}.dots i{width:7px;height:7px;border-radius:50%;background:var(--track)}.dots i.on{background:var(--lime)}.dots i.cur{background:transparent;box-shadow:inset 0 0 0 1.5px var(--lime)}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--lime);box-shadow:0 0 10px var(--lime)}
+.mono{font-family:var(--display);font-variant-numeric:tabular-nums}
+
+/* ───────── Opção A: Painel com anel ───────── */
+.A .week{display:grid;grid-template-columns:repeat(7,1fr);padding:10px 6px;margin-top:14px;border-radius:26px}
+.A .wd{display:grid;justify-items:center;gap:6px;font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--ink3)}
+.A .wd b{position:relative;display:grid;place-items:center;width:36px;height:36px;border-radius:50%;font-family:var(--display);font-size:14px;font-weight:600;color:var(--ink2)}
+.A .wd.today{color:var(--ink)} .A .wd.today b{color:var(--ink);box-shadow:inset 0 0 0 2px var(--lime)}
+.A .wd.done b{color:var(--ok)} .A .wd i{width:4px;height:4px;border-radius:50%;background:var(--ink3)} .A .wd.done i{background:none;width:auto;height:auto;font-style:normal;color:var(--ok);font-size:10px;line-height:4px}
+.A .wd.today i{background:var(--lime)} .A .wd.rest{opacity:.45}
+.A .hero{margin-top:12px;padding:20px;min-height:236px;overflow:hidden;background:linear-gradient(150deg,rgba(209,251,57,.17),rgba(255,255,255,.03) 60%)}
+.A .hero h3{margin:8px 0 0;font-family:var(--display);font-size:30px;font-weight:700;letter-spacing:-.04em;line-height:1.02;max-width:56%}
+.A .hero .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;max-width:55%}
+.A .startring{position:absolute;right:18px;top:50%;transform:translateY(-50%);width:138px;height:138px}
+.A .startring .inner{position:absolute;inset:12px;border-radius:50%;display:grid;place-items:center;align-content:center;gap:4px;background:radial-gradient(circle at 50% 30%,rgba(209,251,57,.28),rgba(209,251,57,.06) 70%);border:1px solid var(--limeEdge);box-shadow:0 0 34px -8px rgba(209,251,57,.6),inset 0 1px 0 rgba(255,255,255,.2)}
+.A .startring .inner svg{width:30px;height:30px}
+.A .startring .inner small{font-size:11px;font-weight:800;letter-spacing:.18em;color:var(--lime)}
+.A .ringcap{position:absolute;right:18px;bottom:14px;width:138px;text-align:center;font-size:11px;color:var(--ink3);font-weight:600}
+.A .sech{display:flex;justify-content:space-between;align-items:baseline;margin:20px 4px 10px}
+.A .sech h4{margin:0;font-family:var(--display);font-size:18px;font-weight:600;letter-spacing:-.02em}
+.A .sech span{font-size:12.5px;font-weight:700;color:var(--lime)}
+.A .rail{display:flex;gap:10px;margin-right:-16px}
+.A .tile{flex:none;width:148px;padding:12px;border-radius:24px}
+.A .tile .img{height:96px;border-radius:18px;background:rgba(255,255,255,.04);position:relative;overflow:hidden}
+.A .tile .n{position:absolute;left:10px;top:8px;font-family:var(--display);font-size:12px;font-weight:700;color:var(--lime)}
+.A .tile b{display:block;margin-top:10px;font-size:14px;line-height:1.25;min-height:36px}
+.A .tile small{display:block;margin-top:4px;font-size:12px;color:var(--ink3)}
+.A .tile.cur{border-color:var(--limeEdge);background:linear-gradient(160deg,rgba(209,251,57,.12),rgba(255,255,255,.03))}
+.A .tile .bar{margin-top:10px}
+.A .cardio{display:flex;align-items:center;gap:12px;margin-top:12px;padding:14px 16px;border-radius:24px}
+.A .cardio .ic{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--limeWash);border:1px solid var(--limeEdge)}
+.A .timer{position:absolute;right:16px;top:50%;transform:translateY(-50%);width:150px;height:150px}
+.A .timer .inner{position:absolute;inset:14px;border-radius:50%;display:grid;place-items:center;align-content:center;background:rgba(0,0,0,.25)}
+.A .timer .t{font-family:var(--display);font-size:32px;font-weight:700;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.A .ctrls{display:flex;gap:10px;margin-top:16px;max-width:56%}
+
+/* ───────── Opção B: Linha do tempo ───────── */
+.B .date{margin-top:10px}
+.B .date .h1{font-size:28px}
+.B .mini{display:flex;justify-content:space-between;margin-top:14px;padding:8px 10px;border-radius:22px}
+.B .md{display:grid;justify-items:center;gap:4px;width:40px}
+.B .md small{font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--ink3)}
+.B .md b{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;font-family:var(--display);font-size:13px;font-weight:600;color:var(--ink2)}
+.B .md.today b{background:var(--lime);color:var(--onlime)} .B .md.today small{color:var(--ink)}
+.B .md.done b{color:var(--ok);box-shadow:inset 0 0 0 1.5px rgba(143,240,191,.5)}
+.B .md.rest b{opacity:.4}
+.B .dayc{display:flex;align-items:center;gap:14px;margin-top:14px;padding:16px 16px 16px 18px;border-radius:26px;background:linear-gradient(150deg,rgba(209,251,57,.14),rgba(255,255,255,.03) 65%)}
+.B .dayc h3{margin:6px 0 4px;font-family:var(--display);font-size:24px;font-weight:700;letter-spacing:-.035em}
+.B .tl{position:relative;margin-top:18px;padding-left:34px}
+.B .tl::before{content:"";position:absolute;left:12px;top:14px;bottom:24px;width:2px;background:var(--line)}
+.B .tl .fill{position:absolute;left:12px;top:14px;width:2px;background:var(--lime)}
+.B .node{position:relative;margin-bottom:10px}
+.B .node .pt{position:absolute;left:-34px;top:16px;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-size:11px;font-weight:700;background:#0d0e0c;border:1.5px solid var(--line);color:var(--ink2)}
+.B .node.done .pt{background:var(--lime);border-color:var(--lime);color:var(--onlime)}
+.B .node.cur .pt{border-color:var(--lime);color:var(--lime);box-shadow:0 0 0 5px rgba(209,251,57,.12)}
+.B .row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:22px}
+.B .row .img{flex:none;width:44px;height:52px;border-radius:14px;background:rgba(255,255,255,.04);overflow:hidden}
+.B .row b{display:block;font-size:14.5px}
+.B .row small{font-size:12px;color:var(--ink3)}
+.B .sets{display:flex;gap:6px;margin:10px 0 2px}
+.B .set{flex:1;height:44px;border-radius:14px;display:grid;place-items:center;align-content:center;font-size:12px;font-weight:700;background:rgba(255,255,255,.05);border:1px solid var(--soft);color:var(--ink2)}
+.B .set small{font-size:9.5px;font-weight:700;letter-spacing:.08em;color:var(--ink3)}
+.B .set.done{background:var(--limeTint);border-color:var(--limeEdge);color:var(--ink)}
+.B .set.cur{border:1.5px solid var(--lime);color:var(--lime)}
+.B .dock{position:absolute;left:16px;right:16px;bottom:106px;z-index:6;display:flex;align-items:center;gap:12px;padding:10px 10px 10px 18px;border-radius:30px;background:rgba(22,24,20,.62)}
+.B .dock .neon{flex:1;height:50px;font-size:12px;letter-spacing:.2em}
+.B .dock .tt{font-family:var(--display);font-size:24px;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+
+/* ───────── Opção C: Foco no dia ───────── */
+.C .heroC{position:relative;margin:0 -16px;height:380px;overflow:hidden}
+.C .heroC .corpo{position:absolute;right:-6px;top:26px;filter:drop-shadow(0 0 30px rgba(209,251,57,.25))}
+.C .heroC::after{content:"";position:absolute;inset:auto 0 0 0;height:140px;background:linear-gradient(transparent,var(--ground))}
+.C .wk{position:absolute;left:16px;right:16px;top:8px;display:flex;justify-content:space-between;padding:8px 12px;border-radius:24px;z-index:2}
+.C .wk span{display:grid;justify-items:center;gap:3px;font-size:10px;font-weight:700;color:var(--ink3);letter-spacing:.06em}
+.C .wk span b{font-family:var(--display);font-size:13px;color:var(--ink2);width:30px;height:30px;border-radius:50%;display:grid;place-items:center}
+.C .wk span.today b{box-shadow:inset 0 0 0 2px var(--lime);color:var(--ink)} .C .wk span.today{color:var(--ink)}
+.C .wk span.done b{color:var(--ok)} .C .wk span.rest{opacity:.4}
+.C .heroC .txt{position:absolute;left:16px;bottom:22px;z-index:2;max-width:60%}
+.C .heroC h3{margin:8px 0 12px;font-family:var(--display);font-size:40px;font-weight:700;letter-spacing:-.05em;line-height:.98}
+.C .seg{display:flex;padding:4px;border-radius:24px;margin-top:-8px}
+.C .seg span{flex:1;height:38px;border-radius:19px;display:grid;place-items:center;font-size:13px;font-weight:700;color:var(--ink2)}
+.C .seg span.on{background:rgba(255,255,255,.14);color:var(--ink)}
+.C .group{margin-top:12px;border-radius:26px;padding:4px 0}
+.C .gi{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--soft)}
+.C .gi:last-child{border-bottom:0}
+.C .gi .n{width:20px;font-family:var(--display);font-size:13px;font-weight:700;color:var(--ink3)}
+.C .gi .nm{flex:1;min-width:0}
+.C .gi b{display:block;font-size:14.5px}
+.C .gi small{font-size:12px;color:var(--ink3)}
+.C .gi.cur{background:linear-gradient(90deg,rgba(209,251,57,.10),transparent)}
+.C .gi.cur .n{color:var(--lime)}
+.C .island{position:absolute;left:50%;top:6px;transform:translateX(-50%);z-index:8;display:flex;align-items:center;gap:10px;height:40px;padding:0 6px 0 14px;border-radius:20px;background:rgba(10,11,9,.85);border:1px solid var(--limeEdge);box-shadow:0 0 24px -6px rgba(209,251,57,.5)}
+.C .island .mono{font-size:15px;font-weight:700}
+.C .island .pz{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.12)}
+.C .now{position:absolute;left:16px;bottom:18px;z-index:2;right:16px}
+.C .now h3{font-size:32px;max-width:62%}
+.C .setrow{display:flex;gap:6px;margin-top:4px;max-width:62%}
+.C .setrow span{flex:1;height:34px;border-radius:12px;display:grid;place-items:center;font-size:11.5px;font-weight:700;background:rgba(255,255,255,.06);border:1px solid var(--soft);color:var(--ink3)}
+.C .setrow span.done{background:var(--limeTint);border-color:var(--limeEdge);color:var(--ink)}
+.C .setrow span.cur{border:1.5px solid var(--lime);color:var(--lime)}
+</style>
+</head>
+<body>
+
+<!-- ÍCONES -->
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
+  <symbol id="i-food" viewBox="0 0 24 24"><path d="M7 3v8M5 3v5a2 2 0 004 0V3M7 11v10M16 3c-2 2-2 6 0 8v10" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-dumb" viewBox="0 0 24 24"><path d="M3 12h18M6 8v8M9 6v12M15 6v12M18 8v8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V4M4 20h16M8 16v-5M12 16V8M16 16v-8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-scan" viewBox="0 0 24 24"><path d="M4 9V5h4M16 5h4v4M20 15v4h-4M8 19H4v-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0112 0v5l1.5 2h-15zM10 20a2 2 0 004 0" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z" fill="currentColor"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" fill="currentColor"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 017-2.6A4 4 0 0119 10c0 5.6-7 10-7 10z" fill="currentColor"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-plans" viewBox="0 0 24 24"><path d="M5 9h14v10H5zM7 6h10M9 3h6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><path d="M4 6h16v14H4zM4 10h16M8 3v4M16 3v4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+</svg>
+
+<template id="nav">
+  <div class="fade"></div>
+  <div class="nav">
+    <div class="pill">
+      <span style="color:var(--ink3)"><svg><use href="#i-home"/></svg></span>
+      <span style="color:var(--ink3)"><svg><use href="#i-food"/></svg></span>
+      <span class="on" style="color:var(--lime)"><svg><use href="#i-dumb"/></svg></span>
+      <span style="color:var(--ink3)"><svg><use href="#i-chart"/></svg></span>
+    </div>
+    <div class="fab" style="color:var(--lime)"><svg width="24" height="24"><use href="#i-scan"/></svg></div>
+  </div>
+  <div class="home"></div>
+</template>
+<template id="status"><div class="status"><span>9:41</span><span class="isl"></span><span class="bat"></span></div></template>
+
+<!-- ═════════════ OPÇÃO A ═════════════ -->
+<section class="opcao A" id="opA">
+  <h2><span>A</span> · Painel com anel</h2>
+  <p class="lead">Semana numa cápsula de vidro. O card do dia tem um botão redondo grande: antes de começar, o anel mostra a semana (1 de 6 feitos); com o treino rodando, o anel vira o cronômetro com o progresso das séries. Os exercícios ficam num carrossel de cartões de vidro; tocar abre o exercício.</p>
+  <div class="telas">
+    <div>
+      <p class="tela-cap">Antes de começar</p>
+      <div class="phone"><div class="screen">
+        <div data-t="status"></div>
+        <div class="topbar"><div class="avatar"><b>L</b></div><div class="streak"><i></i>3</div><div class="ibtn"><svg><use href="#i-bell"/></svg></div></div>
+        <div style="display:flex;align-items:end;justify-content:space-between;margin-top:18px">
+          <div><p class="h1">Treino</p><div class="muted" style="font-size:13px;margin-top:2px">Meu treino · 6 dias por semana</div></div>
+          <div class="ibtn"><svg><use href="#i-plans"/></svg></div>
+        </div>
+        <div class="glass week">
+          <div class="wd done">SEG<b>28</b><i>✓</i></div>
+          <div class="wd today">HOJE<b>29</b><i></i></div>
+          <div class="wd">QUA<b>30</b><i></i></div>
+          <div class="wd">QUI<b>01</b><i></i></div>
+          <div class="wd">SEX<b>02</b><i></i></div>
+          <div class="wd">SÁB<b>03</b><i></i></div>
+          <div class="wd rest">DOM<b>04</b></div>
+        </div>
+        <div class="glass hero">
+          <div class="corpo" data-c="costas" data-w="120" data-h="190" style="position:absolute;right:150px;top:34px;opacity:.28"></div>
+          <div class="eyebrow">Hoje · terça</div>
+          <h3>Costas e bíceps</h3>
+          <div class="chips"><span class="chip">4 exercícios</span><span class="chip">~25 min</span><span class="chip">~72 kcal</span></div>
+          <div class="startring"><div class="ring" style="--p:.17;--w:5px"></div><div class="inner"><svg style="color:var(--lime)"><use href="#i-play"/></svg><small>INICIAR</small></div></div>
+          <div class="ringcap">1 de 6 treinos na semana</div>
+        </div>
+        <div class="sech"><h4>Exercícios de hoje</h4><span>Ver todos</span></div>
+        <div class="rail">
+          <div class="glass tile"><div class="img"><span class="n">01</span><div class="corpo" data-c="costas" data-w="60" data-h="92" style="position:absolute;left:44px;top:2px"></div></div><b>Puxada frontal aberta</b><small>4 × 8–12</small></div>
+          <div class="glass tile"><div class="img"><span class="n">02</span><div class="corpo" data-c="costas" data-w="60" data-h="92" style="position:absolute;left:44px;top:2px"></div></div><b>Remada baixa com triângulo</b><small>4 × 8–12</small></div>
+          <div class="glass tile"><div class="img"><span class="n">03</span><div class="corpo" data-c="costas" data-w="60" data-h="92" style="position:absolute;left:44px;top:2px"></div></div><b>Pulldown na polia</b><small>3 × 12–15</small></div>
+        </div>
+        <div class="glass cardio"><div class="ic" style="color:var(--lime)"><svg width="18" height="18"><use href="#i-heart"/></svg></div><div style="flex:1"><b style="font-size:15px">Cardio da semana</b><div class="muted" style="font-size:12.5px">3 sessões planejadas · 20 min de caminhada</div></div><svg width="16" height="16" style="color:var(--ink3)"><use href="#i-chev"/></svg></div>
+        <div data-t="nav"></div>
+      </div></div>
+    </div>
+    <div>
+      <p class="tela-cap">Treino em andamento</p>
+      <div class="phone"><div class="screen">
+        <div data-t="status"></div>
+        <div class="topbar"><div class="avatar"><b>L</b></div><div class="streak"><i></i>3</div><div class="ibtn"><svg><use href="#i-bell"/></svg></div></div>
+        <div style="display:flex;align-items:end;justify-content:space-between;margin-top:18px">
+          <div><p class="h1">Treino</p><div class="muted" style="font-size:13px;margin-top:2px">Meu treino · 6 dias por semana</div></div>
+          <div class="ibtn"><svg><use href="#i-plans"/></svg></div>
+        </div>
+        <div class="glass week">
+          <div class="wd done">SEG<b>28</b><i>✓</i></div>
+          <div class="wd today">HOJE<b>29</b><i></i></div>
+          <div class="wd">QUA<b>30</b><i></i></div>
+          <div class="wd">QUI<b>01</b><i></i></div>
+          <div class="wd">SEX<b>02</b><i></i></div>
+          <div class="wd">SÁB<b>03</b><i></i></div>
+          <div class="wd rest">DOM<b>04</b></div>
+        </div>
+        <div class="glass hero" style="min-height:250px">
+          <div style="display:flex;align-items:center;gap:8px"><span class="live-dot"></span><span class="eyebrow">Em andamento</span></div>
+          <h3 style="font-size:26px">Costas e bíceps</h3>
+          <div class="sec" style="font-size:13px;margin-top:10px;max-width:56%">Agora: <b style="color:var(--ink)">Puxada frontal aberta</b><br>série 3 de 4 · ~36 kcal</div>
+          <div class="ctrls"><div class="ibtn" style="width:46px;height:46px;flex:none"><svg><use href="#i-pause"/></svg></div><div class="neon sm" style="flex:1">Abrir</div></div>
+          <div class="timer"><div class="ring" style="--p:.14;--w:7px"></div><div class="inner"><span class="t">12:37</span><small class="muted" style="font-size:11px;font-weight:700">2 de 14 séries</small></div></div>
+        </div>
+        <div class="sech"><h4>Exercícios do treino</h4><span>Ver todos</span></div>
+        <div class="rail">
+          <div class="glass tile cur"><div class="img"><span class="n">01</span><div class="corpo" data-c="costas" data-w="60" data-h="92" style="position:absolute;left:44px;top:2px"></div></div><b>Puxada frontal aberta</b><small>2 de 4 séries</small><div class="bar"><i style="width:50%"></i></div></div>
+          <div class="glass tile"><div class="img"><span class="n">02</span><div class="corpo" data-c="costas" data-w="60" data-h="92" style="position:absolute;left:44px;top:2px"></div></div><b>Remada baixa com triângulo</b><small>0 de 4 séries</small><div class="bar"><i style="width:0"></i></div></div>
+          <div class="glass tile"><div class="img"><span class="n">03</span><div class="corpo" data-c="costas" data-w="60" data-h="92" style="position:absolute;left:44px;top:2px"></div></div><b>Pulldown na polia</b><small>0 de 3 séries</small><div class="bar"><i style="width:0"></i></div></div>
+        </div>
+        <div class="glass cardio"><div class="ic" style="color:var(--lime)"><svg width="18" height="18"><use href="#i-heart"/></svg></div><div style="flex:1"><b style="font-size:15px">Cardio da semana</b><div class="muted" style="font-size:12.5px">3 sessões planejadas · 20 min de caminhada</div></div><svg width="16" height="16" style="color:var(--ink3)"><use href="#i-chev"/></svg></div>
+        <div data-t="nav"></div>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════ OPÇÃO B ═════════════ -->
+<section class="opcao B" id="opB">
+  <h2><span>B</span> · Linha do tempo</h2>
+  <p class="lead">A data em destaque e a semana compacta. O treino inteiro vira uma linha do tempo vertical: cada exercício é um ponto, e o atual abre as séries em blocos (feitas em verde, a atual contornada). O botão fica numa barra de vidro presa acima do menu; com o treino rodando, ela vira o cronômetro com pausar e abrir.</p>
+  <div class="telas">
+    <div>
+      <p class="tela-cap">Antes de começar</p>
+      <div class="phone"><div class="screen">
+        <div data-t="status"></div>
+        <div class="date" style="display:flex;justify-content:space-between;align-items:end;margin-top:14px">
+          <div><div class="eyebrow">Treino</div><p class="h1" style="margin-top:6px">Terça, 29 de setembro</p></div>
+          <div class="ibtn"><svg><use href="#i-plans"/></svg></div>
+        </div>
+        <div class="glass mini">
+          <div class="md done"><small>S</small><b>28</b></div><div class="md today"><small>T</small><b>29</b></div><div class="md"><small>Q</small><b>30</b></div><div class="md"><small>Q</small><b>01</b></div><div class="md"><small>S</small><b>02</b></div><div class="md"><small>S</small><b>03</b></div><div class="md rest"><small>D</small><b>04</b></div>
+        </div>
+        <div class="glass dayc">
+          <div style="flex:1"><div class="eyebrow">Hoje · 4 exercícios</div><h3>Costas e bíceps</h3><div class="muted" style="font-size:13px">~25 min · ~72 kcal · 14 séries</div></div>
+          <div class="corpo" data-c="costas" data-w="64" data-h="98"></div>
+        </div>
+        <div class="tl">
+          <div class="node cur"><span class="pt">01</span>
+            <div class="glass" style="padding:12px 14px;border-radius:22px;border-color:var(--limeEdge)">
+              <div style="display:flex;align-items:center;gap:12px"><div class="corpo" data-c="costas" data-w="34" data-h="52"></div><div style="flex:1"><b style="font-size:14.5px">Puxada frontal aberta</b><div class="muted" style="font-size:12px">4 × 8–12 · última vez 40 kg × 10</div></div><svg width="16" height="16" style="color:var(--ink3)"><use href="#i-down"/></svg></div>
+              <div class="sets"><span class="set"><small>S1</small>8–12</span><span class="set"><small>S2</small>8–12</span><span class="set"><small>S3</small>8–12</span><span class="set"><small>S4</small>8–12</span></div>
+            </div>
+          </div>
+          <div class="node"><span class="pt">02</span><div class="glass row"><div class="img"><div class="corpo" data-c="costas" data-w="34" data-h="52" style="margin:0 auto"></div></div><div style="flex:1"><b>Remada baixa com triângulo</b><small>4 × 8–12</small></div></div></div>
+          <div class="node"><span class="pt">03</span><div class="glass row"><div class="img"><div class="corpo" data-c="costas" data-w="34" data-h="52" style="margin:0 auto"></div></div><div style="flex:1"><b>Pulldown na polia</b><small>3 × 12–15</small></div></div></div>
+          <div class="node"><span class="pt" style="color:var(--lime)"><svg width="12" height="12"><use href="#i-heart"/></svg></span><div class="glass row" style="padding:12px 14px"><div style="flex:1"><b>Cardio no fim</b><small>20 min de caminhada · 3 no plano</small></div></div></div>
+        </div>
+        <div class="glass dock"><div><div class="muted" style="font-size:11px;font-weight:700;letter-spacing:.1em">HOJE</div><div style="font-weight:700;font-size:14px">~25 min</div></div><div class="neon"><svg width="14" height="14"><use href="#i-play"/></svg>Iniciar treino</div></div>
+        <div data-t="nav"></div>
+      </div></div>
+    </div>
+    <div>
+      <p class="tela-cap">Treino em andamento</p>
+      <div class="phone"><div class="screen">
+        <div data-t="status"></div>
+        <div class="date" style="display:flex;justify-content:space-between;align-items:end;margin-top:14px">
+          <div><div class="eyebrow">Treino</div><p class="h1" style="margin-top:6px">Terça, 29 de setembro</p></div>
+          <div class="ibtn"><svg><use href="#i-plans"/></svg></div>
+        </div>
+        <div class="glass mini">
+          <div class="md done"><small>S</small><b>28</b></div><div class="md today"><small>T</small><b>29</b></div><div class="md"><small>Q</small><b>30</b></div><div class="md"><small>Q</small><b>01</b></div><div class="md"><small>S</small><b>02</b></div><div class="md"><small>S</small><b>03</b></div><div class="md rest"><small>D</small><b>04</b></div>
+        </div>
+        <div class="glass dayc">
+          <div style="flex:1"><div style="display:flex;align-items:center;gap:8px"><span class="live-dot"></span><span class="eyebrow">Em andamento · 2 de 14 séries</span></div><h3>Costas e bíceps</h3><div class="bar" style="margin-top:6px"><i style="width:14%"></i></div></div>
+          <div class="corpo" data-c="costas" data-w="64" data-h="98"></div>
+        </div>
+        <div class="tl">
+          <div class="fill" style="height:36px"></div>
+          <div class="node cur"><span class="pt">01</span>
+            <div class="glass" style="padding:12px 14px;border-radius:22px;border-color:var(--limeEdge);background:linear-gradient(160deg,rgba(209,251,57,.10),rgba(255,255,255,.03))">
+              <div style="display:flex;align-items:center;gap:12px"><div class="corpo" data-c="costas" data-w="34" data-h="52"></div><div style="flex:1"><b style="font-size:14.5px">Puxada frontal aberta</b><div class="muted" style="font-size:12px">série 3 de 4 · descanso 90 s</div></div><span style="font-weight:800;color:var(--lime);font-size:13px">2/4</span></div>
+              <div class="sets"><span class="set done"><small>S1</small>40×12</span><span class="set done"><small>S2</small>40×12</span><span class="set cur"><small>AGORA</small>8–12</span><span class="set"><small>S4</small>8–12</span></div>
+            </div>
+          </div>
+          <div class="node"><span class="pt">02</span><div class="glass row"><div class="img"><div class="corpo" data-c="costas" data-w="34" data-h="52" style="margin:0 auto"></div></div><div style="flex:1"><b>Remada baixa com triângulo</b><small>4 × 8–12</small></div><span class="muted" style="font-weight:800;font-size:13px">0/4</span></div></div>
+          <div class="node"><span class="pt">03</span><div class="glass row"><div class="img"><div class="corpo" data-c="costas" data-w="34" data-h="52" style="margin:0 auto"></div></div><div style="flex:1"><b>Pulldown na polia</b><small>3 × 12–15</small></div><span class="muted" style="font-weight:800;font-size:13px">0/3</span></div></div>
+          <div class="node"><span class="pt" style="color:var(--lime)"><svg width="12" height="12"><use href="#i-heart"/></svg></span><div class="glass row" style="padding:12px 14px"><div style="flex:1"><b>Cardio no fim</b><small>20 min de caminhada</small></div></div></div>
+        </div>
+        <div class="glass dock" style="border-color:var(--limeEdge)"><span class="live-dot"></span><span class="tt">12:37</span><div class="ibtn" style="margin-left:auto"><svg><use href="#i-pause"/></svg></div><div class="neon" style="flex:0 0 130px">Abrir</div></div>
+        <div data-t="nav"></div>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════ OPÇÃO C ═════════════ -->
+<section class="opcao C" id="opC">
+  <h2><span>C</span> · Foco no dia</h2>
+  <p class="lead">O corpo com os músculos do dia ocupa o topo, grande, e o nome do treino fica por cima dele. A semana flutua numa cápsula de vidro. Embaixo, abas de vidro (Exercícios · Cardio · Semana) e uma lista agrupada no estilo do iPhone, com as séries em bolinhas. Com o treino rodando, aparece uma cápsula viva no topo (tempo e pausar) e o destaque passa a ser o exercício atual.</p>
+  <div class="telas">
+    <div>
+      <p class="tela-cap">Antes de começar</p>
+      <div class="phone"><div class="screen">
+        <div data-t="status"></div>
+        <div class="heroC">
+          <div class="glass wk"><span class="done">SEG<b>28</b></span><span class="today">HOJE<b>29</b></span><span>QUA<b>30</b></span><span>QUI<b>01</b></span><span>SEX<b>02</b></span><span>SÁB<b>03</b></span><span class="rest">DOM<b>04</b></span></div>
+          <div class="corpo" data-c="costas" data-w="190" data-h="300" style="top:66px"></div>
+          <div class="txt"><div class="eyebrow">Hoje · 4 exercícios</div><h3>Costas e bíceps</h3><div style="display:flex;gap:6px"><span class="chip">~25 min</span><span class="chip">~72 kcal</span></div><div class="neon sm" style="margin-top:14px;width:210px"><svg width="12" height="12"><use href="#i-play"/></svg>Iniciar</div></div>
+        </div>
+        <div class="glass seg"><span class="on">Exercícios</span><span>Cardio</span><span>Semana</span></div>
+        <div class="glass group">
+          <div class="gi"><span class="n">1</span><div class="nm"><b>Puxada frontal aberta</b><small>4 × 8–12 · 90 s</small></div><div class="dots"><i></i><i></i><i></i><i></i></div></div>
+          <div class="gi"><span class="n">2</span><div class="nm"><b>Remada baixa com triângulo</b><small>4 × 8–12 · 90 s</small></div><div class="dots"><i></i><i></i><i></i><i></i></div></div>
+          <div class="gi"><span class="n">3</span><div class="nm"><b>Pulldown na polia</b><small>3 × 12–15 · 60 s</small></div><div class="dots"><i></i><i></i><i></i></div></div>
+          <div class="gi"><span class="n">4</span><div class="nm"><b>Rosca direta com barra</b><small>3 × 10–12 · 60 s</small></div><div class="dots"><i></i><i></i><i></i></div></div>
+        </div>
+        <div data-t="nav"></div>
+      </div></div>
+    </div>
+    <div>
+      <p class="tela-cap">Treino em andamento</p>
+      <div class="phone"><div class="screen">
+        <div data-t="status"></div>
+        <div class="island"><span class="live-dot"></span><span class="mono">12:37</span><span class="muted" style="font-size:12px;font-weight:700">2/14</span><span class="pz"><svg width="14" height="14"><use href="#i-pause"/></svg></span></div>
+        <div class="heroC">
+          <div class="glass wk"><span class="done">SEG<b>28</b></span><span class="today">HOJE<b>29</b></span><span>QUA<b>30</b></span><span>QUI<b>01</b></span><span>SEX<b>02</b></span><span>SÁB<b>03</b></span><span class="rest">DOM<b>04</b></span></div>
+          <div class="corpo" data-c="costas" data-w="190" data-h="300" style="top:66px"></div>
+          <div class="now"><div class="eyebrow">Agora · exercício 1 de 4</div><h3 style="margin:8px 0 10px;font-family:var(--display);font-weight:700;letter-spacing:-.045em;line-height:1">Puxada frontal aberta</h3>
+            <div class="setrow"><span class="done">40×12</span><span class="done">40×12</span><span class="cur">agora</span><span>8–12</span></div>
+            <div class="neon sm" style="margin-top:12px;width:210px">Abrir exercício</div>
+          </div>
+        </div>
+        <div class="glass seg"><span class="on">Exercícios</span><span>Cardio</span><span>Semana</span></div>
+        <div class="glass group">
+          <div class="gi cur"><span class="n">1</span><div class="nm"><b>Puxada frontal aberta</b><small>série 3 de 4</small></div><div class="dots"><i class="on"></i><i class="on"></i><i class="cur"></i><i></i></div></div>
+          <div class="gi"><span class="n">2</span><div class="nm"><b>Remada baixa com triângulo</b><small>próximo · 4 × 8–12</small></div><div class="dots"><i></i><i></i><i></i><i></i></div></div>
+          <div class="gi"><span class="n">3</span><div class="nm"><b>Pulldown na polia</b><small>3 × 12–15</small></div><div class="dots"><i></i><i></i><i></i></div></div>
+          <div class="gi"><span class="n">4</span><div class="nm"><b>Rosca direta com barra</b><small>3 × 10–12</small></div><div class="dots"><i></i><i></i><i></i></div></div>
+        </div>
+        <div data-t="nav"></div>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<script>
+// Recortes do mapa muscular real do app (screenshots em 2x, 390 pt de largura).
+const CORPOS = { costas: { src: "corpo-costas.png", x: 152, y: 172, w: 86, h: 146 } }; // recorte do mapa muscular do app
+for (const el of document.querySelectorAll('.corpo')) {
+  const c = CORPOS[el.dataset.c];
+  const w = +el.dataset.w, h = +el.dataset.h;
+  const k = Math.min(w / c.w, h / c.h);
+  Object.assign(el.style, {
+    width: `${c.w * k}px`, height: `${c.h * k}px`,
+    backgroundImage: `url(${c.src})`, backgroundSize: `${390 * k}px auto`,
+    backgroundPosition: `${-c.x * k}px ${-c.y * k}px`,
+  });
+}
+for (const el of document.querySelectorAll('[data-t]')) el.replaceWith(document.getElementById(el.dataset.t).content.cloneNode(true));
+</script>
+</body>
+</html>
