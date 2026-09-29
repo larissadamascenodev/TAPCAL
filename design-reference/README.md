@@ -138,3 +138,6 @@ Layout do mockup `treino-v7/`, com o tema e o vidro que já valem na Início e n
 - `4-resumo-exercicio.png` — tocar num exercício abre o resumo no meio da tela: tempo, séries, volume, séries com descanso e recorde, última vez.
 - `5-editar.png` — Editar: alça para arrastar e deslizar para remover (sem setas).
 - `6-ao-vivo.png` / `7-descanso.png` — treino ao vivo: corpo solto, faixa última vez/recorde/meta, carga e repetições lado a lado (cargas inteiras, de 2 em 2 kg), séries em linha do tempo; descanso no mostrador de traços com −15 / Pular / +15.
+
+- `2c-concluir-serie.png` — "Concluir série" embaixo do card abre o modal no meio da tela: carga (de 2 em 2 kg) e repetições, concluir ou "Pular este exercício". No descanso, o botão vira −15 s | Pular descanso | +15 s. A linha em volta do card desliza sem pulos, começando no canto de cima à esquerda.
+- `3-lista.png` (atualizado) — lista em cartões (modelo A de `lista-exercicios/`): o atual com borda verde e os tracinhos das séries, feitos apagados com ✓, pulados apagados com "Pulado".

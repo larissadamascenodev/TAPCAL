@@ -93,6 +93,8 @@ type Actions = {
   iniciarDescanso: (segundos: number) => void;
   ajustarDescanso: (segundos: number) => void;
   pularDescanso: () => void;
+  /** Pula o exercício hoje (as séries já feitas continuam); o treino segue para o próximo. */
+  pularExercicio: (exercicioNoTreinoId: string) => void;
   /** Cria um exercício só desta pessoa e devolve ele (para já entrar no treino). */
   criarExercicio: (novo: NovoExercicio) => Exercicio;
   salvarRespostasTreinoIA: (r: RespostasTreinoIA) => void;
@@ -278,7 +280,7 @@ export const useAppStore = create<AppState>()(
           const cardio = planos.find((p) => p.id === s.planoId)?.treinos.find((t) => t.id === s.treinoDoDiaId)?.cardio;
           const fim = nowIso();
           // Terminar pausado: a pausa em curso também fica fora da conta.
-          const { pausadoEm, descansoAte, descansoSeg, ...resto } = s;
+          const { pausadoEm, descansoAte, descansoSeg, pulados, ...resto } = s;
           const pausaMs = (s.pausaMs ?? 0) + (pausadoEm ? Math.max(0, Date.parse(fim) - Date.parse(pausadoEm)) : 0);
           const base = pausaMs ? { ...resto, pausaMs } : resto;
           const sessao: SessaoDeTreino = { ...base, fim, kcal: kcalDaSessao(base, fim, peso, cardio) };
@@ -312,6 +314,13 @@ export const useAppStore = create<AppState>()(
           const ate = Math.max(agora + 1000, Date.parse(s.descansoAte) + segundos * 1000);
           const total = Math.max(s.descansoSeg ?? 0, Math.ceil((ate - agora) / 1000));
           set({ sessaoAtiva: { ...s, descansoAte: new Date(ate).toISOString(), descansoSeg: total } });
+        },
+
+        pularExercicio: (exercicioNoTreinoId) => {
+          const s = get().sessaoAtiva;
+          if (!s || s.pulados?.includes(exercicioNoTreinoId)) return;
+          const { descansoAte, descansoSeg, ...resto } = s;
+          set({ sessaoAtiva: { ...resto, pulados: [...(s.pulados ?? []), exercicioNoTreinoId] } });
         },
 
         pularDescanso: () => {

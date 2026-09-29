@@ -161,4 +161,6 @@ export type SessaoEmAndamento = Omit<SessaoDeTreino, 'fim' | 'kcal'> & {
   /** Descanso entre séries em curso: termina em (ISO) e dura (s). Some ao pular ou ao acabar. */
   descansoAte?: string;
   descansoSeg?: number;
+  /** Exercícios do treino que a pessoa pulou hoje (ids do exercício no treino). */
+  pulados?: string[];
 };

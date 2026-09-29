@@ -1,7 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 
 import { kcalAtividade, kcalDaSessao, minutosDaSessao, tempoDeTreinoMs } from '@/lib/treino/met';
-import { kcalEstimadas, kcalQueimadas, minutosEstimados, numerosDaSemana, proximosTreinos, repsLabel, resumoDoExercicio } from '@/lib/treino/plano';
+import { kcalEstimadas, kcalQueimadas, minutosEstimados, numerosDaSemana, proximosTreinos, proximoExercicio, repsLabel, resumoDoExercicio, treinoResolvido } from '@/lib/treino/plano';
 import { datasDaSemana, diaDaData, estadoDoDia, notaFeitoEm } from '@/lib/treino/semana';
 import type { PlanoDeTreino, SessaoDeTreino, TreinoDoDia } from '@/types/treino';
 
@@ -150,5 +150,25 @@ describe('resumo do exercício', () => {
 
   it('exercício sem séries: tudo zerado', () => {
     expect(resumoDoExercicio(sessao, 'c')).toEqual({ series: [], tempoMs: 0, descansosSeg: [], volumeKg: 0 });
+  });
+});
+
+describe('exercício pulado', () => {
+  const t: TreinoDoDia = {
+    id: 't',
+    dia: 'seg',
+    nome: 'T',
+    exercicios: [
+      { id: 'a', exercicioId: 'a', series: 2, repsMin: 8, repsMax: 12, descansoSeg: 60 },
+      { id: 'b', exercicioId: 'b', series: 1, repsMin: 8, repsMax: 12, descansoSeg: 60 },
+    ],
+  };
+  const serie = { exercicioNoTreinoId: 'b', exercicioId: 'b', numero: 1, cargaKg: 10, reps: 10, concluidaEm: '' };
+
+  it('pulado conta como resolvido: o próximo é o seguinte e o treino pode terminar', () => {
+    expect(proximoExercicio(t, { series: [] })).toBe(0);
+    expect(proximoExercicio(t, { series: [], pulados: ['a'] })).toBe(1);
+    expect(treinoResolvido(t, { series: [serie], pulados: [] })).toBe(false);
+    expect(treinoResolvido(t, { series: [serie], pulados: ['a'] })).toBe(true);
   });
 });

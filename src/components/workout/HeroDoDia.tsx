@@ -1,13 +1,14 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import Animated, { cancelAnimation, Easing, useAnimatedProps, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 
 import { Glass, NeonButton, Text } from '@/components/ui';
 import { exercicioPorId, MUSCULO_LABELS } from '@/lib/exercicios';
 import { formatDecimal, formatDuration } from '@/lib/format';
 import { tempoDeTreinoMs } from '@/lib/treino/met';
-import { proximoExercicio, seriesFeitas } from '@/lib/treino/plano';
+import { proximoExercicio, seriesFeitas, treinoResolvido } from '@/lib/treino/plano';
 import { valoresDaProximaSerie } from '@/lib/treino/progressao';
 import { colors, fonts, radius, spacing } from '@/theme/theme';
 import type { Musculo, PlanoDeTreino, SessaoDeTreino, SessaoEmAndamento, TreinoDoDia } from '@/types/treino';
@@ -17,8 +18,10 @@ import { MapaMuscular } from './MapaMuscular';
 /** Altura da área do corpo (o desenho tem metade disso de largura). */
 const AREA = 236;
 
+const AnimatedPath = Animated.createAnimatedComponent(Path);
+
 /** Relógio que atualiza a cada segundo. */
-function useAgora() {
+export function useAgora() {
   const [agora, setAgora] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setAgora(Date.now()), 1000);
@@ -155,20 +158,51 @@ export function HeroDescanso({ kicker, proximo }: { kicker: string; proximo?: st
   );
 }
 
-/** Caminho do contorno do cartão, começando no meio de cima e seguindo no sentido do relógio. */
+/** Caminho do contorno do cartão: começa no canto de cima à esquerda (depois da curva) e segue no sentido do relógio até voltar a ele. */
 function contorno(w: number, h: number, r: number, m: number) {
   const x0 = m;
   const y0 = m;
   const x1 = w - m;
   const y1 = h - m;
-  const cx = w / 2;
-  const d = `M${cx} ${y0}H${x1 - r}A${r} ${r} 0 0 1 ${x1} ${y0 + r}V${y1 - r}A${r} ${r} 0 0 1 ${x1 - r} ${y1}H${x0 + r}A${r} ${r} 0 0 1 ${x0} ${y1 - r}V${y0 + r}A${r} ${r} 0 0 1 ${x0 + r} ${y0}Z`;
+  const d = `M${x0 + r} ${y0}H${x1 - r}A${r} ${r} 0 0 1 ${x1} ${y0 + r}V${y1 - r}A${r} ${r} 0 0 1 ${x1 - r} ${y1}H${x0 + r}A${r} ${r} 0 0 1 ${x0} ${y1 - r}V${y0 + r}A${r} ${r} 0 0 1 ${x0 + r} ${y0}Z`;
   const perimetro = 2 * (x1 - x0 + (y1 - y0)) - 8 * r + 2 * Math.PI * r;
   return { d, perimetro };
 }
 
 const RAIO = radius.xl;
 const TRACO = 2.5;
+
+/**
+ * A linha em volta do cartão, deslizando sem pulos: no treino dá uma volta a
+ * cada minuto (pelo tempo de treino); no descanso vai do que falta até zero.
+ * Pausado, fica parada.
+ */
+function useVolta({ sessao, descansando, perimetro }: { sessao: SessaoEmAndamento; descansando: boolean; perimetro: number }) {
+  const p = useSharedValue(0);
+  const pausado = !!sessao.pausadoEm;
+  useEffect(() => {
+    const agora = Date.now();
+    cancelAnimation(p);
+    if (descansando && sessao.descansoAte) {
+      const falta = Math.max(0, Date.parse(sessao.descansoAte) - agora);
+      p.set(Math.min(1, falta / 1000 / Math.max(1, sessao.descansoSeg ?? 1)));
+      if (!pausado) p.set(withTiming(0, { duration: falta, easing: Easing.linear }));
+      return;
+    }
+    const base = ((tempoDeTreinoMs(sessao, agora) / 1000) % 60) / 60;
+    p.set(base);
+    if (pausado) return;
+    const minuto = { duration: 60_000, easing: Easing.linear };
+    p.set(
+      withSequence(
+        withTiming(1, { duration: (1 - base) * 60_000, easing: Easing.linear }),
+        withRepeat(withSequence(withTiming(0, { duration: 0 }), withTiming(1, minuto)), -1),
+      ),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [descansando, pausado, sessao.descansoAte, sessao.inicio, sessao.pausaMs]);
+  return useAnimatedProps(() => ({ strokeDashoffset: perimetro * (1 - Math.max(0.0005, p.get())) }));
+}
 
 /**
  * Treino rodando (no lugar do topo): à esquerda o exercício da vez, a série e
@@ -195,15 +229,15 @@ export function CardAoVivo({
   const [tam, setTam] = useState({ w: 0, h: 0 });
   const pausado = !!sessao.pausadoEm;
   const seg = tempoDeTreinoMs(sessao, agora) / 1000;
-  const acabou = treino.exercicios.every((e) => seriesFeitas(sessao, e.id) >= e.series);
+  const acabou = treinoResolvido(treino, sessao);
   const i = proximoExercicio(treino, sessao);
   const atual = acabou ? undefined : treino.exercicios[i];
   const ex = atual ? exercicioPorId(atual.exercicioId) : undefined;
   const feitas = atual ? seriesFeitas(sessao, atual.id) : 0;
   const restante = sessao.descansoAte ? Math.max(0, Math.ceil((Date.parse(sessao.descansoAte) - agora) / 1000)) : 0;
   const descansando = restante > 0 && !!atual;
-  const volta = descansando ? restante / Math.max(1, sessao.descansoSeg ?? restante) : (seg % 60) / 60;
   const { d, perimetro } = contorno(tam.w, tam.h, RAIO, TRACO / 2);
+  const volta = useVolta({ sessao, descansando, perimetro });
   const rotulo = acabou ? 'Tudo feito' : pausado ? 'Pausado' : descansando ? 'Descanso' : 'Agora';
   const prox = atual ? valoresDaProximaSerie(atual, sessao, historico, planos) : null;
   const carga = prox ? `${formatDecimal(prox.kg)} kg × ${prox.reps}` : '';
@@ -219,13 +253,14 @@ export function CardAoVivo({
         <Glass rounded={RAIO} flush contentStyle={styles.cartao} style={pressed && styles.pressed}>
           {tam.w > 0 && (
             <Svg width={tam.w} height={tam.h} style={styles.volta} pointerEvents="none">
-              <Path
+              <AnimatedPath
                 d={d}
                 fill="none"
                 stroke={descansando ? colors.ink : colors.lime}
                 strokeWidth={TRACO}
                 strokeLinecap="round"
-                strokeDasharray={`${Math.max(0.001, volta) * perimetro} ${perimetro}`}
+                strokeDasharray={`${perimetro} ${perimetro}`}
+                animatedProps={volta}
               />
             </Svg>
           )}

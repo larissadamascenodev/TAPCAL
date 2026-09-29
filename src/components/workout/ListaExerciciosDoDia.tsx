@@ -1,18 +1,16 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useIsFocused } from 'expo-router';
 import { useRef, useState, type ReactNode } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming, ZoomIn, type SharedValue } from 'react-native-reanimated';
-import Svg, { Circle } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import { exercicioPorId } from '@/lib/exercicios';
-import { proximoExercicio } from '@/lib/treino/plano';
-import { colors, fonts, gradients, radius, spacing } from '@/theme/theme';
+import { proximoExercicio, repsLabel } from '@/lib/treino/plano';
+import { colors, fonts, radius, spacing } from '@/theme/theme';
 import type { Cardio, ExercicioNoTreino, SerieFeita, TreinoDoDia } from '@/types/treino';
 
 import { MapaMuscular } from './MapaMuscular';
@@ -26,6 +24,8 @@ type Props = {
   titulo: string;
   /** Séries já feitas (do treino em andamento ou do treino concluído). */
   series: readonly SerieFeita[];
+  /** Exercícios pulados hoje (treino em andamento). */
+  pulados?: readonly string[];
   sexo?: 'feminino' | 'masculino';
   /** Tocar num exercício: abre o resumo dele (séries feitas, tempo). */
   onVer: (exercicioNoTreinoId: string) => void;
@@ -44,29 +44,18 @@ const tique = () => {
   if (Platform.OS !== 'web') Haptics.selectionAsync();
 };
 
-const NO = 40;
-const NO_R = 18;
-const NO_C = 2 * Math.PI * NO_R;
 /** Segurar por este tempo (ms) para começar a arrastar fora do Editar. */
 const SEGURAR = 320;
-
-/** Depois do selo, a linha desce até o próximo exercício. */
-const DESCER = {
-  animationName: { from: { height: '0%' as const }, to: { height: '100%' as const } },
-  animationDuration: 520,
-  animationDelay: 220,
-  animationFillMode: 'both' as const,
-  animationTimingFunction: 'ease-out' as const,
-};
 
 const nomeCardio = (c: Cardio) => (c.atividade === 'eliptico' ? 'elíptico' : c.atividade);
 
 /**
- * Exercícios do dia em linha do tempo: cada exercício é um ponto na linha,
- * com o nome e quantas séries já foram feitas. O atual é um círculo tracejado
- * que fecha a cada série; feito, vira um selo com ✓. Tocar abre o resumo.
+ * Exercícios do dia em cartões de vidro: miniatura, número, nome e séries ×
+ * repetições. O atual tem a borda verde e um tracinho por série; os feitos
+ * ficam apagados com o ✓ (que entra com um "pop"); os pulados, apagados com
+ * "Pulado". Tocar abre o resumo.
  */
-export function ListaExerciciosDoDia({ treino, modo, titulo, series, sexo, onVer, edicao }: Props) {
+export function ListaExerciciosDoDia({ treino, modo, titulo, series, pulados = [], sexo, onVer, edicao }: Props) {
   const [editando, setEditando] = useState(false);
   // O selo de "feito" entra com animação quando a pessoa volta para a lista
   // (as séries são marcadas no treino ao vivo, com esta tela escondida).
@@ -76,7 +65,7 @@ export function ListaExerciciosDoDia({ treino, modo, titulo, series, sexo, onVer
   const completos = treino.exercicios.filter((e) => modo !== 'planejado' && feitasDe(e.id) >= e.series).map((e) => e.id);
   if (focado && completos.some((id) => !vistos.includes(id))) setVistos(completos);
   const selados = new Set(completos.filter((id) => focado || vistos.includes(id)));
-  const idAtual = modo === 'andamento' ? treino.exercicios[proximoExercicio(treino, { series: [...series] })]?.id : undefined;
+  const idAtual = modo === 'andamento' ? treino.exercicios[proximoExercicio(treino, { series: [...series], pulados: [...pulados] })]?.id : undefined;
 
   // Arrastar para mudar a ordem: alturas medidas de cada linha, qual está
   // sendo arrastada, quanto andou e para que posição vai.
@@ -158,11 +147,10 @@ export function ListaExerciciosDoDia({ treino, modo, titulo, series, sexo, onVer
                 item={e}
                 ordem={i + 1}
                 modo={modo}
-                estado={completo ? 'feito' : e.id === idAtual ? 'atual' : 'depois'}
+                estado={completo ? 'feito' : modo === 'andamento' && pulados.includes(e.id) ? 'pulado' : e.id === idAtual ? 'atual' : 'depois'}
                 feitas={feitas}
                 selo={selados.has(e.id)}
                 sexo={sexo}
-                ultimo={i === n - 1 && !treino.cardio && !edicao}
                 onPress={() => onVer(e.id)}
               />
             )}
@@ -171,25 +159,17 @@ export function ListaExerciciosDoDia({ treino, modo, titulo, series, sexo, onVer
       })}
 
       {edicao && (
-        <View style={styles.item}>
-          <View style={styles.trilho}>
-            <View style={[styles.no, styles.noAdd]}>
-              <Ionicons name="add" size={17} color={colors.ink2} />
-            </View>
-          </View>
-          <Pressable accessibilityRole="button" onPress={edicao.onAdicionar} style={({ pressed }) => [styles.conteudo, styles.adicionar, pressed && styles.pressed]}>
-            <Text style={styles.adicionarText}>Adicionar exercício</Text>
-          </Pressable>
-        </View>
+        <Pressable accessibilityRole="button" onPress={edicao.onAdicionar} style={({ pressed }) => [styles.adicionar, pressed && styles.pressed]}>
+          <Ionicons name="add" size={18} color={colors.ink2} />
+          <Text style={styles.adicionarText}>Adicionar exercício</Text>
+        </Pressable>
       )}
       {treino.cardio && (
-        <View style={styles.item}>
-          <View style={styles.trilho}>
-            <View style={[styles.no, styles.noCardio]}>
-              <Ionicons name="heart-outline" size={15} color={colors.ink2} />
-            </View>
+        <View style={[styles.cartao, styles.cardio]}>
+          <View style={styles.cardioIcone}>
+            <Ionicons name="heart-outline" size={18} color={colors.ink2} />
           </View>
-          <View style={[styles.conteudo, styles.cardio]}>
+          <View style={styles.flex}>
             <Text style={styles.nome}>Cardio no fim</Text>
             <Text variant="caption" tone="muted">
               {treino.cardio.minutos} min de {nomeCardio(treino.cardio)}, ritmo {treino.cardio.intensidade}
@@ -318,53 +298,6 @@ function ItemEdicao({ item, ordem, sexo, alca }: { item: ExercicioNoTreino; orde
   );
 }
 
-/**
- * Ponto do exercício na linha do tempo:
- * - o atual (treino rodando) é um círculo aberto, tracejado, que vai se
- *   fechando a cada série feita;
- * - feito, vira um selo com o ✓ (entra com um "pop");
- * - os outros, só o número.
- */
-function NoDoExercicio({ ordem, estado, progresso, selo }: { ordem: number; estado: 'feito' | 'atual' | 'depois'; progresso: number; selo: boolean }) {
-  const numero = String(ordem).padStart(2, '0');
-  if (estado === 'feito' && selo) {
-    return (
-      <Animated.View entering={ZoomIn.springify().damping(11).stiffness(180)} style={styles.selo}>
-        <Ionicons name="checkmark" size={21} color={colors.onLime} />
-      </Animated.View>
-    );
-  }
-  if (estado === 'atual' || estado === 'feito') {
-    const p = estado === 'feito' ? 1 : progresso;
-    return (
-      <View style={styles.noAberto}>
-        <Svg width={NO} height={NO} style={styles.noSvg}>
-          <Circle cx={NO / 2} cy={NO / 2} r={NO_R} fill="none" stroke={colors.line2} strokeWidth={2} strokeDasharray="2.5 4" strokeLinecap="round" />
-          {p > 0 && (
-            <Circle
-              cx={NO / 2}
-              cy={NO / 2}
-              r={NO_R}
-              fill="none"
-              stroke={colors.lime}
-              strokeWidth={2.5}
-              strokeLinecap="round"
-              strokeDasharray={`${NO_C * p} ${NO_C}`}
-              transform={`rotate(-90 ${NO / 2} ${NO / 2})`}
-            />
-          )}
-        </Svg>
-        <Text style={[styles.noText, styles.noTextAtual]}>{numero}</Text>
-      </View>
-    );
-  }
-  return (
-    <View style={styles.no}>
-      <Text style={styles.noText}>{numero}</Text>
-    </View>
-  );
-}
-
 function Item({
   item,
   ordem,
@@ -373,63 +306,137 @@ function Item({
   feitas,
   selo,
   sexo,
-  ultimo,
   onPress,
 }: {
   item: ExercicioNoTreino;
   ordem: number;
   modo: Modo;
-  estado: 'feito' | 'atual' | 'depois';
+  estado: 'feito' | 'atual' | 'depois' | 'pulado';
   feitas: number;
-  /** Mostra o selo de feito (a animação dele toca quando a lista está à vista). */
+  /** Mostra o ✓ de feito (a animação dele toca quando a lista está à vista). */
   selo: boolean;
   sexo?: 'feminino' | 'masculino';
-  ultimo: boolean;
   onPress: () => void;
 }) {
   const ex = exercicioPorId(item.exercicioId);
   const nome = ex?.nome ?? 'Exercício';
-  const completo = estado === 'feito';
+  const atual = estado === 'atual';
+  const apagado = estado === 'feito' || estado === 'pulado';
   const meta =
-    modo === 'planejado'
-      ? `${item.series} ${item.series === 1 ? 'série' : 'séries'}`
-      : `${Math.min(feitas, item.series)} de ${item.series} ${item.series === 1 ? 'série' : 'séries'}`;
+    estado === 'pulado'
+      ? `Pulado · ${feitas} de ${item.series} séries`
+      : atual && modo === 'andamento'
+        ? `Série ${Math.min(feitas + 1, item.series)} de ${item.series}`
+        : `${item.series} × ${repsLabel(item)}`;
 
   return (
-    <View style={styles.item}>
-      <View style={styles.trilho}>
-        <View style={styles.noWrap}>
-          <NoDoExercicio ordem={ordem} estado={estado} progresso={Math.min(1, feitas / Math.max(1, item.series))} selo={selo} />
-        </View>
-        {!ultimo && <View style={styles.linha}>{completo && selo && <Animated.View style={[styles.linhaFeita, DESCER]} />}</View>}
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${ordem}. ${nome}, ${modo === 'planejado' ? meta : `${Math.min(feitas, item.series)} de ${item.series} séries`}`}
+      accessibilityHint="Abre o resumo do exercício"
+      onPress={onPress}
+      style={({ pressed }) => [styles.cartao, atual && styles.cartaoAtual, pressed && styles.pressed]}>
+      <View style={[styles.thumb, apagado && styles.apagado]}>{ex && <MapaMuscular principal={ex.musculoPrincipal} altura={52} podeVirar={false} sexo={sexo} />}</View>
+      <View style={[styles.flex, apagado && styles.apagado]}>
+        <Text style={styles.numero}>
+          {String(ordem).padStart(2, '0')}
+          {atual ? ' · AGORA' : ''}
+        </Text>
+        <Text style={styles.nome} numberOfLines={2}>
+          {nome}
+        </Text>
+        <Text variant="caption" tone="muted">
+          {meta}
+        </Text>
+        {atual && modo === 'andamento' ? (
+          <View style={styles.tracos}>
+            {Array.from({ length: item.series }, (_, k) => (
+              <View key={k} style={[styles.traco, k < feitas && styles.tracoFeito, k === feitas && styles.tracoAtual]} />
+            ))}
+          </View>
+        ) : null}
       </View>
-
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`${ordem}. ${nome}, ${meta}`}
-        accessibilityHint="Abre o resumo do exercício"
-        onPress={onPress}
-        style={({ pressed }) => [styles.conteudo, styles.cabeca, pressed && styles.pressed]}>
-        {estado === 'atual' && (
-          <LinearGradient pointerEvents="none" colors={gradients.timelineAtual} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={styles.reflexo} />
-        )}
-        <View style={styles.thumb}>{ex && <MapaMuscular principal={ex.musculoPrincipal} altura={46} podeVirar={false} sexo={sexo} />}</View>
-        <View style={styles.flex}>
-          {estado === 'atual' ? <Text style={styles.agoraRotulo}>Agora</Text> : null}
-          <Text style={[styles.nome, completo && styles.nomeFeito]} numberOfLines={2}>
-            {nome}
-          </Text>
-          <Text variant="caption" tone="muted">
-            {meta}
-          </Text>
-        </View>
+      {estado === 'feito' ? (
+        selo ? (
+          <Animated.View entering={ZoomIn.springify().damping(11).stiffness(180)} style={styles.ok}>
+            <Ionicons name="checkmark" size={15} color={colors.onLime} />
+          </Animated.View>
+        ) : (
+          <View style={styles.ok}>
+            <Ionicons name="checkmark" size={15} color={colors.onLime} />
+          </View>
+        )
+      ) : (
         <Ionicons name="chevron-forward" size={16} color={colors.ink3} />
-      </Pressable>
-    </View>
+      )}
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
+  cartao: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    minHeight: 80,
+    marginBottom: 8,
+    paddingVertical: 12,
+    paddingLeft: 12,
+    paddingRight: 14,
+    borderRadius: radius.lg,
+    backgroundColor: colors.frostCardFill,
+    borderWidth: 1,
+    borderColor: colors.frostCardEdge,
+    borderTopColor: colors.frostCardEdgeTop,
+  },
+  cartaoAtual: {
+    borderColor: colors.limeEdge,
+    borderTopColor: colors.limeEdge,
+    borderWidth: 1.5,
+  },
+  apagado: {
+    opacity: 0.5,
+  },
+  numero: {
+    fontFamily: fonts.display.semibold,
+    fontSize: 11,
+    letterSpacing: 0.8,
+    color: colors.ink3,
+    fontVariant: ['tabular-nums'],
+  },
+  tracos: {
+    flexDirection: 'row',
+    gap: 4,
+    marginTop: 9,
+  },
+  traco: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.track,
+  },
+  tracoFeito: {
+    backgroundColor: colors.ink,
+  },
+  tracoAtual: {
+    backgroundColor: colors.lime,
+  },
+  ok: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.lime,
+  },
+  cardioIcone: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.glassFill,
+  },
   flex: {
     flex: 1,
     minWidth: 0,
@@ -457,64 +464,9 @@ const styles = StyleSheet.create({
   dicaEdicao: {
     marginBottom: spacing.md,
   },
-  item: {
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
-  trilho: {
-    width: NO,
-    alignItems: 'center',
-  },
-  noWrap: {
-    width: NO,
-    height: NO,
-    marginTop: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  no: {
-    width: NO,
-    height: NO,
-    borderRadius: NO / 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.panel,
-    borderWidth: 1.5,
-    borderColor: colors.line,
-  },
-  noAdd: {
-    marginTop: 12,
-    borderStyle: 'dashed',
-    borderColor: colors.line2,
-  },
-  noCardio: {
-    marginTop: 12,
-  },
-  noAberto: {
-    width: NO,
-    height: NO,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  noSvg: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-  },
-  selo: {
-    width: NO,
-    height: NO,
-    borderRadius: NO / 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.lime,
-    borderWidth: 2.5,
-    borderColor: colors.limeLight,
-    transform: [{ rotate: '-8deg' }],
-  },
   // Número centralizado de verdade no círculo (sem o respiro da fonte).
   noText: {
-    width: NO,
+    width: 30,
     textAlign: 'center',
     fontFamily: fonts.display.semibold,
     fontSize: 13,
@@ -522,45 +474,6 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
     color: colors.ink3,
     fontVariant: ['tabular-nums'],
-  },
-  noTextAtual: {
-    color: colors.ink,
-  },
-  linha: {
-    flex: 1,
-    width: 2,
-    marginTop: 6,
-    borderRadius: 1,
-    overflow: 'hidden',
-    backgroundColor: colors.line,
-  },
-  linhaFeita: {
-    width: 2,
-    backgroundColor: colors.ink2,
-  },
-  conteudo: {
-    flex: 1,
-    minWidth: 0,
-  },
-  cabeca: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    minHeight: 76,
-    marginVertical: 4,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    marginLeft: -10,
-    borderRadius: 18,
-    overflow: 'hidden',
-  },
-  reflexo: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    borderRadius: 18,
   },
   thumb: {
     width: 44,
@@ -570,33 +483,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.glassFill,
   },
-  agoraRotulo: {
-    fontFamily: fonts.body.bold,
-    fontSize: 10.5,
-    letterSpacing: 1.6,
-    textTransform: 'uppercase',
-    color: colors.ink2,
-  },
   nome: {
     fontFamily: fonts.body.bold,
     fontSize: 15.5,
     lineHeight: 20,
   },
-  nomeFeito: {
-    color: colors.ink2,
-  },
   cardio: {
-    paddingTop: 18,
-    paddingBottom: spacing.md,
+    minHeight: 68,
   },
   adicionar: {
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 64,
+    gap: 8,
+    height: 56,
+    marginTop: 2,
+    borderRadius: radius.lg,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: colors.line2,
   },
   adicionarText: {
     fontFamily: fonts.body.bold,
-    fontSize: 15,
-    color: colors.ink,
+    fontSize: 14.5,
+    color: colors.ink2,
   },
   edicao: {
     flexDirection: 'row',

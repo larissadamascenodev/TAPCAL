@@ -8,6 +8,7 @@ import { SheetBadge } from '@/components/nutrition/PlateSheet';
 import { confirmDestructive, EmptyState, Glass, GlassModal, IconButton, NeonButton, Text, toast } from '@/components/ui';
 import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
 import { CardAoVivo, HeroDescanso, HeroTreino } from '@/components/workout/HeroDoDia';
+import { ControlesAoVivo } from '@/components/workout/ControlesAoVivo';
 import { ExerciseLibrary } from '@/components/workout/ExerciseLibrary';
 import { ListaExerciciosDoDia } from '@/components/workout/ListaExerciciosDoDia';
 import { RelatorioSemana } from '@/components/workout/RelatorioSemana';
@@ -207,10 +208,11 @@ export default function TreinoScreen() {
       {/* Destaque do dia: nome, músculos e corpo; rodando, o mostrador com o tempo */}
       {mostraAtivo && sessaoAtiva && treinoAtivo ? (
         <View style={styles.aoVivo}>
-          <Text style={styles.aoVivoTopo}>
+          <Text style={styles.aoVivoTopo} numberOfLines={1}>
             {sessaoAtiva.data === today ? 'Hoje' : `Treino de ${diaCompleto(sessaoAtiva.diaPlanejado)}`} · {treinoAtivo.nome}
           </Text>
           <CardAoVivo treino={treinoAtivo} sessao={sessaoAtiva} historico={sessoes} planos={planos} onAbrir={() => abrirSessao()} />
+          <ControlesAoVivo treino={treinoAtivo} sessao={sessaoAtiva} historico={sessoes} planos={planos} />
         </View>
       ) : (
         <>
@@ -249,6 +251,7 @@ export default function TreinoScreen() {
             modo={modo}
             titulo={tituloLista}
             series={seriesDaLista}
+            pulados={mostraAtivo && sessaoAtiva ? sessaoAtiva.pulados : undefined}
             sexo={sexo}
             onVer={setVendo}
             edicao={
@@ -363,7 +366,7 @@ export default function TreinoScreen() {
 
 const styles = StyleSheet.create({
   aoVivo: {
-    gap: spacing.sm,
+    gap: spacing.md,
     marginTop: spacing.sm,
   },
   aoVivoTopo: {

@@ -73,9 +73,19 @@ export function seriesFeitas(sessao: Pick<SessaoEmAndamento, 'series'>, exercici
 }
 
 /** Primeiro exercício do treino que ainda tem séries a fazer (ou o último). */
-export function proximoExercicio(treino: TreinoDoDia, sessao: Pick<SessaoEmAndamento, 'series'>): number {
-  const i = treino.exercicios.findIndex((e) => seriesFeitas(sessao, e.id) < e.series);
+export function proximoExercicio(treino: TreinoDoDia, sessao: Pick<SessaoEmAndamento, 'series' | 'pulados'>): number {
+  const i = treino.exercicios.findIndex((e) => !exercicioResolvido(sessao, e));
   return i === -1 ? treino.exercicios.length - 1 : i;
+}
+
+/** Exercício já resolvido na sessão: todas as séries feitas ou pulado. */
+export function exercicioResolvido(sessao: Pick<SessaoEmAndamento, 'series' | 'pulados'>, e: Pick<ExercicioNoTreino, 'id' | 'series'>): boolean {
+  return seriesFeitas(sessao, e.id) >= e.series || !!sessao.pulados?.includes(e.id);
+}
+
+/** Todos os exercícios do treino feitos ou pulados. */
+export function treinoResolvido(treino: TreinoDoDia, sessao: Pick<SessaoEmAndamento, 'series' | 'pulados'>): boolean {
+  return treino.exercicios.every((e) => exercicioResolvido(sessao, e));
 }
 
 export type NumerosDaSemana = { feitos: number; planejados: number; volumeKg: number; recordes: number; kcal: number };

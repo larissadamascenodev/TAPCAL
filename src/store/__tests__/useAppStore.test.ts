@@ -231,6 +231,21 @@ describe('treino', () => {
     expect('descansoSeg' in s).toBe(false);
   });
 
+  it('pular exercício: sai do descanso, o treino segue e o pulo não vai para o histórico', () => {
+    store().salvarPlano(planoTeste());
+    store().comecarTreino('t-seg');
+    store().registrarSerie('e1', 60, 12);
+    store().iniciarDescanso(90);
+    store().pularExercicio('e1');
+    store().pularExercicio('e1'); // não duplica
+    expect(store().sessaoAtiva!.pulados).toEqual(['e1']);
+    expect('descansoAte' in store().sessaoAtiva!).toBe(false);
+    store().finalizarTreino();
+    const [s] = store().sessoes;
+    expect('pulados' in s).toBe(false);
+    expect(s.series).toHaveLength(1);
+  });
+
   it('apagar série renumera as seguintes', () => {
     store().salvarPlano(planoTeste());
     store().comecarTreino('t-seg');
