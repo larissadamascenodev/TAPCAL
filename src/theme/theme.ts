@@ -80,7 +80,10 @@ export const colors = {
   muscleHeat1: 'rgba(209,251,57,0.22)',
   muscleHeat2: 'rgba(209,251,57,0.55)',
   // Miolo do botão neon: vidro escuro quase fechado, para a luz aparecer só na borda
-  neonInner: 'rgba(22,23,26,0.94)',
+  neonInner: 'rgba(22,23,26,0.78)',
+  // Contorno fixo do botão principal: verde, sem ser forte demais; e o halo da luz que passa
+  neonContorno: 'rgba(209,251,57,0.7)',
+  neonHalo: 'rgba(238,255,168,0.22)',
   // Fundo atrás da folha de edição: leve sobre o desfoque; sem desfoque (Android), bem mais fechado
   modalScrim: 'rgba(5,5,6,0.45)',
   modalScrimSolid: 'rgba(5,5,6,0.85)',
@@ -117,6 +120,8 @@ export const colors = {
   tracoApagado: 'rgba(255,255,255,0.12)',
   tracoBrilho: 'rgba(209,251,57,0.28)',
   // Selo verde (completo, recorde): neon um pouco translúcido, com a letra escura
+  // Ponto "gravando" do tempo de treino
+  gravando: '#FF453A',
   seloVerde: 'rgba(209,251,57,0.86)',
 } as const;
 
@@ -153,10 +158,6 @@ export const gradients = {
   water: ['rgba(87,184,255,0.30)', 'rgba(87,184,255,0.06)'] as const,
   // Base da foto do prato no resultado: escurece até o tom do fundo, sob o vidro
   photoFade: ['rgba(5,5,6,0)', 'rgba(5,5,6,1)'] as const,
-  // Borda do botão neon: verde neon e menta girando em volta do vidro, com um trecho mais fraco
-  // Só o verde do app: duas marcas de luz que giram em volta, sumindo entre elas
-  // Contorno inteiro aceso, com a cor passando devagar em volta (claro → verde → escuro → verde)
-  neonRing: ['#EEFFA8', '#D1FB39', 'rgba(169,224,28,0.55)', '#D1FB39', '#EEFFA8'] as const,
   // Miolo de vidro do botão neon: reflexo mais claro em cima
   neonGlass: ['rgba(255,255,255,0.16)', 'rgba(255,255,255,0.05)', 'rgba(255,255,255,0.02)'] as const,
   // Véu sobre a foto desfocada atrás da folha de vidro: fechado no topo (emenda

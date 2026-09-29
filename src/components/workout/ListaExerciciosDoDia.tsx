@@ -108,11 +108,6 @@ export function ListaExerciciosDoDia({ treino, modo, titulo, series, pulados = [
           </Text>
         )}
       </View>
-      {editando && (
-        <Text variant="caption" tone="muted" style={styles.dicaEdicao}>
-          Segure a alça e arraste para mudar a ordem. Deslize para o lado para remover. Vale para as próximas vezes deste treino.
-        </Text>
-      )}
 
       {treino.exercicios.map((e, i) => {
         const feitas = feitasDe(e.id);
@@ -463,9 +458,6 @@ const styles = StyleSheet.create({
   },
   editarOn: {
     color: colors.ink,
-  },
-  dicaEdicao: {
-    marginBottom: spacing.md,
   },
   thumb: {
     width: 44,

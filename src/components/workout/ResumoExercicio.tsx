@@ -94,18 +94,23 @@ export function ResumoExercicio({ item, sessao, aoVivo, historico, pesoKg, sexo,
                 <IconButton icon="close" label="Fechar" size={34} onPress={onClose} />
               </View>
 
-              {/* Números do exercício: soltos, numa grade com linhas finas */}
-              <View style={styles.grade}>
-                <View style={styles.gradeLinha}>
-                  <Num rotulo="Tempo total" valor={tempoSeg ? formatDuration(tempoSeg) : '—'} />
-                  <Num rotulo="Descanso" valor={r?.descansoTotalSeg ? formatDuration(r.descansoTotalSeg) : '—'} meio />
-                  <Num rotulo="Séries" valor={`${Math.min(feitas, item.series)}`} extra={`/${item.series}`} />
+              {/* Números do exercício, como no Início: o tempo grande e três números embaixo */}
+              <View style={styles.destaque}>
+                <Text style={styles.destaqueRotulo}>TEMPO NO EXERCÍCIO</Text>
+                <Text style={styles.destaqueValor}>{tempoSeg ? formatDuration(tempoSeg) : '—'}</Text>
+                <View style={styles.tracos}>
+                  {Array.from({ length: item.series }, (_, k) => (
+                    <View key={k} style={[styles.traco, k < feitas && styles.tracoFeito]} />
+                  ))}
                 </View>
-                <View style={[styles.gradeLinha, styles.gradeLinhaDebaixo]}>
-                  <Num rotulo="Volume" valor={r?.volumeKg ? formatInt(r.volumeKg) : '—'} extra={r?.volumeKg ? 'kg' : undefined} />
-                  <Num rotulo="Kcal (est.)" valor={kcal ? formatInt(kcal) : '—'} meio />
-                  <Num rotulo="Começou" valor={inicioIso ? hora(inicioIso) : '—'} />
-                </View>
+                <Text variant="caption" tone="muted">
+                  {Math.min(feitas, item.series)} de {item.series} séries{inicioIso ? ` · começou às ${hora(inicioIso)}` : ''}
+                </Text>
+              </View>
+              <View style={styles.stats}>
+                <Stat rotulo="Volume" valor={r?.volumeKg ? formatInt(r.volumeKg) : '—'} unidade={r?.volumeKg ? 'kg' : undefined} />
+                <Stat rotulo="Kcal (est.)" valor={kcal ? formatInt(kcal) : '—'} cor={colors.lime} divisor />
+                <Stat rotulo="Descanso" valor={r?.descansoTotalSeg ? formatDuration(r.descansoTotalSeg) : '—'} divisor />
               </View>
 
               {/* Séries em linha do tempo */}
@@ -181,15 +186,15 @@ export function ResumoExercicio({ item, sessao, aoVivo, historico, pesoKg, sexo,
   );
 }
 
-function Num({ rotulo, valor, extra, meio }: { rotulo: string; valor: string; extra?: string; meio?: boolean }) {
+function Stat({ rotulo, valor, unidade, cor, divisor }: { rotulo: string; valor: string; unidade?: string; cor?: string; divisor?: boolean }) {
   return (
-    <View style={[styles.num, meio && styles.numMeio]}>
-      <Text style={styles.numRotulo} numberOfLines={1}>
+    <View style={[styles.stat, divisor && styles.statDivisor]}>
+      <Text variant="caption" tone="secondary" numberOfLines={1}>
         {rotulo}
       </Text>
-      <Text style={styles.numValor} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+      <Text style={[styles.statValor, cor ? { color: cor } : null]} numberOfLines={1}>
         {valor}
-        {extra ? <Text style={styles.numExtra}> {extra}</Text> : null}
+        {unidade ? <Text style={styles.statUnidade}> {unidade}</Text> : null}
       </Text>
     </View>
   );
@@ -265,44 +270,62 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     letterSpacing: -0.4,
   },
-  grade: {
+  destaque: {
+    alignItems: 'center',
+    gap: 6,
+    paddingTop: spacing.sm,
+  },
+  destaqueRotulo: {
+    fontFamily: fonts.body.bold,
+    fontSize: 10.5,
+    letterSpacing: 1.7,
+    color: colors.ink2,
+  },
+  destaqueValor: {
+    fontFamily: fonts.display.bold,
+    fontSize: 56,
+    lineHeight: 62,
+    letterSpacing: -2.4,
+    fontVariant: ['tabular-nums'],
+  },
+  tracos: {
+    flexDirection: 'row',
+    gap: 5,
+    width: 160,
+    marginBottom: 2,
+  },
+  traco: {
+    flex: 1,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: colors.track,
+  },
+  tracoFeito: {
+    backgroundColor: colors.lime,
+  },
+  stats: {
+    flexDirection: 'row',
+    paddingVertical: spacing.md,
     borderTopWidth: 1,
     borderBottomWidth: 1,
     borderColor: colors.lineSoft,
   },
-  gradeLinha: {
-    flexDirection: 'row',
-  },
-  gradeLinhaDebaixo: {
-    borderTopWidth: 1,
-    borderTopColor: colors.lineSoft,
-  },
-  num: {
+  stat: {
     flex: 1,
-    minWidth: 0,
-    gap: 3,
-    paddingVertical: 12,
+    alignItems: 'center',
+    gap: 2,
   },
-  numMeio: {
-    paddingHorizontal: 12,
+  statDivisor: {
     borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderColor: colors.lineSoft,
-    marginRight: 12,
+    borderLeftColor: colors.lineSoft,
   },
-  numRotulo: {
-    fontFamily: fonts.body.bold,
-    fontSize: 10,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    color: colors.ink3,
-  },
-  numValor: {
+  statValor: {
     fontFamily: fonts.display.semibold,
-    fontSize: 17,
+    fontSize: 20,
+    lineHeight: 26,
     fontVariant: ['tabular-nums'],
   },
-  numExtra: {
+  statUnidade: {
     fontFamily: fonts.body.semibold,
     fontSize: 12,
     color: colors.ink3,

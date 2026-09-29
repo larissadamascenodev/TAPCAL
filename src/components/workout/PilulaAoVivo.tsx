@@ -1,6 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
+import Animated, { useReducedMotion } from 'react-native-reanimated';
 
 import { Text } from '@/components/ui/Text';
 import { formatDuration } from '@/lib/format';
@@ -9,6 +10,14 @@ import { useAppStore } from '@/store/useAppStore';
 import { colors, fonts } from '@/theme/theme';
 
 import { useAgora } from './HeroDoDia';
+
+/** O ponto pisca devagar, como quem está gravando. */
+const PISCA = {
+  animationName: { '0%': { opacity: 1 }, '50%': { opacity: 0.25 }, '100%': { opacity: 1 } },
+  animationDuration: 1400,
+  animationIterationCount: 'infinite' as const,
+  animationTimingFunction: 'ease-in-out' as const,
+};
 
 /**
  * Pílula do treino em andamento, no meio do topo de todas as abas: o tempo
@@ -20,6 +29,7 @@ export function PilulaAoVivo() {
   const pausar = useAppStore((s) => s.pausarTreino);
   const retomar = useAppStore((s) => s.retomarTreino);
   const agora = useAgora();
+  const reduce = useReducedMotion();
   if (!sessao) return null;
   const pausado = !!sessao.pausadoEm;
   const restante = sessao.descansoAte ? Math.max(0, Math.ceil((Date.parse(sessao.descansoAte) - agora) / 1000)) : 0;
@@ -32,7 +42,7 @@ export function PilulaAoVivo() {
       accessibilityLabel={`Treino ${pausado ? 'pausado' : descansando ? 'em descanso' : 'em andamento'}, ${tempo}. Abrir o treino`}
       onPress={() => router.push('/treino-sessao')}
       style={({ pressed }) => [styles.pill, pressed && styles.pressed]}>
-      <View style={[styles.ponto, descansando && styles.pontoDescanso, pausado && styles.pontoOff]} />
+      <Animated.View style={[styles.ponto, descansando && styles.pontoDescanso, pausado && styles.pontoOff, !pausado && !descansando && !reduce && PISCA]} />
       <Text style={[styles.tempo, pausado && styles.tempoOff]}>{tempo}</Text>
       <Pressable
         accessibilityRole="button"
@@ -62,7 +72,7 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 4,
-    backgroundColor: colors.lime,
+    backgroundColor: colors.gravando,
   },
   pontoDescanso: {
     backgroundColor: colors.ink,

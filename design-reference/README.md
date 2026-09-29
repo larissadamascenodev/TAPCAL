@@ -148,3 +148,6 @@ Layout do mockup `treino-v7/`, com o tema e o vidro que já valem na Início e n
 - Botões principais (Iniciar, Continuar, o do modal): contorno inteiro aceso no verde, com a cor passando devagar em volta e brilho suave por fora (referência: botão "Continuar" do vídeo).
 - `8b-pilula-na-aba-treino.png` — com treino aberto, o topo de todas as abas (inclusive Treino) mostra a pílula do tempo no centro, no lugar do nome.
 - `5-editar.png` (novo) — número solto, sem círculo; título da lista com o dia e o nome do treino embaixo.
+- `9-botao-luz-passando.png` — botão principal (referência: vídeo do "Continuar"): contorno verde fixo e, quando o botão aparece, uma luz clara passa UMA vez pela borda de cima (→) e pela de baixo (←), devagar (1,6 s), com halo suave; depois fica parado.
+- `8c-pilula-gravando.png` — o ponto da pílula do tempo fica vermelho e pisca devagar enquanto o treino corre (branco no descanso, cinza pausado). Tocar abre o treino ao vivo.
+- `4-resumo-exercicio.png` (novo) — no estilo do Início: "TEMPO NO EXERCÍCIO" grande, tracinhos das séries, e embaixo Volume · Kcal (verde) · Descanso com divisórias.
