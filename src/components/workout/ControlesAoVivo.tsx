@@ -4,7 +4,7 @@ import * as Haptics from 'expo-haptics';
 import { useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 
-import { Glass, NeonButton, Text, toast } from '@/components/ui';
+import { BotaoContorno, Glass, NeonButton, Text, toast } from '@/components/ui';
 import { exercicioPorId } from '@/lib/exercicios';
 import { formatDecimal, formatInt } from '@/lib/format';
 import { bateRecorde, proximoExercicio, repsLabel, seriesFeitas, treinoResolvido } from '@/lib/treino/plano';
@@ -36,6 +36,15 @@ export function ControlesAoVivo({ treino, sessao, historico, planos }: Props) {
   const agora = useAgora();
   const { registrarSerie, iniciarDescanso, ajustarDescanso, pularDescanso, pularExercicio, finalizarTreino } = useAppStore();
   const [aberto, setAberto] = useState(false);
+  // Última série feita (ou último exercício pulado): o treino do dia se fecha sozinho.
+  const fecharSeAcabou = () => {
+    const s = useAppStore.getState().sessaoAtiva;
+    if (!s || !treinoResolvido(treino, s)) return false;
+    finalizarTreino();
+    const kcal = useAppStore.getState().sessoes[0]?.kcal ?? 0;
+    toast(`Treino concluído · ${formatInt(kcal)} kcal no seu dia. Bom trabalho!`);
+    return true;
+  };
   const acabou = treinoResolvido(treino, sessao);
   const atual = acabou ? undefined : treino.exercicios[proximoExercicio(treino, sessao)];
   const descansando = !!atual && !!sessao.descansoAte && Date.parse(sessao.descansoAte) > agora;
@@ -67,8 +76,10 @@ export function ControlesAoVivo({ treino, sessao, historico, planos }: Props) {
             pularDescanso();
           }}
           style={({ pressed }) => [styles.pular, pressed && styles.pressed]}>
-          <Ionicons name="play-skip-forward" size={15} color={colors.onInk} />
-          <Text style={styles.pularText}>PULAR DESCANSO</Text>
+          <Ionicons name="play-skip-forward" size={13} color={colors.onInk} />
+          <Text style={styles.pularText} numberOfLines={1}>
+            PULAR DESCANSO
+          </Text>
         </Pressable>
         <Redondo label="+15" onPress={() => ajustarDescanso(15)} />
       </View>
@@ -77,7 +88,7 @@ export function ControlesAoVivo({ treino, sessao, historico, planos }: Props) {
 
   return (
     <>
-      <NeonButton label="Concluir série" onPress={() => setAberto(true)} />
+      <BotaoContorno label="Concluir série" onPress={() => setAberto(true)} />
       <ConcluirSerieModal
         visible={aberto}
         item={atual}
@@ -89,14 +100,16 @@ export function ControlesAoVivo({ treino, sessao, historico, planos }: Props) {
           const feitas = seriesFeitas(sessao, atual.id);
           const recorde = bateRecorde([...historico, sessao], atual.exercicioId, kg, reps);
           registrarSerie(atual.id, kg, reps);
+          setAberto(false);
+          if (fecharSeAcabou()) return;
           if (feitas + 1 < atual.series) iniciarDescanso(atual.descansoSeg);
           toast(recorde ? `Novo recorde: ${formatDecimal(kg)} kg` : 'Série registrada');
-          setAberto(false);
         }}
         onPular={() => {
           pularExercicio(atual.id);
-          toast(`${exercicioPorId(atual.exercicioId)?.nome ?? 'Exercício'} pulado`);
           setAberto(false);
+          if (fecharSeAcabou()) return;
+          toast(`${exercicioPorId(atual.exercicioId)?.nome ?? 'Exercício'} pulado`);
         }}
       />
     </>
@@ -113,8 +126,7 @@ function Redondo({ label, onPress }: { label: string; onPress: () => void }) {
         onPress();
       }}
       style={({ pressed }) => [styles.redondo, pressed && styles.pressed]}>
-      <Text style={styles.redondoText}>{label}</Text>
-      <Text style={styles.redondoSub}>SEG</Text>
+      <Text style={styles.redondoText}>{label} s</Text>
     </Pressable>
   );
 }
@@ -186,7 +198,7 @@ function ConcluirSerieModal({
             />
           </View>
 
-          <NeonButton label="Concluir série" onPress={() => onConcluir(valores.kg, valores.reps)} />
+          <BotaoContorno label="Concluir série" onPress={() => onConcluir(valores.kg, valores.reps)} />
           <Pressable accessibilityRole="button" onPress={onPular} hitSlop={6} style={({ pressed }) => [styles.pularEx, pressed && styles.pressed]}>
             <Ionicons name="play-skip-forward-outline" size={15} color={colors.ink2} />
             <Text style={styles.pularExText}>Pular este exercício</Text>
@@ -226,10 +238,11 @@ const styles = StyleSheet.create({
   descanso: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    justifyContent: 'center',
+    gap: 8,
   },
   redondo: {
-    width: 58,
+    width: 72,
     height: 58,
     borderRadius: 29,
     alignItems: 'center',
@@ -241,14 +254,8 @@ const styles = StyleSheet.create({
   },
   redondoText: {
     fontFamily: fonts.display.semibold,
-    fontSize: 14,
-    lineHeight: 17,
-  },
-  redondoSub: {
-    fontFamily: fonts.body.bold,
-    fontSize: 9,
-    letterSpacing: 0.6,
-    color: colors.ink3,
+    fontSize: 15,
+    fontVariant: ['tabular-nums'],
   },
   pular: {
     flex: 1,
@@ -257,13 +264,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
+    paddingHorizontal: 10,
     backgroundColor: colors.ink,
   },
   pularText: {
     fontFamily: fonts.display.bold,
-    fontSize: 12.5,
-    letterSpacing: 2,
+    fontSize: 11.5,
+    letterSpacing: 0.8,
     color: colors.onInk,
   },
   root: {

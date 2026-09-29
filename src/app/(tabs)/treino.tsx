@@ -7,7 +7,7 @@ import { TabPage } from '@/components/navigation/TabPage';
 import { SheetBadge } from '@/components/nutrition/PlateSheet';
 import { confirmDestructive, EmptyState, Glass, GlassModal, IconButton, NeonButton, Text, toast } from '@/components/ui';
 import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
-import { CardAoVivo, HeroDescanso, HeroTreino } from '@/components/workout/HeroDoDia';
+import { CardAoVivo, CardConcluido, HeroDescanso, HeroTreino } from '@/components/workout/HeroDoDia';
 import { ControlesAoVivo } from '@/components/workout/ControlesAoVivo';
 import { ExerciseLibrary } from '@/components/workout/ExerciseLibrary';
 import { ListaExerciciosDoDia } from '@/components/workout/ListaExerciciosDoDia';
@@ -77,7 +77,7 @@ function naSemana(t: TreinoDoDia, plano: PlanoDeTreino | undefined, data: DateKe
  */
 export default function TreinoScreen() {
   const state = useAppStore();
-  const { today: day, planos, sessoes, sessaoAtiva, comecarTreino, atualizarPlano } = state;
+  const { today: day, planos, sessoes, sessaoAtiva, comecarTreino, pausarTreino, retomarTreino, atualizarPlano } = state;
   const sexo = state.profile?.sex;
   const today = day.date;
   const [dia, setDia] = useState<DiaSemana>(() => diaDaData(today));
@@ -211,14 +211,21 @@ export default function TreinoScreen() {
           <Text style={styles.aoVivoTopo} numberOfLines={1}>
             {sessaoAtiva.data === today ? 'Hoje' : `Treino de ${diaCompleto(sessaoAtiva.diaPlanejado)}`} · {treinoAtivo.nome}
           </Text>
-          <CardAoVivo treino={treinoAtivo} sessao={sessaoAtiva} historico={sessoes} planos={planos} onAbrir={() => abrirSessao()} />
+          <CardAoVivo treino={treinoAtivo} sessao={sessaoAtiva} historico={sessoes} planos={planos} onAbrir={() => abrirSessao()} onPausar={pausarTreino} onContinuar={retomarTreino} />
           <ControlesAoVivo treino={treinoAtivo} sessao={sessaoAtiva} historico={sessoes} planos={planos} />
         </View>
       ) : (
         <>
-          {sessaoAtiva && treinoAtivo && <CardAoVivo treino={treinoAtivo} sessao={sessaoAtiva} historico={sessoes} planos={planos} onAbrir={() => abrirSessao()} />}
+          {sessaoAtiva && treinoAtivo && <CardAoVivo treino={treinoAtivo} sessao={sessaoAtiva} historico={sessoes} planos={planos} onAbrir={() => abrirSessao()} onPausar={pausarTreino} onContinuar={retomarTreino} />}
           {!t ? (
             <HeroDescanso kicker={kicker} proximo={upcoming[0] && `${dayLabel(upcoming[0].data, today).toLowerCase()} · ${upcoming[0].treino.nome}`} />
+          ) : e.tipo === 'feito' && e.sessao ? (
+            <View style={styles.aoVivo}>
+              <Text style={styles.aoVivoTopo} numberOfLines={1}>
+                {kicker} · {t.nome}
+              </Text>
+              <CardConcluido treino={t} sessao={e.sessao} nota={e.feitoEm ? notaFeitoEm(e.feitoEm) : undefined} />
+            </View>
           ) : (
             <HeroTreino
               kicker={kicker}

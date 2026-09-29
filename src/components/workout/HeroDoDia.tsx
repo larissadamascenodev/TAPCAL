@@ -6,7 +6,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { Glass, NeonButton, Text } from '@/components/ui';
 import { exercicioPorId, MUSCULO_LABELS } from '@/lib/exercicios';
-import { formatDecimal, formatDuration } from '@/lib/format';
+import { formatDecimal, formatDuration, formatInt } from '@/lib/format';
 import { tempoDeTreinoMs } from '@/lib/treino/met';
 import { proximoExercicio, seriesFeitas, treinoResolvido } from '@/lib/treino/plano';
 import { valoresDaProximaSerie } from '@/lib/treino/progressao';
@@ -217,6 +217,8 @@ export function CardAoVivo({
   historico,
   planos,
   onAbrir,
+  onPausar,
+  onContinuar,
 }: {
   treino: TreinoDoDia;
   sessao: SessaoEmAndamento;
@@ -224,6 +226,8 @@ export function CardAoVivo({
   historico: readonly SessaoDeTreino[];
   planos: readonly PlanoDeTreino[];
   onAbrir: () => void;
+  onPausar: () => void;
+  onContinuar: () => void;
 }) {
   const agora = useAgora();
   const [tam, setTam] = useState({ w: 0, h: 0 });
@@ -244,57 +248,110 @@ export function CardAoVivo({
   const detalhe = !atual ? '' : descansando ? `Próxima: série ${feitas + 1} · ${carga}` : `Série ${feitas + 1} de ${atual.series} · ${carga}`;
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${rotulo}. ${atual ? (ex?.nome ?? 'Exercício') : 'Abrir para finalizar o treino'}. ${formatDuration(descansando ? restante : seg)}. Abrir o treino`}
-      onPress={onAbrir}
-      onLayout={(e) => setTam({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
-      {({ pressed }) => (
-        <Glass rounded={RAIO} flush contentStyle={styles.cartao} style={pressed && styles.pressed}>
-          {tam.w > 0 && (
-            <Svg width={tam.w} height={tam.h} style={styles.volta} pointerEvents="none">
-              <AnimatedPath
-                d={d}
-                fill="none"
-                stroke={descansando ? colors.ink : colors.lime}
-                strokeWidth={TRACO}
-                strokeLinecap="round"
-                strokeDasharray={`${perimetro} ${perimetro}`}
-                animatedProps={volta}
-              />
-            </Svg>
-          )}
-          <View style={styles.flex}>
-            <View style={styles.aoVivo}>
-              <View style={[styles.ponto, descansando && styles.pontoDescanso, (pausado || acabou) && styles.pontoOff]} />
-              <Text style={styles.rotulo} numberOfLines={1}>
-                {rotulo}
-              </Text>
-            </View>
-            <Text style={styles.cartaoNome} numberOfLines={2}>
-              {atual ? (ex?.nome ?? 'Exercício') : 'Toque para finalizar o treino'}
+    <View style={styles.cartaoWrap} onLayout={(e) => setTam({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
+      <Glass rounded={RAIO} flush contentStyle={styles.cartao}>
+        {tam.w > 0 && (
+          <Svg width={tam.w} height={tam.h} style={styles.volta} pointerEvents="none">
+            <AnimatedPath
+              d={d}
+              fill="none"
+              stroke={descansando ? colors.ink : colors.lime}
+              strokeWidth={TRACO}
+              strokeLinecap="round"
+              strokeDasharray={`${perimetro} ${perimetro}`}
+              animatedProps={volta}
+            />
+          </Svg>
+        )}
+        {/* Esquerda: abre o exercício no treino ao vivo */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${rotulo}. ${atual ? (ex?.nome ?? 'Exercício') : 'Tudo feito'}. Abrir o exercício`}
+          onPress={onAbrir}
+          style={({ pressed }) => [styles.cartaoEsq, pressed && styles.pressed]}>
+          <View style={styles.aoVivo}>
+            <View style={[styles.ponto, descansando && styles.pontoDescanso, (pausado || acabou) && styles.pontoOff]} />
+            <Text style={styles.rotulo} numberOfLines={1}>
+              {rotulo}
             </Text>
-            {detalhe ? (
-              <Text variant="caption" tone="muted" numberOfLines={1} style={styles.detalhe}>
-                {detalhe}
-              </Text>
-            ) : null}
-            {atual ? (
-              <View style={styles.tracos} accessibilityLabel={`${feitas} de ${atual.series} séries feitas`}>
-                {Array.from({ length: atual.series }, (_, k) => (
-                  <View key={k} style={[styles.traco, k < feitas && styles.tracoFeito, k === feitas && styles.tracoAtual]} />
-                ))}
-              </View>
-            ) : null}
           </View>
-          <View style={styles.divisor} />
-          <View style={styles.tempoCol}>
-            <Text style={[styles.tempo, pausado && styles.tempoPausado]}>{formatDuration(descansando ? restante : seg)}</Text>
-            {descansando ? <Text style={styles.tempoRotulo}>DESCANSO</Text> : null}
+          <Text style={styles.cartaoNome} numberOfLines={2}>
+            {atual ? (ex?.nome ?? 'Exercício') : 'Toque para finalizar o treino'}
+          </Text>
+          {detalhe ? (
+            <Text variant="caption" tone="muted" numberOfLines={1} style={styles.detalhe}>
+              {detalhe}
+            </Text>
+          ) : null}
+          {atual ? (
+            <View style={styles.tracos} accessibilityLabel={`${feitas} de ${atual.series} séries feitas`}>
+              {Array.from({ length: atual.series }, (_, k) => (
+                <View key={k} style={[styles.traco, k < feitas && styles.tracoFeito, k === feitas && styles.tracoAtual]} />
+              ))}
+            </View>
+          ) : null}
+        </Pressable>
+        <View style={styles.divisor} />
+        {/* Direita: o tempo; tocar pausa ou continua */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${descansando ? 'Descanso' : 'Tempo de treino'} ${formatDuration(descansando ? restante : seg)}. ${pausado ? 'Continuar' : 'Pausar'}`}
+          onPress={pausado ? onContinuar : onPausar}
+          hitSlop={8}
+          style={({ pressed }) => [styles.tempoCol, pressed && styles.pressed]}>
+          <Text style={[styles.tempo, pausado && styles.tempoPausado]}>{formatDuration(descansando ? restante : seg)}</Text>
+          {descansando ? <Text style={styles.tempoRotulo}>DESCANSO</Text> : null}
+          <View style={[styles.play, pausado && styles.playOn]}>
+            <Ionicons name={pausado ? 'play' : 'pause'} size={14} color={pausado ? colors.onLime : colors.ink} />
           </View>
-        </Glass>
-      )}
-    </Pressable>
+        </Pressable>
+      </Glass>
+    </View>
+  );
+}
+
+/** Treino do dia concluído: no lugar do topo, o mesmo cartão com a linha fechada e os números do treino. */
+export function CardConcluido({ treino, sessao, nota }: { treino: TreinoDoDia; sessao: SessaoDeTreino; nota?: string }) {
+  const [tam, setTam] = useState({ w: 0, h: 0 });
+  const { d } = contorno(tam.w, tam.h, RAIO, TRACO / 2);
+  const ms = Math.max(0, Date.parse(sessao.fim) - Date.parse(sessao.inicio) - (sessao.pausaMs ?? 0));
+  const exercicios = new Set(sessao.series.map((x) => x.exercicioNoTreinoId)).size;
+  return (
+    <View style={styles.cartaoWrap} onLayout={(e) => setTam({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
+      <Glass rounded={RAIO} flush contentStyle={styles.cartao}>
+        {tam.w > 0 && (
+          <Svg width={tam.w} height={tam.h} style={styles.volta} pointerEvents="none">
+            <Path d={d} fill="none" stroke={colors.lime} strokeWidth={TRACO} strokeLinecap="round" />
+          </Svg>
+        )}
+        <View style={styles.cartaoEsq}>
+          <View style={styles.aoVivo}>
+            <View style={styles.selo}>
+              <Ionicons name="checkmark" size={11} color={colors.onLime} />
+            </View>
+            <Text style={styles.rotulo} numberOfLines={1}>
+              Treino concluído{nota ? ` · ${nota}` : ''}
+            </Text>
+          </View>
+          <Text style={styles.cartaoNome} numberOfLines={2}>
+            {treino.nome}
+          </Text>
+          <Text variant="caption" tone="muted" numberOfLines={1} style={styles.detalhe}>
+            {exercicios} {exercicios === 1 ? 'exercício' : 'exercícios'} · {sessao.series.length} séries · {formatInt(sessao.kcal)} kcal
+          </Text>
+          <View style={styles.tracos}>
+            {treino.exercicios.map((x) => (
+              <View key={x.id} style={[styles.traco, sessao.series.some((y) => y.exercicioNoTreinoId === x.id) && styles.tracoFeito]} />
+            ))}
+          </View>
+        </View>
+        <View style={styles.divisor} />
+        <View style={styles.tempoCol}>
+          <Text style={styles.tempo}>{formatDuration(ms / 1000)}</Text>
+          <Text style={styles.tempoRotulo}>TEMPO</Text>
+        </View>
+      </Glass>
+    </View>
   );
 }
 
@@ -387,6 +444,34 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xl,
     paddingBottom: spacing.lg,
   },
+  // Um pouco mais largo que a coluna da tela.
+  cartaoWrap: {
+    marginHorizontal: -6,
+  },
+  cartaoEsq: {
+    flex: 1,
+    minWidth: 0,
+  },
+  play: {
+    width: 30,
+    height: 30,
+    marginTop: 8,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.glassFillStrong,
+  },
+  playOn: {
+    backgroundColor: colors.lime,
+  },
+  selo: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.lime,
+  },
   cartao: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -466,7 +551,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.lineSoft,
   },
   tempoCol: {
-    alignItems: 'flex-end',
+    alignItems: 'center',
   },
   tempoRotulo: {
     fontFamily: fonts.body.bold,
