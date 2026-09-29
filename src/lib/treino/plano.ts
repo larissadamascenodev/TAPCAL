@@ -154,6 +154,10 @@ export type ResumoDoExercicio = {
   tempoMs: number;
   /** Descanso antes de cada série, em segundos (a primeira não tem). */
   descansosSeg: (number | null)[];
+  /** Quanto durou cada série (s); null nas séries antigas, que não guardavam isso. */
+  duracoesSeg: (number | null)[];
+  /** Soma dos descansos entre as séries (s). */
+  descansoTotalSeg: number;
   volumeKg: number;
 };
 
@@ -162,15 +166,19 @@ const ms = (iso: string) => new Date(iso).getTime();
 /** Resumo de um exercício numa sessão (em andamento ou concluída): tempo, descansos e volume. */
 export function resumoDoExercicio(sessao: Pick<SessaoDeTreino, 'inicio' | 'series'>, exercicioNoTreinoId: string): ResumoDoExercicio {
   const series = sessao.series.filter((s) => s.exercicioNoTreinoId === exercicioNoTreinoId).sort((a, b) => ms(a.concluidaEm) - ms(b.concluidaEm));
-  if (!series.length) return { series, tempoMs: 0, descansosSeg: [], volumeKg: 0 };
+  if (!series.length) return { series, tempoMs: 0, descansosSeg: [], duracoesSeg: [], descansoTotalSeg: 0, volumeKg: 0 };
   const primeira = ms(series[0].concluidaEm);
   const antes = sessao.series.map((s) => ms(s.concluidaEm)).filter((t) => t < primeira);
   const comeco = antes.length ? Math.max(...antes) : ms(sessao.inicio);
   const fim = ms(series[series.length - 1].concluidaEm);
+  // Descanso guardado na série; nas antigas, o intervalo entre uma e outra.
+  const descansosSeg = series.map((s, i) => (i === 0 ? null : (s.descansoSeg ?? Math.round((ms(s.concluidaEm) - ms(series[i - 1].concluidaEm)) / 1000))));
   return {
     series,
     tempoMs: Math.max(0, fim - comeco),
-    descansosSeg: series.map((s, i) => (i === 0 ? null : Math.round((ms(s.concluidaEm) - ms(series[i - 1].concluidaEm)) / 1000))),
+    descansosSeg,
+    duracoesSeg: series.map((s) => s.duracaoSeg ?? null),
+    descansoTotalSeg: descansosSeg.reduce<number>((t, d) => t + (d ?? 0), 0),
     volumeKg: volume(series),
   };
 }

@@ -9,15 +9,15 @@ import { Text } from './Text';
 
 const H = 58;
 /** Espessura da borda de luz. */
-const EDGE = 2;
+const EDGE = 1.5;
 
-/** A luz dá uma volta completa a cada 3,2 s. */
+/** A cor dá uma volta completa a cada 6 s: devagar, sem nada brusco. */
 const SPIN = {
   animationName: {
     from: { transform: [{ rotate: '0deg' }] },
     to: { transform: [{ rotate: '360deg' }] },
   },
-  animationDuration: 3200,
+  animationDuration: 6000,
   animationIterationCount: 'infinite' as const,
   animationTimingFunction: 'linear' as const,
 };
@@ -30,8 +30,9 @@ type Props = {
 };
 
 /**
- * Botão principal (CONTINUAR, SALVAR, INICIAR): pílula de vidro com duas marcas
- * de luz no verde do app girando em volta.
+ * Botão principal (CONTINUAR, SALVAR, INICIAR): pílula de vidro escuro com o
+ * contorno inteiro aceso no verde do app, a cor passando devagar em volta, e um
+ * brilho suave por fora.
  */
 export function NeonButton({ label, onPress, disabled, style }: Props) {
   const reduce = useReducedMotion();
@@ -76,7 +77,7 @@ const styles = StyleSheet.create({
   glow: {
     borderRadius: radius.pill,
     ...Platform.select({
-      ios: { shadowColor: colors.lime, shadowOpacity: 0.22, shadowRadius: 14, shadowOffset: { width: 0, height: 0 } },
+      ios: { shadowColor: colors.lime, shadowOpacity: 0.3, shadowRadius: 16, shadowOffset: { width: 0, height: 0 } },
       default: {},
     }),
   },

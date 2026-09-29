@@ -246,6 +246,28 @@ describe('treino', () => {
     expect(s.series).toHaveLength(1);
   });
 
+  it('cada série guarda quanto durou e o descanso de verdade antes dela', () => {
+    store().salvarPlano(planoTeste());
+    store().comecarTreino('t-seg');
+    jest.advanceTimersByTime(60_000);
+    store().registrarSerie('e1', 60, 12);
+    store().iniciarDescanso(90);
+    jest.advanceTimersByTime(100_000); // descanso acabou aos 90 s; 10 s de série
+    store().registrarSerie('e1', 60, 12);
+    store().iniciarDescanso(90);
+    jest.advanceTimersByTime(30_000);
+    store().pularDescanso(); // pulou com 30 s
+    jest.advanceTimersByTime(40_000);
+    store().registrarSerie('e1', 60, 12);
+    const [a, b, c] = store().sessaoAtiva!.series;
+    expect(a).toMatchObject({ duracaoSeg: 60 });
+    expect('descansoSeg' in a).toBe(false);
+    expect(b).toMatchObject({ duracaoSeg: 10, descansoSeg: 90 });
+    expect(c).toMatchObject({ duracaoSeg: 40, descansoSeg: 30 });
+    store().finalizarTreino();
+    expect('proximaDesde' in store().sessoes[0]).toBe(false);
+  });
+
   it('apagar série renumera as seguintes', () => {
     store().salvarPlano(planoTeste());
     store().comecarTreino('t-seg');

@@ -253,9 +253,26 @@ export const useAppStore = create<AppState>()(
             ?.treinos.find((t) => t.id === s?.treinoDoDiaId);
           const ex = treino?.exercicios.find((e) => e.id === exercicioNoTreinoId);
           if (!s || !ex) return;
-          const numero = s.series.filter((x) => x.exercicioNoTreinoId === exercicioNoTreinoId).length + 1;
-          const serie = { exercicioNoTreinoId, exercicioId: ex.exercicioId, numero, cargaKg, reps, concluidaEm: nowIso() };
-          set({ sessaoAtiva: { ...s, series: [...s.series, serie] } });
+          const doExercicio = s.series.filter((x) => x.exercicioNoTreinoId === exercicioNoTreinoId);
+          const numero = doExercicio.length + 1;
+          const agora = nowIso();
+          const t = Date.parse(agora);
+          // A série começa quando a anterior (de qualquer exercício) terminou, ou quando o descanso acabou.
+          const anterior = Date.parse(s.series.at(-1)?.concluidaEm ?? s.inicio);
+          const desde = Math.max(anterior, s.proximaDesde ? Math.min(Date.parse(s.proximaDesde), t) : anterior);
+          const ultimaDoEx = doExercicio.at(-1);
+          const serie = {
+            exercicioNoTreinoId,
+            exercicioId: ex.exercicioId,
+            numero,
+            cargaKg,
+            reps,
+            concluidaEm: agora,
+            duracaoSeg: Math.max(0, Math.round((t - desde) / 1000)),
+            ...(ultimaDoEx ? { descansoSeg: Math.max(0, Math.round((desde - Date.parse(ultimaDoEx.concluidaEm)) / 1000)) } : {}),
+          };
+          const { proximaDesde, ...resto } = s;
+          set({ sessaoAtiva: { ...resto, series: [...s.series, serie] } });
         },
 
         apagarSerie: (exercicioNoTreinoId, numero) => {
@@ -280,7 +297,7 @@ export const useAppStore = create<AppState>()(
           const cardio = planos.find((p) => p.id === s.planoId)?.treinos.find((t) => t.id === s.treinoDoDiaId)?.cardio;
           const fim = nowIso();
           // Terminar pausado: a pausa em curso também fica fora da conta.
-          const { pausadoEm, descansoAte, descansoSeg, pulados, ...resto } = s;
+          const { pausadoEm, descansoAte, descansoSeg, pulados, proximaDesde, ...resto } = s;
           const pausaMs = (s.pausaMs ?? 0) + (pausadoEm ? Math.max(0, Date.parse(fim) - Date.parse(pausadoEm)) : 0);
           const base = pausaMs ? { ...resto, pausaMs } : resto;
           const sessao: SessaoDeTreino = { ...base, fim, kcal: kcalDaSessao(base, fim, peso, cardio) };
@@ -304,7 +321,8 @@ export const useAppStore = create<AppState>()(
         iniciarDescanso: (segundos) => {
           const s = get().sessaoAtiva;
           if (!s || segundos <= 0) return;
-          set({ sessaoAtiva: { ...s, descansoAte: new Date(now().getTime() + segundos * 1000).toISOString(), descansoSeg: segundos } });
+          const ate = new Date(now().getTime() + segundos * 1000).toISOString();
+          set({ sessaoAtiva: { ...s, descansoAte: ate, descansoSeg: segundos, proximaDesde: ate } });
         },
 
         ajustarDescanso: (segundos) => {
@@ -313,21 +331,21 @@ export const useAppStore = create<AppState>()(
           const agora = now().getTime();
           const ate = Math.max(agora + 1000, Date.parse(s.descansoAte) + segundos * 1000);
           const total = Math.max(s.descansoSeg ?? 0, Math.ceil((ate - agora) / 1000));
-          set({ sessaoAtiva: { ...s, descansoAte: new Date(ate).toISOString(), descansoSeg: total } });
+          set({ sessaoAtiva: { ...s, descansoAte: new Date(ate).toISOString(), descansoSeg: total, proximaDesde: new Date(ate).toISOString() } });
         },
 
         pularExercicio: (exercicioNoTreinoId) => {
           const s = get().sessaoAtiva;
           if (!s || s.pulados?.includes(exercicioNoTreinoId)) return;
           const { descansoAte, descansoSeg, ...resto } = s;
-          set({ sessaoAtiva: { ...resto, pulados: [...(s.pulados ?? []), exercicioNoTreinoId] } });
+          set({ sessaoAtiva: { ...resto, pulados: [...(s.pulados ?? []), exercicioNoTreinoId], proximaDesde: nowIso() } });
         },
 
         pularDescanso: () => {
           const s = get().sessaoAtiva;
           if (!s?.descansoAte) return;
           const { descansoAte, descansoSeg, ...resto } = s;
-          set({ sessaoAtiva: resto });
+          set({ sessaoAtiva: { ...resto, proximaDesde: nowIso() } });
         },
 
         salvarRespostasTreinoIA: (r) => set({ respostasTreinoIA: r }),

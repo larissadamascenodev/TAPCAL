@@ -142,6 +142,12 @@ describe('resumo do exercício', () => {
     const a = resumoDoExercicio(sessao, 'a');
     expect(a.tempoMs).toBe(6 * 60 * 1000);
     expect(a.descansosSeg).toEqual([null, 120]);
+    expect(a.descansoTotalSeg).toBe(120);
+    expect(a.duracoesSeg).toEqual([null, null]);
+    // série com os tempos guardados: usa o descanso de verdade
+    const b2 = resumoDoExercicio({ ...sessao, series: [serie('x', 1, '18:01'), { ...serie('x', 2, '18:04'), descansoSeg: 90, duracaoSeg: 45 }] }, 'x');
+    expect(b2.descansosSeg).toEqual([null, 90]);
+    expect(b2.duracoesSeg).toEqual([null, 45]);
     expect(a.volumeKg).toBe(800);
     const b = resumoDoExercicio(sessao, 'b');
     expect(b.tempoMs).toBe(6 * 60 * 1000);
@@ -149,7 +155,7 @@ describe('resumo do exercício', () => {
   });
 
   it('exercício sem séries: tudo zerado', () => {
-    expect(resumoDoExercicio(sessao, 'c')).toEqual({ series: [], tempoMs: 0, descansosSeg: [], volumeKg: 0 });
+    expect(resumoDoExercicio(sessao, 'c')).toEqual({ series: [], tempoMs: 0, descansosSeg: [], duracoesSeg: [], descansoTotalSeg: 0, volumeKg: 0 });
   });
 });
 

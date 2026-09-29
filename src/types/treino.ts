@@ -133,6 +133,10 @@ export type SerieFeita = {
   reps: number;
   /** ISO. */
   concluidaEm: string;
+  /** Quanto durou a série (s), de quando ela pôde começar até concluir. */
+  duracaoSeg?: number;
+  /** Descanso antes dela (s), desde a série anterior do mesmo exercício. */
+  descansoSeg?: number;
 };
 
 export type SessaoDeTreino = {
@@ -161,6 +165,8 @@ export type SessaoEmAndamento = Omit<SessaoDeTreino, 'fim' | 'kcal'> & {
   /** Descanso entre séries em curso: termina em (ISO) e dura (s). Some ao pular ou ao acabar. */
   descansoAte?: string;
   descansoSeg?: number;
+  /** A partir de quando a próxima série pode começar (fim do descanso ou pulo dele). */
+  proximaDesde?: string;
   /** Exercícios do treino que a pessoa pulou hoje (ids do exercício no treino). */
   pulados?: string[];
 };

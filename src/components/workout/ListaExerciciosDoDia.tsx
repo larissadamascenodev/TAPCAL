@@ -92,7 +92,12 @@ export function ListaExerciciosDoDia({ treino, modo, titulo, series, pulados = [
   return (
     <View>
       <View style={styles.cabecalho}>
-        <Text style={[styles.dia, styles.flex]}>{titulo}</Text>
+        <View style={styles.flex}>
+          <Text style={styles.dia}>{titulo}</Text>
+          <Text variant="caption" tone="muted" numberOfLines={1}>
+            {treino.nome}
+          </Text>
+        </View>
         {edicao ? (
           <Pressable accessibilityRole="button" hitSlop={10} onPress={() => setEditando((v) => !v)}>
             <Text style={[styles.editar, editando && styles.editarOn]}>{editando ? 'Pronto' : 'Editar'}</Text>
@@ -281,9 +286,7 @@ function ItemEdicao({ item, ordem, sexo, alca }: { item: ExercicioNoTreino; orde
   const ex = exercicioPorId(item.exercicioId);
   return (
     <View style={styles.edicao}>
-      <View style={styles.edicaoNum}>
-        <Text style={[styles.noText, styles.edicaoNumText]}>{String(ordem).padStart(2, '0')}</Text>
-      </View>
+      <Text style={styles.edicaoNum}>{String(ordem).padStart(2, '0')}</Text>
       <View style={styles.thumb}>{ex && <MapaMuscular principal={ex.musculoPrincipal} altura={46} podeVirar={false} sexo={sexo} />}</View>
       <View style={styles.flex}>
         <Text style={styles.nome} numberOfLines={2}>
@@ -443,9 +446,9 @@ const styles = StyleSheet.create({
   },
   cabecalho: {
     flexDirection: 'row',
-    alignItems: 'baseline',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
   },
   dia: {
     fontFamily: fonts.display.semibold,
@@ -463,17 +466,6 @@ const styles = StyleSheet.create({
   },
   dicaEdicao: {
     marginBottom: spacing.md,
-  },
-  // Número centralizado de verdade no círculo (sem o respiro da fonte).
-  noText: {
-    width: 30,
-    textAlign: 'center',
-    fontFamily: fonts.display.semibold,
-    fontSize: 13,
-    lineHeight: 16,
-    includeFontPadding: false,
-    color: colors.ink3,
-    fontVariant: ['tabular-nums'],
   },
   thumb: {
     width: 44,
@@ -522,18 +514,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.lineSoft,
   },
+  // Número solto, sem círculo.
   edicaoNum: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: colors.line,
-  },
-  edicaoNumText: {
-    width: 30,
-    fontSize: 11,
+    width: 24,
+    fontFamily: fonts.display.semibold,
+    fontSize: 14,
+    color: colors.ink3,
+    fontVariant: ['tabular-nums'],
   },
   alca: {
     width: 40,

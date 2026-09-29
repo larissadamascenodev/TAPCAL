@@ -116,6 +116,8 @@ export const colors = {
   tracoAceso: 'rgba(255,255,255,0.85)',
   tracoApagado: 'rgba(255,255,255,0.12)',
   tracoBrilho: 'rgba(209,251,57,0.28)',
+  // Selo verde (completo, recorde): neon um pouco translúcido, com a letra escura
+  seloVerde: 'rgba(209,251,57,0.86)',
 } as const;
 
 /** Cor de cada macro, igual em todas as telas. */
@@ -153,7 +155,8 @@ export const gradients = {
   photoFade: ['rgba(5,5,6,0)', 'rgba(5,5,6,1)'] as const,
   // Borda do botão neon: verde neon e menta girando em volta do vidro, com um trecho mais fraco
   // Só o verde do app: duas marcas de luz que giram em volta, sumindo entre elas
-  neonRing: ['#D1FB39', 'rgba(209,251,57,0.12)', 'rgba(209,251,57,0)', 'rgba(209,251,57,0.12)', '#D1FB39'] as const,
+  // Contorno inteiro aceso, com a cor passando devagar em volta (claro → verde → escuro → verde)
+  neonRing: ['#EEFFA8', '#D1FB39', 'rgba(169,224,28,0.55)', '#D1FB39', '#EEFFA8'] as const,
   // Miolo de vidro do botão neon: reflexo mais claro em cima
   neonGlass: ['rgba(255,255,255,0.16)', 'rgba(255,255,255,0.05)', 'rgba(255,255,255,0.02)'] as const,
   // Véu sobre a foto desfocada atrás da folha de vidro: fechado no topo (emenda

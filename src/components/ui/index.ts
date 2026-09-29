@@ -1,4 +1,3 @@
-export { BotaoContorno } from './BotaoContorno';
 export { BottomSheet } from './BottomSheet';
 export { Button, type ButtonProps } from './Button';
 export { ChipGroup } from './ChipGroup';

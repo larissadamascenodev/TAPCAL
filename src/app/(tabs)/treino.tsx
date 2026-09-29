@@ -22,6 +22,7 @@ import { minutosDaSessao } from '@/lib/treino/met';
 import { proximosTreinos } from '@/lib/treino/plano';
 import { ehSemanaDeAlivio, horaDaProximaFase, semanaDoBloco, seriesNaSemana } from '@/lib/treino/progressao';
 import { datasDaSemana, DIA_NOME, DIAS, diaDaData, estadoDoDia, notaFeitoEm, planoAtivo, type EstadoDoDia } from '@/lib/treino/semana';
+import { currentWeightKg } from '@/store/selectors';
 import { useAppStore } from '@/store/useAppStore';
 import { colors, fonts, radius, spacing } from '@/theme/theme';
 import type { DateKey } from '@/types';
@@ -115,7 +116,7 @@ export default function TreinoScreen() {
 
   if (!plano) {
     return (
-      <TabPage semAoVivo>
+      <TabPage>
         {header}
         <EmptyState icon="barbell-outline" title="Monte seu treino" message="Escolha os dias e os exercícios, ou deixe a IA montar para você." />
         <NeonButton label="Criar treino" onPress={() => router.push('/treino-novo')} />
@@ -167,7 +168,7 @@ export default function TreinoScreen() {
   };
 
   return (
-    <TabPage semAoVivo>
+    <TabPage>
       {header}
 
       <SemanaTreino hoje={today} estados={estados} selecionado={dia} onSelect={setDia} />
@@ -323,7 +324,9 @@ export default function TreinoScreen() {
       <ResumoExercicio
         item={vendo && lista ? (lista.exercicios.find((x) => x.id === vendo) ?? null) : null}
         sessao={mostraAtivo && sessaoAtiva ? sessaoAtiva : e.tipo === 'feito' ? e.sessao : undefined}
+        aoVivo={mostraAtivo}
         historico={sessoes}
+        pesoKg={currentWeightKg(state) ?? 70}
         sexo={sexo}
         acao={
           vendo && modo === 'andamento'

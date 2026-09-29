@@ -4,7 +4,7 @@ import * as Haptics from 'expo-haptics';
 import { useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 
-import { BotaoContorno, Glass, NeonButton, Text, toast } from '@/components/ui';
+import { Glass, NeonButton, Text, toast } from '@/components/ui';
 import { exercicioPorId } from '@/lib/exercicios';
 import { formatDecimal, formatInt } from '@/lib/format';
 import { bateRecorde, proximoExercicio, repsLabel, seriesFeitas, treinoResolvido } from '@/lib/treino/plano';
@@ -224,7 +224,7 @@ function ConcluirSerieModal({
             />
           </View>
 
-          <BotaoContorno label="Concluir série" onPress={() => onConcluir(valores.kg, valores.reps)} />
+          <NeonButton label="Concluir série" onPress={() => onConcluir(valores.kg, valores.reps)} />
           <Pressable accessibilityRole="button" onPress={onPular} hitSlop={6} style={({ pressed }) => [styles.pularEx, pressed && styles.pressed]}>
             <Ionicons name="play-skip-forward-outline" size={15} color={colors.ink2} />
             <Text style={styles.pularExText}>Pular este exercício</Text>
