@@ -7,7 +7,7 @@ import { TabPage } from '@/components/navigation/TabPage';
 import { SheetBadge } from '@/components/nutrition/PlateSheet';
 import { confirmDestructive, EmptyState, Glass, GlassModal, IconButton, NeonButton, Text, toast } from '@/components/ui';
 import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
-import { HeroDescanso, HeroTreino, CardAoVivo } from '@/components/workout/HeroDoDia';
+import { CardAoVivo, HeroDescanso, HeroTreino } from '@/components/workout/HeroDoDia';
 import { ExerciseLibrary } from '@/components/workout/ExerciseLibrary';
 import { ListaExerciciosDoDia } from '@/components/workout/ListaExerciciosDoDia';
 import { RelatorioSemana } from '@/components/workout/RelatorioSemana';
@@ -210,11 +210,11 @@ export default function TreinoScreen() {
           <Text style={styles.aoVivoTopo}>
             {sessaoAtiva.data === today ? 'Hoje' : `Treino de ${diaCompleto(sessaoAtiva.diaPlanejado)}`} · {treinoAtivo.nome}
           </Text>
-          <CardAoVivo treino={treinoAtivo} sessao={sessaoAtiva} onAbrir={() => abrirSessao()} />
+          <CardAoVivo treino={treinoAtivo} sessao={sessaoAtiva} historico={sessoes} planos={planos} onAbrir={() => abrirSessao()} />
         </View>
       ) : (
         <>
-          {sessaoAtiva && treinoAtivo && <CardAoVivo treino={treinoAtivo} sessao={sessaoAtiva} onAbrir={() => abrirSessao()} />}
+          {sessaoAtiva && treinoAtivo && <CardAoVivo treino={treinoAtivo} sessao={sessaoAtiva} historico={sessoes} planos={planos} onAbrir={() => abrirSessao()} />}
           {!t ? (
             <HeroDescanso kicker={kicker} proximo={upcoming[0] && `${dayLabel(upcoming[0].data, today).toLowerCase()} · ${upcoming[0].treino.nome}`} />
           ) : (
