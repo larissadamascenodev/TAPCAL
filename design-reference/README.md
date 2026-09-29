@@ -111,11 +111,13 @@ Mockup interativo em `v4.html`; `v4.png` mostra as seis telas.
 - `treino-ia-alivio.png` — 5ª semana do bloco: aviso "Semana de alívio: menos séries, mesma técnica" e o card "Montar a próxima fase".
 - As telas de apoio ("Você vê os músculos de cada exercício" e "De onde vêm os números") aparecem só na primeira vez.
 
-## Aba Treino v2 (pedido de ajuste depois da etapa 5)
+## Aba Treino v3 (escolhida: "Foco no dia" + linha do tempo)
 
-- `treino-v2-hoje.png` — faixa de datas no mesmo desenho do Início (dia em cima, número, "HOJE" com o anel do dia), com o anel em verde; ponto embaixo = treino a fazer, ✓ = feito. Card principal enxuto: "HOJE · 4 EXERCÍCIOS", nome do treino, tempo e kcal estimados, desenho dos músculos ao fundo e "Iniciar treino". Embaixo: "Cardio da semana" e "Exercícios de hoje".
-- `treino-v2-exercicio-aberto.png` — tocar num exercício abre as séries em linha do tempo, com a última vez; antes de começar, "Começar por este".
-- `treino-v2-em-andamento.png` — com o treino rodando, o card vira o cronômetro (pausar/continuar), kcal até agora, séries feitas, o exercício atual e "Abrir treino"; tocar no card abre o treino.
-- `treino-v2-linha-do-tempo.png` — lista com o progresso de cada exercício (2/4, ✓); séries feitas com carga × repetições e horário, a atual marcada e "Abrir exercício".
-- No treino em andamento, tocar no relógio pausa ou continua; o tempo pausado não conta na duração nem nas kcal.
-- Referência enviada: mockup "A semana inteira de treino já montada" (usado só como inspiração, sem copiar).
+Escolha feita entre as opções em `opcoes-treino/` (A, B e C): o topo da C e a linha do tempo da B, sem cartões.
+
+- `treino-v3-hoje.png` — Treino com a biblioteca e Meus treinos no topo; a semana (sem cápsula) com o anel de hoje; o corpo grande com os músculos do dia direto no fundo escuro, o nome do treino por cima, tempo e kcal e "Iniciar treino". Abaixo, as abas Exercícios · Cardio · Semana.
+- `treino-v3-linha-do-tempo.png` — exercícios em linha do tempo, sem cartões: o título diz o dia ("Hoje · terça-feira", "Segunda-feira"); fechado mostra só o exercício; o atual (ou o primeiro) já vem aberto com as séries; reflexo de vidro no exercício atual.
+- `treino-v3-em-andamento.png` — cápsula ao vivo (tempo, séries, pausar) e o destaque vira o exercício atual, com as séries feitas, a atual e as que faltam, e "Abrir exercício".
+- `treino-v3-series.png` — séries do exercício atual na linha do tempo durante o treino.
+- `treino-v3-semana.png` — aba Semana: números da semana, volume, próximos e concluídos.
+- Tom: escuro e vidro; o verde só nos detalhes (anel de hoje, ponto do exercício atual, músculos, série atual). O verde do fundo no Treino é mais fraco que nas outras abas.

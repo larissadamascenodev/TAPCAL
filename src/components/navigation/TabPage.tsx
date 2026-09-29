@@ -17,6 +17,8 @@ type Props = {
   below?: ReactNode;
   belowHeight?: number;
   gap?: number;
+  /** Força do verde de fundo (1 = normal). */
+  brilho?: number;
   scrollRef?: RefObject<ScrollView | null>;
 };
 
@@ -24,7 +26,7 @@ type Props = {
  * Moldura das abas: o mesmo topo da Início (avatar, nome ao rolar, chama da
  * sequência e notificações) por cima da rolagem, com o fundo verde suave.
  */
-export function TabPage({ children, below, belowHeight = 0, gap, scrollRef }: Props) {
+export function TabPage({ children, below, belowHeight = 0, gap, brilho, scrollRef }: Props) {
   const name = useAppStore((s) => s.profile?.name.trim() ?? '');
   const streakDays = useAppStore((s) => currentStreak(s, s.today.date));
   const [scrolled, setScrolled] = useState(false);
@@ -32,6 +34,7 @@ export function TabPage({ children, below, belowHeight = 0, gap, scrollRef }: Pr
   return (
     <Screen
       gap={gap}
+      brilho={brilho}
       scrollRef={scrollRef}
       topOffset={APP_HEADER_H + belowHeight}
       onScrollY={(y) => setScrolled(y > SCROLLED_AT)}

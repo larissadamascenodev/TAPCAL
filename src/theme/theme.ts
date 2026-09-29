@@ -129,6 +129,8 @@ export const gradients = {
   glassStrong: ['rgba(255,255,255,0.14)', 'rgba(255,255,255,0.04)'] as const,
   // Reflexo do vidro dos cartões: luz no canto de cima que some até o meio
   glassSheen: ['rgba(255,255,255,0.11)', 'rgba(255,255,255,0.02)', 'rgba(255,255,255,0)'] as const,
+  // Linha do tempo do treino: reflexo de vidro no exercício atual (sem verde), da esquerda para a direita
+  timelineAtual: ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.03)', 'rgba(255,255,255,0)'] as const,
   // Topo fixo da Início ao rolar: escurece e some para baixo, sem linha marcada
   header: ['rgba(5,5,6,0.9)', 'rgba(5,5,6,0.7)', 'rgba(5,5,6,0.25)', 'rgba(5,5,6,0)'] as const,
   // Anel do avatar

@@ -1,13 +1,14 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { Glass, Text } from '@/components/ui';
+import { Text } from '@/components/ui';
 import { exercicioPorId, MUSCULO_LABELS } from '@/lib/exercicios';
 import { formatDecimal } from '@/lib/format';
 import { proximoExercicio, repsLabel, ultimasSeries } from '@/lib/treino/plano';
-import { colors, fonts, radius, spacing } from '@/theme/theme';
-import type { ExercicioNoTreino, SerieFeita, SessaoDeTreino, TreinoDoDia } from '@/types/treino';
+import { colors, fonts, gradients, spacing } from '@/theme/theme';
+import type { Cardio, ExercicioNoTreino, SerieFeita, SessaoDeTreino, TreinoDoDia } from '@/types/treino';
 
 import { MapaMuscular } from './MapaMuscular';
 
@@ -16,6 +17,8 @@ type Modo = 'andamento' | 'feito' | 'planejado';
 type Props = {
   treino: TreinoDoDia;
   modo: Modo;
+  /** "Hoje · terça-feira", "Segunda-feira"… */
+  titulo: string;
   /** Séries já feitas (do treino em andamento ou do treino concluído). */
   series: readonly SerieFeita[];
   /** Treinos anteriores, para "última vez". */
@@ -25,55 +28,78 @@ type Props = {
   onAbrir?: (exercicioNoTreinoId: string) => void;
 };
 
+const NO = 30;
+
 const hora = (iso: string) => {
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? '' : `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 };
 
+const nomeCardio = (c: Cardio) => (c.atividade === 'eliptico' ? 'elíptico' : c.atividade);
+
 /**
- * Exercícios do dia, na ordem. Tocar num exercício abre as séries em linha do
- * tempo (feitas, a atual e as que faltam); dali dá para abrir o exercício.
+ * Exercícios do dia em linha do tempo (sem cartões): cada exercício é um ponto
+ * na linha; o atual tem um reflexo de vidro e o ponto em destaque. Fechado,
+ * mostra só o exercício; aberto, as séries. O atual (ou o primeiro) já vem aberto.
  */
-export function ListaExerciciosDoDia({ treino, modo, series, historico, sexo, onAbrir }: Props) {
-  const atual = modo === 'andamento' ? treino.exercicios[proximoExercicio(treino, { series: [...series] })]?.id : undefined;
-  const [aberto, setAberto] = useState<string | null>(null);
-  const [abertoUsuario, setAbertoUsuario] = useState(false);
-  // Em andamento, começa com o exercício atual aberto (até a pessoa tocar em outro).
-  const expandido = abertoUsuario ? aberto : (atual ?? null);
+export function ListaExerciciosDoDia({ treino, modo, titulo, series, historico, sexo, onAbrir }: Props) {
+  const idAtual =
+    modo === 'andamento'
+      ? treino.exercicios[proximoExercicio(treino, { series: [...series] })]?.id
+      : modo === 'planejado'
+        ? treino.exercicios[0]?.id
+        : undefined;
+  const [escolha, setEscolha] = useState<{ id: string | null } | null>(null);
+  const aberto = escolha ? escolha.id : (idAtual ?? null);
 
   return (
-    <View style={styles.lista}>
-      {treino.exercicios.map((e, i) => (
-        <Linha
-          key={e.id}
-          item={e}
-          ordem={i + 1}
-          modo={modo}
-          atual={e.id === atual}
-          feitas={series.filter((s) => s.exercicioNoTreinoId === e.id)}
-          historico={historico}
-          sexo={sexo}
-          aberto={expandido === e.id}
-          onToggle={() => {
-            setAbertoUsuario(true);
-            setAberto(expandido === e.id ? null : e.id);
-          }}
-          onAbrir={onAbrir && (() => onAbrir(e.id))}
-        />
-      ))}
+    <View>
+      <View style={styles.cabecalho}>
+        <Text style={styles.dia}>{titulo}</Text>
+        <Text variant="caption" tone="muted">
+          {treino.exercicios.length} {treino.exercicios.length === 1 ? 'exercício' : 'exercícios'}
+        </Text>
+      </View>
+      {treino.exercicios.map((e, i) => {
+        const feitas = series.filter((s) => s.exercicioNoTreinoId === e.id);
+        const ultimo = i === treino.exercicios.length - 1 && !treino.cardio;
+        return (
+          <Item
+            key={e.id}
+            item={e}
+            ordem={i + 1}
+            modo={modo}
+            atual={e.id === idAtual}
+            feitas={feitas}
+            historico={historico}
+            sexo={sexo}
+            aberto={aberto === e.id}
+            ultimo={ultimo}
+            onToggle={() => setEscolha({ id: aberto === e.id ? null : e.id })}
+            onAbrir={onAbrir && (() => onAbrir(e.id))}
+          />
+        );
+      })}
       {treino.cardio && (
-        <View style={styles.cardioFim}>
-          <Ionicons name="walk-outline" size={16} color={colors.ink2} />
-          <Text variant="caption" tone="secondary">
-            No fim: {treino.cardio.minutos} min de {treino.cardio.atividade === 'eliptico' ? 'elíptico' : treino.cardio.atividade}, ritmo {treino.cardio.intensidade}
-          </Text>
+        <View style={styles.item}>
+          <View style={styles.trilho}>
+            <View style={styles.no}>
+              <Ionicons name="heart" size={12} color={colors.ink2} />
+            </View>
+          </View>
+          <View style={[styles.conteudo, styles.cardio]}>
+            <Text style={styles.nome}>Cardio no fim</Text>
+            <Text variant="caption" tone="muted">
+              {treino.cardio.minutos} min de {nomeCardio(treino.cardio)}, ritmo {treino.cardio.intensidade}
+            </Text>
+          </View>
         </View>
       )}
     </View>
   );
 }
 
-function Linha({
+function Item({
   item,
   ordem,
   modo,
@@ -82,6 +108,7 @@ function Linha({
   historico,
   sexo,
   aberto,
+  ultimo,
   onToggle,
   onAbrir,
 }: {
@@ -93,95 +120,96 @@ function Linha({
   historico: readonly SessaoDeTreino[];
   sexo?: 'feminino' | 'masculino';
   aberto: boolean;
+  ultimo: boolean;
   onToggle: () => void;
   onAbrir?: () => void;
 }) {
   const ex = exercicioPorId(item.exercicioId);
   const nome = ex?.nome ?? 'Exercício';
-  const completo = feitas.length >= item.series;
+  const completo = modo !== 'planejado' && feitas.length >= item.series;
   const reps = repsLabel(item);
-  const ultima = ultimasSeries([...historico], item.exercicioId)?.series ?? [];
+  const antes = ultimasSeries([...historico], item.exercicioId)?.series ?? [];
   const linhas = Math.max(item.series, feitas.length);
-  const mostraProgresso = modo !== 'planejado';
 
   return (
-    <Glass contentStyle={styles.card} style={atual && styles.cardAtual}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityState={{ expanded: aberto }}
-        accessibilityLabel={`${ordem}. ${nome}, ${item.series} séries de ${reps}${mostraProgresso ? `, ${feitas.length} feitas` : ''}`}
-        onPress={onToggle}
-        style={styles.head}>
-        <Text style={styles.ordem}>{String(ordem).padStart(2, '0')}</Text>
-        <View style={styles.thumb}>{ex && <MapaMuscular principal={ex.musculoPrincipal} altura={46} podeVirar={false} sexo={sexo} />}</View>
-        <View style={styles.flex}>
-          <Text style={styles.nome} numberOfLines={2}>
-            {nome}
-          </Text>
-          <Text variant="caption" tone="muted">
-            {item.series} × {reps}
-            {ex ? ` · ${MUSCULO_LABELS[ex.musculoPrincipal]}` : ''}
-          </Text>
-        </View>
-        {mostraProgresso &&
-          (completo ? (
-            <View style={styles.ok}>
-              <Ionicons name="checkmark" size={16} color={colors.onLime} />
-            </View>
+    <View style={styles.item}>
+      <View style={styles.trilho}>
+        <View style={[styles.no, atual && styles.noAtual, completo && styles.noFeito]}>
+          {completo ? (
+            <Ionicons name="checkmark" size={14} color={colors.onLime} />
           ) : (
-            <Text style={[styles.conta, feitas.length > 0 && styles.contaOn]}>
-              {feitas.length}/{item.series}
-            </Text>
-          ))}
-        <Ionicons name={aberto ? 'chevron-up' : 'chevron-down'} size={18} color={colors.ink3} />
-      </Pressable>
-
-      {aberto && (
-        <View style={styles.corpo}>
-          {Array.from({ length: linhas }, (_, k) => {
-            const s = feitas[k];
-            const agora = !s && modo === 'andamento' && k === feitas.length;
-            const antes = ultima[k];
-            return (
-              <View key={k} style={styles.passo}>
-                <View style={styles.trilho}>
-                  <View style={[styles.bolinha, s ? styles.bolinhaFeita : agora ? styles.bolinhaAgora : null]}>
-                    {s ? <Ionicons name="checkmark" size={12} color={colors.onLime} /> : null}
-                  </View>
-                  {k < linhas - 1 && <View style={[styles.linha, s && styles.linhaFeita]} />}
-                </View>
-                <View style={styles.passoTexto}>
-                  <Text style={[styles.serieTitulo, !s && !agora && styles.pendente]}>
-                    Série {k + 1}
-                    {s ? ` · ${formatDecimal(s.cargaKg)} kg × ${s.reps}` : agora ? ' · agora' : ` · ${reps} reps`}
-                  </Text>
-                  <Text variant="caption" tone="muted">
-                    {s
-                      ? `Feita às ${hora(s.concluidaEm)}`
-                      : antes
-                        ? `Última vez: ${formatDecimal(antes.cargaKg)} kg × ${antes.reps}`
-                        : k === 0 && item.cargaInicialKg
-                          ? `Carga inicial: ${formatDecimal(item.cargaInicialKg)} kg`
-                          : `Descanso de ${item.descansoSeg} s depois`}
-                  </Text>
-                </View>
-              </View>
-            );
-          })}
-          {item.observacao ? (
-            <Text variant="caption" tone="secondary" style={styles.obs}>
-              {item.observacao}
-            </Text>
-          ) : null}
-          {onAbrir && (
-            <Pressable accessibilityRole="button" onPress={onAbrir} style={({ pressed }) => [styles.abrir, pressed && styles.pressed]}>
-              <Ionicons name={modo === 'andamento' ? 'open-outline' : 'play'} size={16} color={colors.lime} />
-              <Text style={styles.abrirText}>{modo === 'andamento' ? 'Abrir exercício' : 'Começar por este'}</Text>
-            </Pressable>
+            <Text style={[styles.noText, atual && styles.noTextAtual]}>{String(ordem).padStart(2, '0')}</Text>
           )}
         </View>
-      )}
-    </Glass>
+        {!ultimo && <View style={[styles.linha, completo && styles.linhaFeita]} />}
+      </View>
+
+      <View style={styles.conteudo}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ expanded: aberto }}
+          accessibilityLabel={`${ordem}. ${nome}${modo !== 'planejado' ? `, ${feitas.length} de ${item.series} séries` : `, ${item.series} séries`}`}
+          onPress={onToggle}
+          style={({ pressed }) => [styles.cabeca, pressed && styles.pressed]}>
+          {(atual || aberto) && (
+            <LinearGradient pointerEvents="none" colors={gradients.timelineAtual} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={styles.reflexo} />
+          )}
+          <View style={styles.thumb}>{ex && <MapaMuscular principal={ex.musculoPrincipal} altura={44} podeVirar={false} sexo={sexo} />}</View>
+          <View style={styles.flex}>
+            <Text style={[styles.nome, completo && styles.nomeFeito]} numberOfLines={2}>
+              {nome}
+            </Text>
+            <Text variant="caption" tone="muted">
+              {ex ? MUSCULO_LABELS[ex.musculoPrincipal] : ''}
+              {modo !== 'planejado' ? ` · ${Math.min(feitas.length, item.series)}/${item.series}` : ''}
+            </Text>
+          </View>
+          <Ionicons name={aberto ? 'chevron-up' : 'chevron-down'} size={17} color={colors.ink3} />
+        </Pressable>
+
+        {aberto && (
+          <View style={styles.series}>
+            {Array.from({ length: linhas }, (_, k) => {
+              const s = feitas[k];
+              const agora = !s && modo === 'andamento' && k === feitas.length;
+              const ult = antes[k];
+              return (
+                <View key={k} style={styles.serie}>
+                  <View style={[styles.bolinha, s && styles.bolinhaFeita, agora && styles.bolinhaAgora]} />
+                  <View style={styles.flex}>
+                    <Text style={[styles.serieTitulo, !s && !agora && styles.serieFutura]}>
+                      Série {k + 1} · {s ? `${formatDecimal(s.cargaKg)} kg × ${s.reps}` : `${reps} repetições`}
+                    </Text>
+                    <Text variant="caption" tone="muted">
+                      {s
+                        ? `feita às ${hora(s.concluidaEm)}`
+                        : agora
+                          ? 'agora'
+                          : ult
+                            ? `última vez: ${formatDecimal(ult.cargaKg)} kg × ${ult.reps}`
+                            : k === 0 && item.cargaInicialKg
+                              ? `carga inicial: ${formatDecimal(item.cargaInicialKg)} kg`
+                              : `descanso de ${item.descansoSeg} s`}
+                    </Text>
+                  </View>
+                </View>
+              );
+            })}
+            {item.observacao ? (
+              <Text variant="caption" tone="secondary">
+                {item.observacao}
+              </Text>
+            ) : null}
+            {onAbrir && (
+              <Pressable accessibilityRole="button" onPress={onAbrir} hitSlop={8} style={({ pressed }) => [styles.acao, pressed && styles.pressed]}>
+                <Text style={styles.acaoText}>{modo === 'andamento' ? 'Abrir exercício' : 'Começar por este'}</Text>
+                <Ionicons name="chevron-forward" size={15} color={colors.ink} />
+              </Pressable>
+            )}
+          </View>
+        )}
+      </View>
+    </View>
   );
 }
 
@@ -190,133 +218,146 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
-  lista: {
-    gap: 10,
-  },
-  card: {
-    padding: 12,
-  },
-  cardAtual: {
-    borderColor: colors.limeEdge,
-  },
-  head: {
+  cabecalho: {
     flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
+  },
+  dia: {
+    fontFamily: fonts.display.semibold,
+    fontSize: 18,
+    lineHeight: 24,
+    letterSpacing: -0.4,
+  },
+  item: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  trilho: {
+    width: NO,
     alignItems: 'center',
-    gap: 10,
   },
-  ordem: {
-    width: 22,
-    fontFamily: fonts.display.bold,
-    fontSize: 13,
-    letterSpacing: 0.5,
-    color: colors.lime,
-  },
-  thumb: {
-    width: 42,
-    height: 50,
-    borderRadius: 12,
-    overflow: 'hidden',
+  no: {
+    width: NO,
+    height: NO,
+    marginTop: 14,
+    borderRadius: NO / 2,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.glassFill,
+    backgroundColor: colors.panel,
+    borderWidth: 1.5,
+    borderColor: colors.line,
+  },
+  noAtual: {
+    borderColor: colors.lime,
+  },
+  noFeito: {
+    backgroundColor: colors.lime,
+    borderColor: colors.lime,
+  },
+  noText: {
+    fontFamily: fonts.display.semibold,
+    fontSize: 11,
+    color: colors.ink3,
+  },
+  noTextAtual: {
+    color: colors.ink,
+  },
+  linha: {
+    flex: 1,
+    width: 1.5,
+    marginTop: 4,
+    backgroundColor: colors.line,
+  },
+  linhaFeita: {
+    backgroundColor: colors.ink3,
+  },
+  conteudo: {
+    flex: 1,
+    minWidth: 0,
+    paddingBottom: spacing.md,
+  },
+  cabeca: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    marginLeft: -10,
+    borderRadius: 18,
+    overflow: 'hidden',
+  },
+  reflexo: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    borderRadius: 18,
+  },
+  thumb: {
+    width: 36,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   nome: {
     fontFamily: fonts.body.bold,
     fontSize: 15,
     lineHeight: 20,
   },
-  conta: {
-    fontFamily: fonts.body.bold,
-    fontSize: 13,
-    color: colors.ink3,
-    fontVariant: ['tabular-nums'],
+  nomeFeito: {
+    color: colors.ink2,
   },
-  contaOn: {
-    color: colors.lime,
+  series: {
+    gap: 10,
+    paddingTop: spacing.sm,
+    paddingLeft: 4,
   },
-  ok: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.lime,
-  },
-  corpo: {
-    marginTop: spacing.md,
-    paddingLeft: 32,
-  },
-  passo: {
+  serie: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
     gap: 12,
   },
-  trilho: {
-    width: 22,
-    alignItems: 'center',
-  },
   bolinha: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 10,
+    height: 10,
+    marginTop: 5,
+    borderRadius: 5,
     borderWidth: 1.5,
-    borderColor: colors.line,
+    borderColor: colors.line2,
   },
   bolinhaFeita: {
-    backgroundColor: colors.lime,
-    borderColor: colors.lime,
+    backgroundColor: colors.ink2,
+    borderColor: colors.ink2,
   },
   bolinhaAgora: {
     borderColor: colors.lime,
-    borderWidth: 2,
-  },
-  linha: {
-    flex: 1,
-    width: 2,
-    minHeight: 14,
-    backgroundColor: colors.line,
-  },
-  linhaFeita: {
-    backgroundColor: colors.limeEdge,
-  },
-  passoTexto: {
-    flex: 1,
-    paddingBottom: 14,
-    gap: 1,
+    backgroundColor: colors.lime,
   },
   serieTitulo: {
-    fontFamily: fonts.body.bold,
+    fontFamily: fonts.body.semibold,
     fontSize: 14,
     lineHeight: 20,
   },
-  pendente: {
+  serieFutura: {
     color: colors.ink2,
   },
-  obs: {
-    marginBottom: spacing.sm,
-  },
-  abrir: {
+  acao: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    height: 42,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.limeEdge,
-    backgroundColor: colors.limeWash,
+    gap: 4,
+    alignSelf: 'flex-start',
+    marginTop: 2,
+    paddingVertical: 6,
   },
-  abrirText: {
+  acaoText: {
     fontFamily: fonts.body.bold,
     fontSize: 14,
-    color: colors.lime,
   },
-  cardioFim: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 4,
+  cardio: {
+    paddingTop: 18,
   },
   pressed: {
     opacity: 0.7,

@@ -5,29 +5,32 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { TabPage } from '@/components/navigation/TabPage';
 import { EmptyState, Glass, IconButton, NeonButton, SectionHeader, Text } from '@/components/ui';
+import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
 import { StatTile } from '@/components/ui/StatTile';
-import { CardDescanso, CardEmAndamento, CardTreino } from '@/components/workout/CardTreinoDoDia';
+import { CapsulaAoVivo, HeroDescanso, HeroEmAndamento, HeroTreino } from '@/components/workout/HeroDoDia';
 import { ListaExerciciosDoDia } from '@/components/workout/ListaExerciciosDoDia';
 import { SemanaTreino } from '@/components/workout/SemanaTreino';
 import { daysBetween, fromDateKey } from '@/lib/dates';
 import { formatDayMonth, formatInt, formatTons, WEEKDAY_SHORT } from '@/lib/format';
-import { kcalAtividade, MET_MUSCULACAO, minutosDaSessao } from '@/lib/treino/met';
+import { minutosDaSessao } from '@/lib/treino/met';
+import { concluidas, kcalEstimadas, minutosEstimados, numerosDaSemana, proximosTreinos, volume, volumePorDia } from '@/lib/treino/plano';
 import { ehSemanaDeAlivio, horaDaProximaFase, semanaDoBloco, seriesNaSemana } from '@/lib/treino/progressao';
-import {
-  concluidas,
-  kcalEstimadas,
-  minutosEstimados,
-  numerosDaSemana,
-  proximosTreinos,
-  volume,
-  volumePorDia,
-} from '@/lib/treino/plano';
 import { datasDaSemana, DIA_NOME, DIAS, diaDaData, estadoDoDia, notaFeitoEm, planoAtivo, type EstadoDoDia } from '@/lib/treino/semana';
 import { currentWeightKg } from '@/store/selectors';
 import { useAppStore } from '@/store/useAppStore';
 import { colors, fonts, radius, spacing } from '@/theme/theme';
 import type { DateKey } from '@/types';
-import type { DiaSemana, SessaoDeTreino, TreinoDoDia } from '@/types/treino';
+import type { DiaSemana, PlanoDeTreino, SessaoDeTreino, TreinoDoDia } from '@/types/treino';
+
+type Aba = 'exercicios' | 'cardio' | 'semana';
+const ABAS: { key: Aba; label: string }[] = [
+  { key: 'exercicios', label: 'Exercícios' },
+  { key: 'cardio', label: 'Cardio' },
+  { key: 'semana', label: 'Semana' },
+];
+
+/** Verde do fundo no Treino: bem mais fraco, para a tela ficar escura e de vidro. */
+const BRILHO_TREINO = 0.35;
 
 /** "Hoje", "Amanhã", "Ontem" ou "Qui, 02/10". */
 function dayLabel(date: DateKey, today: DateKey): string {
@@ -39,16 +42,30 @@ function dayLabel(date: DateKey, today: DateKey): string {
   return `${wd.charAt(0)}${wd.slice(1).toLowerCase()}, ${formatDayMonth(date)}`;
 }
 
+/** "segunda-feira", "sábado"… */
+function diaCompleto(d: DiaSemana): string {
+  return d === 'sab' || d === 'dom' ? DIA_NOME[d] : `${DIA_NOME[d]}-feira`;
+}
+
+const maiuscula = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
 /** Duração arredondada, sem as pausas ("48 min"; menos de 1 minuto vira "1 min"). */
 function minutosLabel(s: Pick<SessaoDeTreino, 'inicio' | 'fim' | 'pausaMs'>): string {
   return `${Math.max(1, Math.round(minutosDaSessao(s.inicio, s.fim, s.pausaMs)))} min`;
 }
 
+/** Séries da semana (menos na semana de alívio do plano da IA). */
+function naSemana(t: TreinoDoDia, plano: PlanoDeTreino | undefined, data: DateKey): TreinoDoDia {
+  return { ...t, exercicios: t.exercicios.map((x) => ({ ...x, series: seriesNaSemana(x.series, plano, data) })) };
+}
+
 /**
- * Central de treino: a semana (segunda a domingo), o treino do dia escolhido,
- * atalhos, números da semana, próximos treinos e os concluídos. O calendário
- * nunca muda sozinho: o treino de segunda feito na terça continua na segunda,
- * marcado como "feito na terça", e as calorias entram no dia em que foi feito.
+ * Central de treino (layout "Foco no dia"): Meus treinos e a biblioteca no
+ * topo, a semana, o corpo grande com os músculos do dia e o botão de iniciar,
+ * e as abas Exercícios (linha do tempo), Cardio e Semana. Com o treino
+ * rodando, aparece a cápsula com o tempo e o destaque vira o exercício atual.
+ * O calendário nunca muda sozinho: o treino de segunda feito na terça continua
+ * na segunda, marcado como "feito na terça".
  */
 export default function TreinoScreen() {
   const state = useAppStore();
@@ -57,6 +74,7 @@ export default function TreinoScreen() {
   const today = day.date;
   const peso = currentWeightKg(state) ?? 70;
   const [dia, setDia] = useState<DiaSemana>(() => diaDaData(today));
+  const [aba, setAba] = useState<Aba>('exercicios');
 
   const plano = planoAtivo(planos);
   const estados = useMemo(
@@ -74,14 +92,7 @@ export default function TreinoScreen() {
     comecarTreino(t.id);
     router.push(ex ? { pathname: '/treino-sessao', params: { ex } } : '/treino-sessao');
   };
-
-  const actions = (
-    <View style={styles.actions}>
-      <Action icon="add" label="Criar treino" onPress={() => router.push('/treino-novo')} />
-      <Action icon="library-outline" label="Exercícios" onPress={() => router.push('/exercicios')} />
-      <Action icon="bicycle-outline" label="Aeróbico" soon onPress={() => router.push({ pathname: '/em-breve', params: { secao: 'aerobico' } })} />
-    </View>
-  );
+  const abrirSessao = (ex?: string) => router.push(ex ? { pathname: '/treino-sessao', params: { ex } } : '/treino-sessao');
 
   const header = (
     <View style={styles.header}>
@@ -94,19 +105,16 @@ export default function TreinoScreen() {
           </Text>
         )}
       </View>
-      <IconButton icon="albums-outline" label="Meus treinos" onPress={() => router.push('/meus-treinos')} />
+      <IconButton icon="library-outline" label="Biblioteca de exercícios" onPress={() => router.push('/exercicios')} />
+      <IconButton icon="albums-outline" label="Meus treinos: criar, editar, duplicar e apagar" onPress={() => router.push('/meus-treinos')} />
     </View>
   );
 
   if (!plano) {
     return (
-      <TabPage>
+      <TabPage brilho={BRILHO_TREINO}>
         {header}
-        <EmptyState
-          icon="barbell-outline"
-          title="Monte seu treino"
-          message="Escolha os dias, a divisão e os exercícios, ou deixe a IA montar para você."
-        />
+        <EmptyState icon="barbell-outline" title="Monte seu treino" message="Escolha os dias e os exercícios, ou deixe a IA montar para você." />
         <NeonButton label="Criar treino" onPress={() => router.push('/treino-novo')} />
         {planos.length > 0 && (
           <Text tone="secondary" style={styles.center} onPress={() => router.push('/meus-treinos')}>
@@ -118,31 +126,32 @@ export default function TreinoScreen() {
   }
 
   const e = estados[dia];
-  // Na semana de alívio (plano da IA), cada exercício aparece com menos séries.
   const alivio = ehSemanaDeAlivio(plano, today);
-  const naSemana = (tr: TreinoDoDia, data: DateKey) => ({
-    ...tr,
-    exercicios: tr.exercicios.map((x) => ({ ...x, series: seriesNaSemana(x.series, planos.find((p) => p.id === sessaoAtiva?.planoId) ?? plano, data) })),
-  });
-  const t = e.treino && { ...e.treino, exercicios: e.treino.exercicios.map((x) => ({ ...x, series: seriesNaSemana(x.series, plano, today) })) };
+  const t = e.treino && naSemana(e.treino, plano, today);
   const data = semana[DIAS.indexOf(dia)];
-  const kicker = `${e.hoje ? 'HOJE' : DIA_NOME[dia].toUpperCase()}`;
+  const kicker = e.hoje ? 'Hoje' : maiuscula(DIA_NOME[dia]);
 
-  // Treino em andamento: o card principal vira o cronômetro (em hoje e no dia do treino).
-  const doAtivo = sessaoAtiva && planos.find((p) => p.id === sessaoAtiva.planoId)?.treinos.find((x) => x.id === sessaoAtiva.treinoDoDiaId);
-  const treinoAtivo = doAtivo && sessaoAtiva ? naSemana(doAtivo, sessaoAtiva.data) : null;
+  // Treino em andamento: aparece em hoje e no dia a que o treino pertence.
+  const planoDaSessao = sessaoAtiva ? planos.find((p) => p.id === sessaoAtiva.planoId) : undefined;
+  const doAtivo = sessaoAtiva && planoDaSessao?.treinos.find((x) => x.id === sessaoAtiva.treinoDoDiaId);
+  const treinoAtivo = doAtivo && sessaoAtiva ? naSemana(doAtivo, planoDaSessao, sessaoAtiva.data) : null;
   const mostraAtivo = !!(sessaoAtiva && treinoAtivo && (e.hoje || sessaoAtiva.diaPlanejado === dia));
   const lista = mostraAtivo ? treinoAtivo : t;
   const modo = mostraAtivo ? 'andamento' : e.tipo === 'feito' ? 'feito' : 'planejado';
   const seriesDaLista = mostraAtivo && sessaoAtiva ? sessaoAtiva.series : e.tipo === 'feito' && e.sessao ? e.sessao.series : [];
-  const abrirSessao = (ex?: string) => router.push(ex ? { pathname: '/treino-sessao', params: { ex } } : '/treino-sessao');
+  const diaDaLista = mostraAtivo && sessaoAtiva ? sessaoAtiva.diaPlanejado : dia;
+  const tituloLista = e.hoje && diaDaLista === dia ? `Hoje · ${diaCompleto(dia)}` : maiuscula(diaCompleto(diaDaLista));
 
-  // Cardio do plano: quantos dias têm cardio e o de hoje.
   const comCardio = plano.treinos.filter((x) => x.cardio);
 
   return (
-    <TabPage>
+    <TabPage brilho={BRILHO_TREINO}>
       {header}
+
+      {sessaoAtiva && treinoAtivo && (
+        <CapsulaAoVivo treino={treinoAtivo} sessao={sessaoAtiva} onAbrir={() => abrirSessao()} onPausar={pausarTreino} onContinuar={retomarTreino} />
+      )}
+
       <SemanaTreino hoje={today} estados={estados} selecionado={dia} onSelect={setDia} />
 
       {alivio && (
@@ -169,37 +178,17 @@ export default function TreinoScreen() {
         </Glass>
       )}
 
-      {sessaoAtiva && !mostraAtivo && (
-        <Pressable accessibilityRole="button" onPress={() => abrirSessao()} style={styles.banner}>
-          <View style={styles.liveDot} />
-          <Text variant="bodyStrong" style={styles.flex}>
-            Treino em andamento
-          </Text>
-          <Text variant="caption" style={styles.bannerLink}>
-            Continuar
-          </Text>
-          <Ionicons name="chevron-forward" size={16} color={colors.lime} />
-        </Pressable>
-      )}
-
-      {/* Card principal: treino do dia, ou o cronômetro do treino em andamento */}
+      {/* Destaque do dia: corpo grande com os músculos e o botão */}
       {mostraAtivo && sessaoAtiva && treinoAtivo ? (
-        <CardEmAndamento
-          treino={treinoAtivo}
-          sessao={sessaoAtiva}
-          kcal={(min) => kcalAtividade(MET_MUSCULACAO, peso, min)}
-          onAbrir={() => abrirSessao()}
-          onPausar={pausarTreino}
-          onContinuar={retomarTreino}
-        />
+        <HeroEmAndamento treino={treinoAtivo} sessao={sessaoAtiva} sexo={sexo} onAbrir={() => abrirSessao()} />
       ) : !t ? (
-        <CardDescanso kicker={kicker} proximo={upcoming[0] && `${dayLabel(upcoming[0].data, today).toLowerCase()} · ${upcoming[0].treino.nome}`} />
+        <HeroDescanso kicker={kicker} proximo={upcoming[0] && `${dayLabel(upcoming[0].data, today).toLowerCase()} · ${upcoming[0].treino.nome}`} />
       ) : (
-        <CardTreino
+        <HeroTreino
           kicker={kicker}
-          sexo={sexo}
           treino={t}
-          resumo={`~${minutosEstimados(t)} min · ~${formatInt(kcalEstimadas(t, peso))} kcal`}
+          sexo={sexo}
+          resumo={[`~${minutosEstimados(t)} min`, `~${formatInt(kcalEstimadas(t, peso))} kcal`]}
           feito={
             e.tipo === 'feito' && e.sessao
               ? `Concluído${e.feitoEm ? ` · ${notaFeitoEm(e.feitoEm)}` : ''} · ${minutosLabel(e.sessao)} · ${formatInt(e.sessao.kcal)} kcal`
@@ -215,172 +204,164 @@ export default function TreinoScreen() {
         />
       )}
 
-      {/* Cardio */}
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => router.push({ pathname: '/em-breve', params: { secao: 'aerobico' } })}
-        style={({ pressed }) => [pressed && styles.pressed]}>
-        <Glass contentStyle={styles.cardio}>
-          <View style={styles.cardioIcon}>
-            <Ionicons name="heart" size={18} color={colors.lime} />
-          </View>
-          <View style={styles.flex}>
-            <Text style={styles.cardioTitle}>Cardio da semana</Text>
-            <Text variant="caption" tone="muted">
-              {comCardio.length
-                ? `${comCardio.length} ${comCardio.length === 1 ? 'sessão planejada' : 'sessões planejadas'}${lista?.cardio ? ` · neste dia: ${lista.cardio.minutos} min de ${lista.cardio.atividade === 'eliptico' ? 'elíptico' : lista.cardio.atividade}` : ''}`
-                : 'Caminhada, corrida, bicicleta e elíptico'}
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={16} color={colors.ink3} />
-        </Glass>
-      </Pressable>
+      <SegmentedTabs options={ABAS} value={aba} onChange={setAba} height={46} />
 
-      {/* Exercícios do dia */}
-      {lista && (
-        <>
-          <SectionHeader title={mostraAtivo ? 'Exercícios do treino' : e.hoje ? 'Exercícios de hoje' : `Exercícios ${dia === 'sab' || dia === 'dom' ? 'do' : 'da'} ${DIA_NOME[dia]}`} />
+      {aba === 'exercicios' &&
+        (lista ? (
           <ListaExerciciosDoDia
             key={`${lista.id}-${modo}`}
             treino={lista}
             modo={modo}
+            titulo={tituloLista}
             series={seriesDaLista}
             historico={sessoes}
             sexo={sexo}
             onAbrir={modo === 'andamento' ? abrirSessao : modo === 'planejado' && !sessaoAtiva && t ? (ex) => start(t, ex) : undefined}
           />
-        </>
-      )}
+        ) : (
+          <Text tone="secondary" style={styles.vazio}>
+            Dia de descanso: nenhum exercício. Escolha outro dia na semana para ver o treino.
+          </Text>
+        ))}
 
-      {actions}
-
-      {/* Números da semana */}
-      <SectionHeader title="Esta semana" />
-      <View style={styles.stats}>
-        <StatTile label="Treinos" value={`${stats.feitos} / ${stats.planejados}`} />
-        <StatTile label="Queimadas" value={`${formatInt(stats.kcal)} kcal`} />
-        <StatTile label="Recordes" value={String(stats.recordes)} />
-      </View>
-      <Glass contentStyle={styles.chart}>
-        <Text variant="caption" tone="secondary" style={styles.chartTitle}>
-          Volume nos últimos 7 dias · {formatTons(stats.volumeKg)} t na semana
-        </Text>
-        <View style={styles.bars}>
-          {vol.map((v) => {
-            const isToday = v.data === today;
-            const wd = WEEKDAY_SHORT[fromDateKey(v.data).getDay()];
-            return (
-              <View key={v.data} style={styles.barCol} accessible accessibilityLabel={`${wd}: ${formatInt(v.volumeKg)} kg`}>
-                <View style={styles.barTrack}>
-                  <View
-                    style={[
-                      styles.barFill,
-                      { height: `${Math.max(v.volumeKg ? 6 : 0, (v.volumeKg / maxVol) * 100)}%` },
-                      isToday && styles.barToday,
-                    ]}
-                  />
-                </View>
-                <Text style={[styles.barLabel, isToday && { color: colors.ink }]}>{wd.charAt(0)}</Text>
-              </View>
-            );
-          })}
-        </View>
-      </Glass>
-
-      {/* Próximos */}
-      {upcoming.length > 0 && (
-        <>
-          <SectionHeader title="Próximos treinos" />
-          <View>
-            {upcoming.map((u) => {
-              const naSemana = semana.includes(u.data);
-              return (
-                <Pressable
-                  key={u.data}
-                  accessibilityRole="button"
-                  disabled={!naSemana}
-                  onPress={() => setDia(diaDaData(u.data))}
-                  style={({ pressed }) => [styles.listRow, pressed && styles.pressed]}>
-                  <View style={styles.dateBox}>
-                    <Text style={styles.dateBoxDay}>{WEEKDAY_SHORT[fromDateKey(u.data).getDay()]}</Text>
-                    <Text style={styles.dateBoxNum}>{u.data.slice(8)}</Text>
-                  </View>
+      {aba === 'cardio' && (
+        <View style={styles.bloco}>
+          <Glass flush>
+            {comCardio.length ? (
+              comCardio.map((x, i) => (
+                <View key={x.id} style={[styles.linhaCardio, i < comCardio.length - 1 && styles.linhaSep]}>
+                  <Text style={styles.cardioDia}>{DIA_NOME[x.dia].slice(0, 3).toUpperCase()}</Text>
                   <View style={styles.flex}>
-                    <Text style={styles.listTitle}>{u.treino.nome}</Text>
+                    <Text style={styles.listTitle}>
+                      {x.cardio!.minutos} min de {x.cardio!.atividade === 'eliptico' ? 'elíptico' : x.cardio!.atividade}
+                    </Text>
                     <Text variant="caption" tone="muted">
-                      {dayLabel(u.data, today)} · {u.treino.exercicios.length} exercícios · ~{minutosEstimados(u.treino)} min
+                      No fim do treino · ritmo {x.cardio!.intensidade}
                     </Text>
                   </View>
-                  {naSemana && <Ionicons name="chevron-forward" size={16} color={colors.ink3} />}
-                </Pressable>
-              );
-            })}
-          </View>
-        </>
+                  {estados[x.dia].tipo === 'feito' && <Ionicons name="checkmark" size={18} color={colors.ok} />}
+                </View>
+              ))
+            ) : (
+              <Text tone="secondary" style={styles.cardioVazio}>
+                Seu plano não tem cardio. Caminhada, corrida, bicicleta e elíptico chegam logo, com a corrida pelo GPS.
+              </Text>
+            )}
+          </Glass>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push({ pathname: '/em-breve', params: { secao: 'aerobico' } })}
+            style={({ pressed }) => [styles.linkRow, pressed && styles.pressed]}>
+            <Ionicons name="navigate-outline" size={17} color={colors.ink2} />
+            <Text style={[styles.flex, styles.linkText]}>Registrar um cardio (em breve)</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.ink3} />
+          </Pressable>
+        </View>
       )}
 
-      {/* Concluídos */}
-      <SectionHeader title="Concluídos" />
-      {done.length ? (
-        <View>
-          {done.map((s) => {
-            const tr = planos.find((p) => p.id === s.planoId)?.treinos.find((x) => x.id === s.treinoDoDiaId);
-            const outroDia = diaDaData(s.data) !== s.diaPlanejado;
-            const naSemana = semana.includes(s.data);
-            return (
-              <Pressable
-                key={s.id}
-                accessibilityRole="button"
-                disabled={!naSemana}
-                onPress={() => setDia(s.diaPlanejado)}
-                style={({ pressed }) => [styles.listRow, pressed && styles.pressed]}>
-                <View style={[styles.dateBox, styles.dateBoxDone]}>
-                  <Ionicons name="checkmark" size={18} color={colors.ok} />
-                </View>
-                <View style={styles.flex}>
-                  <Text style={styles.listTitle}>{tr?.nome ?? 'Treino'}</Text>
-                  <Text variant="caption" tone="muted">
-                    {dayLabel(s.data, today)}
-                    {outroDia ? ` · treino de ${DIA_NOME[s.diaPlanejado]}` : ''} · {minutosLabel(s)} ·{' '}
-                    {formatInt(s.kcal)} kcal · {formatTons(volume(s.series))} t
-                  </Text>
-                </View>
-              </Pressable>
-            );
-          })}
+      {aba === 'semana' && (
+        <View style={styles.bloco}>
+          <View style={styles.stats}>
+            <StatTile label="Treinos" value={`${stats.feitos} / ${stats.planejados}`} />
+            <StatTile label="Queimadas" value={`${formatInt(stats.kcal)} kcal`} />
+            <StatTile label="Recordes" value={String(stats.recordes)} />
+          </View>
+          <Glass contentStyle={styles.chart}>
+            <Text variant="caption" tone="secondary" style={styles.chartTitle}>
+              Volume nos últimos 7 dias · {formatTons(stats.volumeKg)} t na semana
+            </Text>
+            <View style={styles.bars}>
+              {vol.map((v) => {
+                const isToday = v.data === today;
+                const wd = WEEKDAY_SHORT[fromDateKey(v.data).getDay()];
+                return (
+                  <View key={v.data} style={styles.barCol} accessible accessibilityLabel={`${wd}: ${formatInt(v.volumeKg)} kg`}>
+                    <View style={styles.barTrack}>
+                      <View
+                        style={[styles.barFill, { height: `${Math.max(v.volumeKg ? 6 : 0, (v.volumeKg / maxVol) * 100)}%` }, isToday && styles.barToday]}
+                      />
+                    </View>
+                    <Text style={[styles.barLabel, isToday && { color: colors.ink }]}>{wd.charAt(0)}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          </Glass>
+
+          {upcoming.length > 0 && (
+            <>
+              <SectionHeader title="Próximos treinos" />
+              <View>
+                {upcoming.map((u) => {
+                  const nessaSemana = semana.includes(u.data);
+                  return (
+                    <Pressable
+                      key={u.data}
+                      accessibilityRole="button"
+                      disabled={!nessaSemana}
+                      onPress={() => {
+                        setDia(diaDaData(u.data));
+                        setAba('exercicios');
+                      }}
+                      style={({ pressed }) => [styles.listRow, pressed && styles.pressed]}>
+                      <View style={styles.dateBox}>
+                        <Text style={styles.dateBoxDay}>{WEEKDAY_SHORT[fromDateKey(u.data).getDay()]}</Text>
+                        <Text style={styles.dateBoxNum}>{u.data.slice(8)}</Text>
+                      </View>
+                      <View style={styles.flex}>
+                        <Text style={styles.listTitle}>{u.treino.nome}</Text>
+                        <Text variant="caption" tone="muted">
+                          {dayLabel(u.data, today)} · {u.treino.exercicios.length} exercícios · ~{minutosEstimados(u.treino)} min
+                        </Text>
+                      </View>
+                      {nessaSemana && <Ionicons name="chevron-forward" size={16} color={colors.ink3} />}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </>
+          )}
+
+          <SectionHeader title="Concluídos" />
+          {done.length ? (
+            <View>
+              {done.map((s) => {
+                const tr = planos.find((p) => p.id === s.planoId)?.treinos.find((x) => x.id === s.treinoDoDiaId);
+                const outroDia = diaDaData(s.data) !== s.diaPlanejado;
+                const nessaSemana = semana.includes(s.data);
+                return (
+                  <Pressable
+                    key={s.id}
+                    accessibilityRole="button"
+                    disabled={!nessaSemana}
+                    onPress={() => {
+                      setDia(s.diaPlanejado);
+                      setAba('exercicios');
+                    }}
+                    style={({ pressed }) => [styles.listRow, pressed && styles.pressed]}>
+                    <View style={[styles.dateBox, styles.dateBoxDone]}>
+                      <Ionicons name="checkmark" size={18} color={colors.ok} />
+                    </View>
+                    <View style={styles.flex}>
+                      <Text style={styles.listTitle}>{tr?.nome ?? 'Treino'}</Text>
+                      <Text variant="caption" tone="muted">
+                        {dayLabel(s.data, today)}
+                        {outroDia ? ` · treino de ${DIA_NOME[s.diaPlanejado]}` : ''} · {minutosLabel(s)} · {formatInt(s.kcal)} kcal ·{' '}
+                        {formatTons(volume(s.series))} t
+                      </Text>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : (
+            <Text variant="caption" tone="muted">
+              Os treinos terminados aparecem aqui.
+            </Text>
+          )}
         </View>
-      ) : (
-        <Text variant="caption" tone="muted">
-          Os treinos terminados aparecem aqui.
-        </Text>
       )}
     </TabPage>
-  );
-}
-
-function Action({
-  icon,
-  label,
-  soon,
-  onPress,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  soon?: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={styles.actionWrap}>
-      {({ pressed }) => (
-        <Glass contentStyle={styles.action} style={pressed && styles.pressed}>
-          <View style={styles.actionIcon}>
-            <Ionicons name={icon} size={20} color={colors.lime} />
-          </View>
-          <Text style={styles.actionText}>{label}</Text>
-          {soon && <Text style={styles.soon}>EM BREVE</Text>}
-        </Glass>
-      )}
-    </Pressable>
   );
 }
 
@@ -392,6 +373,18 @@ const styles = StyleSheet.create({
   center: {
     textAlign: 'center',
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  h1: {
+    fontFamily: fonts.display.semibold,
+    fontSize: 30,
+    lineHeight: 36,
+    letterSpacing: -1,
+  },
   alivio: {
     flexDirection: 'row',
     gap: spacing.sm,
@@ -401,27 +394,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.tideEdge,
   },
-  cardio: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 14,
-  },
-  cardioIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.limeWash,
-    borderWidth: 1,
-    borderColor: colors.limeEdge,
-  },
-  cardioTitle: {
-    fontFamily: fonts.body.bold,
-    fontSize: 15,
-    lineHeight: 20,
-  },
   fase: {
     gap: 6,
     padding: 16,
@@ -429,74 +401,44 @@ const styles = StyleSheet.create({
   faseBtn: {
     marginTop: spacing.sm,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    marginTop: spacing.md,
-  },
-  h1: {
-    fontFamily: fonts.display.semibold,
-    fontSize: 30,
-    lineHeight: 36,
-    letterSpacing: -1,
-  },
-  banner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: radius.lg,
-    backgroundColor: colors.limeWash,
-    borderWidth: 1,
-    borderColor: colors.limeEdge,
-  },
-  liveDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.lime,
-  },
-  bannerLink: {
-    fontFamily: fonts.body.bold,
-    color: colors.lime,
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  actionWrap: {
-    flex: 1,
-  },
-  action: {
-    alignItems: 'center',
-    gap: 8,
+  vazio: {
     paddingVertical: spacing.lg,
-    paddingHorizontal: 6,
   },
-  actionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
+  bloco: {
+    gap: spacing.md,
+  },
+  linhaCardio: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.limeWash,
-    borderWidth: 1,
-    borderColor: colors.limeEdge,
+    gap: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
   },
-  actionText: {
-    fontFamily: fonts.body.bold,
-    fontSize: 13,
+  linhaSep: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.lineSoft,
   },
-  soon: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
+  cardioDia: {
+    width: 36,
     fontFamily: fonts.body.bold,
-    fontSize: 8.5,
+    fontSize: 11,
     letterSpacing: 1,
-    color: colors.lime,
+    color: colors.ink3,
+  },
+  cardioVazio: {
+    padding: 16,
+  },
+  linkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+  },
+  linkText: {
+    fontFamily: fonts.body.bold,
+    fontSize: 14,
+    color: colors.ink2,
   },
   stats: {
     flexDirection: 'row',
@@ -529,7 +471,7 @@ const styles = StyleSheet.create({
   barFill: {
     width: '100%',
     borderRadius: radius.sm,
-    backgroundColor: colors.mint,
+    backgroundColor: colors.line2,
   },
   barToday: {
     backgroundColor: colors.lime,
@@ -558,8 +500,7 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
   },
   dateBoxDone: {
-    backgroundColor: colors.okTint,
-    borderColor: 'transparent',
+    borderColor: colors.lineSoft,
   },
   dateBoxDay: {
     fontFamily: fonts.body.bold,

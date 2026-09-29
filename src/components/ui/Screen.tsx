@@ -12,6 +12,8 @@ type Props = {
   withTabBar?: boolean;
   /** Espaço entre os blocos (padrão: 12). */
   gap?: number;
+  /** Força do verde de fundo (1 = normal). */
+  brilho?: number;
   /** Camada fixa por cima da rolagem (ex.: o topo da Início). */
   overlay?: ReactNode;
   /** Espaço extra no topo, para o conteúdo começar abaixo da camada fixa. */
@@ -23,7 +25,7 @@ type Props = {
 };
 
 /** Moldura de toda tela: fundo escuro com o verde suave, área segura e rolagem. */
-export function Screen({ children, withTabBar = true, gap = spacing.md, overlay, topOffset = 0, onScrollY, scrollRef }: Props) {
+export function Screen({ children, withTabBar = true, gap = spacing.md, brilho, overlay, topOffset = 0, onScrollY, scrollRef }: Props) {
   const insets = useSafeAreaInsets();
   const bottomSpace = withTabBar
     ? insets.bottom + tabBar.bottomGap + tabBar.height + spacing.xl
@@ -35,7 +37,7 @@ export function Screen({ children, withTabBar = true, gap = spacing.md, overlay,
 
   return (
     <View style={styles.root}>
-      <BackdropGlow />
+      <BackdropGlow forca={brilho} />
       <ScrollView
         ref={scrollRef}
         onScroll={onScroll}
