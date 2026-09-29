@@ -1,31 +1,35 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
-import { DateStrip } from '@/components/home/DateStrip';
 import { TabPage } from '@/components/navigation/TabPage';
-import { EmptyState, Glass, NeonButton, SectionHeader, Text } from '@/components/ui';
+import { EmptyState, Glass, IconButton, NeonButton, SectionHeader, Text } from '@/components/ui';
 import { StatTile } from '@/components/ui/StatTile';
 import { MapaMuscular } from '@/components/workout/MapaMuscular';
+import { SemanaTreino } from '@/components/workout/SemanaTreino';
 import { daysBetween, fromDateKey } from '@/lib/dates';
 import { exercicioPorId } from '@/lib/exercicios';
 import { formatDayMonth, formatInt, formatTons, WEEKDAY_SHORT } from '@/lib/format';
+import { minutosDaSessao } from '@/lib/treino/met';
 import {
-  estimatedMinutes,
-  finishedSessions,
-  planForDate,
-  sessionMinutes,
-  sessionVolume,
-  upcomingPlans,
-  weekStats,
-  recentVolumeByDay,
-} from '@/lib/workout';
+  concluidas,
+  kcalEstimadas,
+  minutosEstimados,
+  numerosDaSemana,
+  proximosTreinos,
+  repsLabel,
+  volume,
+  volumePorDia,
+} from '@/lib/treino/plano';
+import { datasDaSemana, DIA_NOME, DIAS, diaDaData, estadoDoDia, notaFeitoEm, planoAtivo, type EstadoDoDia } from '@/lib/treino/semana';
+import { currentWeightKg } from '@/store/selectors';
 import { useAppStore } from '@/store/useAppStore';
 import { colors, fonts, gradients, radius, spacing } from '@/theme/theme';
-import type { DateKey, WorkoutPlan } from '@/types';
+import type { DateKey } from '@/types';
+import type { DiaSemana, TreinoDoDia } from '@/types/treino';
 
-/** "Hoje", "Amanhã" ou "Qui, 02/10". */
+/** "Hoje", "Amanhã", "Ontem" ou "Qui, 02/10". */
 function dayLabel(date: DateKey, today: DateKey): string {
   const diff = daysBetween(today, date);
   if (diff === 0) return 'Hoje';
@@ -35,112 +39,177 @@ function dayLabel(date: DateKey, today: DateKey): string {
   return `${wd.charAt(0)}${wd.slice(1).toLowerCase()}, ${formatDayMonth(date)}`;
 }
 
+/** Duração arredondada ("48 min"; menos de 1 minuto vira "1 min"). */
+function minutosLabel(inicio: string, fim: string): string {
+  return `${Math.max(1, Math.round(minutosDaSessao(inicio, fim)))} min`;
+}
+
 /**
- * Central de treino: calendário, o treino do dia em destaque, atalhos (novo
- * treino, biblioteca, aeróbico), a divisão da semana, números da semana,
- * próximos treinos e os concluídos.
+ * Central de treino: a semana (segunda a domingo), o treino do dia escolhido,
+ * atalhos, números da semana, próximos treinos e os concluídos. O calendário
+ * nunca muda sozinho: o treino de segunda feito na terça continua na segunda,
+ * marcado como "feito na terça", e as calorias entram no dia em que foi feito.
  */
 export default function TreinoScreen() {
-  const { today: day, workoutPlans, sessions, activeSession, startSession } = useAppStore();
-  const profileSex = useAppStore((s) => s.profile?.sex);
+  const state = useAppStore();
+  const { today: day, planos, sessoes, sessaoAtiva, comecarTreino } = state;
+  const sexo = state.profile?.sex;
   const today = day.date;
-  const [date, setDate] = useState(today);
-  const shown = date > today && daysBetween(today, date) > 30 ? today : date;
+  const peso = currentWeightKg(state) ?? 70;
+  const [dia, setDia] = useState<DiaSemana>(() => diaDaData(today));
 
-  const plan = planForDate(workoutPlans, shown);
-  const sessionOfDay = sessions.find((s) => s.date === shown && s.finishedAt);
-  const activePlan = activeSession ? workoutPlans.find((p) => p.id === activeSession.planId) : null;
-  const stats = useMemo(() => weekStats(sessions, workoutPlans, today), [sessions, workoutPlans, today]);
-  const volume = useMemo(() => recentVolumeByDay(sessions, today), [sessions, today]);
-  const upcoming = useMemo(() => upcomingPlans(workoutPlans, today, 3), [workoutPlans, today]);
-  const done = useMemo(() => finishedSessions(sessions, 5), [sessions]);
-  const maxVol = Math.max(1, ...volume.map((v) => v.volumeKg));
+  const plano = planoAtivo(planos);
+  const estados = useMemo(
+    () => Object.fromEntries(DIAS.map((d) => [d, estadoDoDia(plano, sessoes, d, today)])) as Record<DiaSemana, EstadoDoDia>,
+    [plano, sessoes, today],
+  );
+  const stats = useMemo(() => numerosDaSemana(plano, sessoes, today), [plano, sessoes, today]);
+  const vol = useMemo(() => volumePorDia(sessoes, today), [sessoes, today]);
+  const upcoming = useMemo(() => proximosTreinos(plano, sessoes, today, 3), [plano, sessoes, today]);
+  const done = useMemo(() => concluidas(sessoes, 5), [sessoes]);
+  const maxVol = Math.max(1, ...vol.map((v) => v.volumeKg));
+  const semana = datasDaSemana(today);
 
-  const start = (p: WorkoutPlan) => {
-    startSession(p.id);
+  const start = (t: TreinoDoDia) => {
+    comecarTreino(t.id);
     router.push('/treino-sessao');
   };
 
   const actions = (
     <View style={styles.actions}>
-      <Action icon="add" label="Novo treino" onPress={() => router.push('/treino-novo')} />
+      <Action icon="add" label="Criar treino" onPress={() => router.push('/treino-novo')} />
       <Action icon="library-outline" label="Exercícios" onPress={() => router.push('/exercicios')} />
       <Action icon="bicycle-outline" label="Aeróbico" soon onPress={() => router.push({ pathname: '/em-breve', params: { secao: 'aerobico' } })} />
     </View>
   );
 
-  if (!workoutPlans.length) {
+  const header = (
+    <View style={styles.header}>
+      <View style={styles.flex}>
+        <Text style={styles.h1}>Treino</Text>
+        {plano && (
+          <Text variant="caption" tone="muted" numberOfLines={1}>
+            {plano.nome} · {plano.treinos.length} {plano.treinos.length === 1 ? 'dia' : 'dias'} por semana
+          </Text>
+        )}
+      </View>
+      <IconButton icon="albums-outline" label="Meus treinos" onPress={() => router.push('/meus-treinos')} />
+    </View>
+  );
+
+  if (!plano) {
     return (
       <TabPage>
+        {header}
         <EmptyState
           icon="barbell-outline"
           title="Monte seu treino"
           message="Escolha os dias, a divisão e os exercícios, ou deixe a IA montar para você."
         />
-        {actions}
+        <NeonButton label="Criar treino" onPress={() => router.push('/treino-novo')} />
+        {planos.length > 0 && (
+          <Text tone="secondary" style={styles.center} onPress={() => router.push('/meus-treinos')}>
+            Ou ative um dos seus treinos salvos
+          </Text>
+        )}
       </TabPage>
     );
   }
 
+  const e = estados[dia];
+  const t = e.treino;
+  const data = semana[DIAS.indexOf(dia)];
+  const emAndamento = sessaoAtiva && t && sessaoAtiva.treinoDoDiaId === t.id;
+  const kicker = `${e.hoje ? 'HOJE · ' : ''}${DIA_NOME[dia].toUpperCase()}`;
+
   return (
     <TabPage>
-      <DateStrip today={today} past={6} future={13} selected={shown} onSelect={setDate} />
+      {header}
+      <SemanaTreino hoje={today} estados={estados} selecionado={dia} onSelect={setDia} />
 
-      {/* Treino do dia escolhido, em destaque */}
+      {sessaoAtiva && !emAndamento && (
+        <Pressable accessibilityRole="button" onPress={() => router.push('/treino-sessao')} style={styles.banner}>
+          <View style={styles.liveDot} />
+          <Text variant="bodyStrong" style={styles.flex}>
+            Treino em andamento
+          </Text>
+          <Text variant="caption" style={styles.bannerLink}>
+            Continuar
+          </Text>
+          <Ionicons name="chevron-forward" size={16} color={colors.lime} />
+        </Pressable>
+      )}
+
+      {/* Treino do dia escolhido */}
       <Glass flush tint={gradients.workoutHero} contentStyle={styles.hero}>
-        {activeSession && activePlan && shown === today ? (
+        {!t ? (
           <>
-            <Text style={styles.kicker}>EM ANDAMENTO · {activePlan.name.toUpperCase()}</Text>
-            <Text style={styles.heroTitle}>{activePlan.focus}</Text>
-            <NeonButton label="Continuar treino" onPress={() => router.push('/treino-sessao')} style={styles.heroBtn} />
-          </>
-        ) : plan ? (
-          <>
-            <Text style={styles.kicker}>
-              {dayLabel(shown, today).toUpperCase()} · {plan.name.toUpperCase()}
-            </Text>
-            <Text style={styles.heroTitle}>{plan.focus}</Text>
-            <View style={styles.tags}>
-              <Tag text={`${plan.exercises.length} exercícios`} />
-              <Tag text={`~${estimatedMinutes(plan)} min`} />
-            </View>
-            <View style={styles.thumbs}>
-              {plan.exercises.slice(0, 5).map((e) => {
-                const ex = exercicioPorId(e.catalogId);
-                return ex ? (
-                  <View key={e.id} style={styles.heroThumb}>
-                    <MapaMuscular principal={ex.musculoPrincipal} altura={40} podeVirar={false} sexo={profileSex} />
-                  </View>
-                ) : null;
-              })}
-            </View>
-            {sessionOfDay ? (
-              <View style={styles.doneRow}>
-                <Ionicons name="checkmark-circle" size={18} color={colors.ok} />
-                <Text variant="bodyStrong" style={{ color: colors.ok }}>
-                  Concluído · {sessionMinutes(sessionOfDay)} min · {formatTons(sessionVolume(sessionOfDay))} t
-                </Text>
-              </View>
-            ) : shown === today ? (
-              <NeonButton label="Começar treino" onPress={() => start(plan)} style={styles.heroBtn} />
-            ) : shown > today ? (
+            <Text style={styles.kicker}>{kicker} · DESCANSO</Text>
+            <Text style={styles.heroTitle}>Dia de recuperar</Text>
+            {upcoming[0] && (
               <Text tone="secondary" style={styles.heroNote}>
-                Planejado
-              </Text>
-            ) : (
-              <Text tone="secondary" style={styles.heroNote}>
-                Não registrado
+                Próximo: {dayLabel(upcoming[0].data, today).toLowerCase()} · {upcoming[0].treino.nome.toLowerCase()}
               </Text>
             )}
           </>
         ) : (
           <>
-            <Text style={styles.kicker}>{dayLabel(shown, today).toUpperCase()} · DESCANSO</Text>
-            <Text style={styles.heroTitle}>Dia de recuperar</Text>
-            {upcoming[0] && (
+            <Text style={styles.kicker}>
+              {kicker}
+              {emAndamento ? ' · EM ANDAMENTO' : e.tipo === 'feito' ? ' · FEITO' : ''}
+            </Text>
+            <Text style={styles.heroTitle}>{t.nome}</Text>
+            <View style={styles.tags}>
+              <Tag text={`${t.exercicios.length} exercícios`} />
+              <Tag text={`~${minutosEstimados(t)} min`} />
+              <Tag text={`~${formatInt(kcalEstimadas(t, peso))} kcal`} />
+            </View>
+
+            <View style={styles.exList}>
+              {t.exercicios.map((x) => {
+                const ex = exercicioPorId(x.exercicioId);
+                return (
+                  <View key={x.id} style={styles.exRow}>
+                    <View style={styles.thumb}>
+                      {ex && <MapaMuscular principal={ex.musculoPrincipal} altura={44} podeVirar={false} sexo={sexo} />}
+                    </View>
+                    <View style={styles.flex}>
+                      <Text style={styles.exName} numberOfLines={1}>
+                        {ex?.nome ?? 'Exercício'}
+                      </Text>
+                      <Text variant="caption" tone="muted">
+                        {x.series} × {repsLabel(x)} · descanso {x.descansoSeg} s
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+
+            {emAndamento ? (
+              <NeonButton label="Continuar treino" onPress={() => router.push('/treino-sessao')} style={styles.heroBtn} />
+            ) : e.tipo === 'feito' && e.sessao ? (
+              <View style={styles.doneRow}>
+                <Ionicons name="checkmark-circle" size={18} color={colors.ok} />
+                <Text variant="bodyStrong" style={styles.doneText}>
+                  Concluído{e.feitoEm ? ` · ${notaFeitoEm(e.feitoEm)}` : ''} · {minutosLabel(e.sessao.inicio, e.sessao.fim)} ·{' '}
+                  {formatInt(e.sessao.kcal)} kcal
+                </Text>
+              </View>
+            ) : sessaoAtiva ? (
               <Text tone="secondary" style={styles.heroNote}>
-                Próximo: {dayLabel(upcoming[0].date, today).toLowerCase()} · {upcoming[0].plan.focus.toLowerCase()}
+                Termine o treino em andamento para começar este.
               </Text>
+            ) : (
+              <>
+                <NeonButton label="Começar treino" onPress={() => start(t)} style={styles.heroBtn} />
+                {data !== today && (
+                  <Text variant="caption" tone="muted" style={styles.heroHint}>
+                    {data < today ? 'Ficou para trás? Pode fazer hoje' : 'Quer adiantar? Pode fazer hoje'}: ele fica marcado{' '}
+                    {dia === 'sab' || dia === 'dom' ? 'no' : 'na'} {DIA_NOME[dia]} e as calorias entram no seu dia de hoje.
+                  </Text>
+                )}
+              </>
             )}
           </>
         )}
@@ -148,41 +217,23 @@ export default function TreinoScreen() {
 
       {actions}
 
-      {/* Divisão da semana */}
-      <SectionHeader title="Sua divisão" action="Refazer" onAction={() => router.push('/treino-novo')} />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.splitRow}>
-        {workoutPlans.map((p) => (
-          <Glass key={p.id} contentStyle={styles.splitCard} style={styles.splitWrap}>
-            <Text style={styles.splitLetter}>{p.name.replace('Treino ', '')}</Text>
-            <Text style={styles.splitFocus} numberOfLines={2}>
-              {p.focus}
-            </Text>
-            <Text variant="caption" tone="muted">
-              {p.weekdays.map((d) => WEEKDAY_SHORT[d]).join(' · ')}
-            </Text>
-            <Text variant="caption" tone="muted">
-              {p.exercises.length} exercícios
-            </Text>
-          </Glass>
-        ))}
-      </ScrollView>
-
       {/* Números da semana */}
       <SectionHeader title="Esta semana" />
       <View style={styles.stats}>
-        <StatTile label="Treinos" value={`${stats.done} / ${stats.planned}`} />
-        <StatTile label="Volume" value={`${formatTons(stats.volumeKg)} t`} />
-        <StatTile label="Recordes" value={String(stats.records)} />
+        <StatTile label="Treinos" value={`${stats.feitos} / ${stats.planejados}`} />
+        <StatTile label="Queimadas" value={`${formatInt(stats.kcal)} kcal`} />
+        <StatTile label="Recordes" value={String(stats.recordes)} />
       </View>
       <Glass contentStyle={styles.chart}>
         <Text variant="caption" tone="secondary" style={styles.chartTitle}>
-          Volume nos últimos 7 dias (kg × repetições)
+          Volume nos últimos 7 dias · {formatTons(stats.volumeKg)} t na semana
         </Text>
         <View style={styles.bars}>
-          {volume.map((v) => {
-            const isToday = v.date === today;
+          {vol.map((v) => {
+            const isToday = v.data === today;
+            const wd = WEEKDAY_SHORT[fromDateKey(v.data).getDay()];
             return (
-              <View key={v.date} style={styles.barCol} accessible accessibilityLabel={`${WEEKDAY_SHORT[fromDateKey(v.date).getDay()]}: ${formatInt(v.volumeKg)} kg`}>
+              <View key={v.data} style={styles.barCol} accessible accessibilityLabel={`${wd}: ${formatInt(v.volumeKg)} kg`}>
                 <View style={styles.barTrack}>
                   <View
                     style={[
@@ -192,9 +243,7 @@ export default function TreinoScreen() {
                     ]}
                   />
                 </View>
-                <Text style={[styles.barLabel, isToday && { color: colors.ink }]}>
-                  {WEEKDAY_SHORT[fromDateKey(v.date).getDay()].charAt(0)}
-                </Text>
+                <Text style={[styles.barLabel, isToday && { color: colors.ink }]}>{wd.charAt(0)}</Text>
               </View>
             );
           })}
@@ -206,25 +255,29 @@ export default function TreinoScreen() {
         <>
           <SectionHeader title="Próximos treinos" />
           <View>
-            {upcoming.map((u) => (
-              <Pressable
-                key={u.date}
-                accessibilityRole="button"
-                onPress={() => setDate(u.date)}
-                style={({ pressed }) => [styles.listRow, pressed && styles.pressed]}>
-                <View style={styles.dateBox}>
-                  <Text style={styles.dateBoxDay}>{WEEKDAY_SHORT[fromDateKey(u.date).getDay()]}</Text>
-                  <Text style={styles.dateBoxNum}>{u.date.slice(8)}</Text>
-                </View>
-                <View style={styles.flex}>
-                  <Text style={styles.listTitle}>{u.plan.focus}</Text>
-                  <Text variant="caption" tone="muted">
-                    {dayLabel(u.date, today)} · {u.plan.name} · {u.plan.exercises.length} exercícios
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={16} color={colors.ink3} />
-              </Pressable>
-            ))}
+            {upcoming.map((u) => {
+              const naSemana = semana.includes(u.data);
+              return (
+                <Pressable
+                  key={u.data}
+                  accessibilityRole="button"
+                  disabled={!naSemana}
+                  onPress={() => setDia(diaDaData(u.data))}
+                  style={({ pressed }) => [styles.listRow, pressed && styles.pressed]}>
+                  <View style={styles.dateBox}>
+                    <Text style={styles.dateBoxDay}>{WEEKDAY_SHORT[fromDateKey(u.data).getDay()]}</Text>
+                    <Text style={styles.dateBoxNum}>{u.data.slice(8)}</Text>
+                  </View>
+                  <View style={styles.flex}>
+                    <Text style={styles.listTitle}>{u.treino.nome}</Text>
+                    <Text variant="caption" tone="muted">
+                      {dayLabel(u.data, today)} · {u.treino.exercicios.length} exercícios · ~{minutosEstimados(u.treino)} min
+                    </Text>
+                  </View>
+                  {naSemana && <Ionicons name="chevron-forward" size={16} color={colors.ink3} />}
+                </Pressable>
+              );
+            })}
           </View>
         </>
       )}
@@ -234,20 +287,25 @@ export default function TreinoScreen() {
       {done.length ? (
         <View>
           {done.map((s) => {
-            const p = workoutPlans.find((x) => x.id === s.planId);
+            const tr = planos.find((p) => p.id === s.planoId)?.treinos.find((x) => x.id === s.treinoDoDiaId);
+            const outroDia = diaDaData(s.data) !== s.diaPlanejado;
+            const naSemana = semana.includes(s.data);
             return (
               <Pressable
                 key={s.id}
                 accessibilityRole="button"
-                onPress={() => setDate(s.date)}
+                disabled={!naSemana}
+                onPress={() => setDia(s.diaPlanejado)}
                 style={({ pressed }) => [styles.listRow, pressed && styles.pressed]}>
                 <View style={[styles.dateBox, styles.dateBoxDone]}>
                   <Ionicons name="checkmark" size={18} color={colors.ok} />
                 </View>
                 <View style={styles.flex}>
-                  <Text style={styles.listTitle}>{p?.focus ?? 'Treino'}</Text>
+                  <Text style={styles.listTitle}>{tr?.nome ?? 'Treino'}</Text>
                   <Text variant="caption" tone="muted">
-                    {dayLabel(s.date, today)} · {sessionMinutes(s)} min · {s.sets.length} séries · {formatTons(sessionVolume(s))} t
+                    {dayLabel(s.data, today)}
+                    {outroDia ? ` · treino de ${DIA_NOME[s.diaPlanejado]}` : ''} · {minutosLabel(s.inicio, s.fim)} ·{' '}
+                    {formatInt(s.kcal)} kcal · {formatTons(volume(s.series))} t
                   </Text>
                 </View>
               </Pressable>
@@ -304,6 +362,73 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
+  center: {
+    textAlign: 'center',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginTop: spacing.md,
+  },
+  h1: {
+    fontFamily: fonts.display.semibold,
+    fontSize: 30,
+    lineHeight: 36,
+    letterSpacing: -1,
+  },
+  banner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: radius.lg,
+    backgroundColor: colors.limeWash,
+    borderWidth: 1,
+    borderColor: colors.limeEdge,
+  },
+  liveDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.lime,
+  },
+  bannerLink: {
+    fontFamily: fonts.body.bold,
+    color: colors.lime,
+  },
+  exList: {
+    marginTop: spacing.md,
+    gap: 8,
+  },
+  exRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  thumb: {
+    width: 40,
+    height: 48,
+    borderRadius: 12,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.glassFill,
+  },
+  exName: {
+    fontFamily: fonts.body.bold,
+    fontSize: 14,
+    lineHeight: 19,
+  },
+  heroHint: {
+    marginTop: spacing.sm,
+    textAlign: 'center',
+  },
+  doneText: {
+    flex: 1,
+    color: colors.ok,
+  },
   hero: {
     padding: 18,
     minHeight: 210,
@@ -343,20 +468,6 @@ const styles = StyleSheet.create({
   tagText: {
     fontFamily: fonts.body.bold,
     fontSize: 11,
-  },
-  thumbs: {
-    flexDirection: 'row',
-    gap: 6,
-    marginTop: spacing.md,
-  },
-  heroThumb: {
-    width: 40,
-    height: 48,
-    borderRadius: 12,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.glassFill,
   },
   heroBtn: {
     marginTop: spacing.lg,
@@ -402,28 +513,6 @@ const styles = StyleSheet.create({
     fontSize: 8.5,
     letterSpacing: 1,
     color: colors.lime,
-  },
-  splitRow: {
-    gap: spacing.sm,
-  },
-  splitWrap: {
-    width: 150,
-  },
-  splitCard: {
-    gap: 4,
-    minHeight: 150,
-  },
-  splitLetter: {
-    fontFamily: fonts.display.bold,
-    fontSize: 34,
-    lineHeight: 38,
-    color: colors.lime,
-  },
-  splitFocus: {
-    fontFamily: fonts.body.bold,
-    fontSize: 14,
-    lineHeight: 18,
-    marginBottom: 4,
   },
   stats: {
     flexDirection: 'row',

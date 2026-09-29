@@ -7,7 +7,7 @@ const TODAY = '2026-09-28';
 
 const base: Omit<Profile, 'sex' | 'birthDate' | 'heightCm' | 'startWeightKg' | 'targetWeightKg'> = {
   name: 'Teste',
-  activityLevel: 'moderado',
+  workRoutine: 'pesado',
   goal: 'emagrecer',
   pace: 'moderado',
   usesGlp1: false,
@@ -24,7 +24,7 @@ describe('perfil 1 — mulher emagrecendo', () => {
     heightCm: 165,
     startWeightKg: 78,
     targetWeightKg: 68,
-    activityLevel: 'leve',
+    workRoutine: 'dinamico',
     goal: 'emagrecer',
     pace: 'moderado',
   };
@@ -66,7 +66,7 @@ describe('perfil 2 — homem ganhando massa', () => {
     heightCm: 180,
     startWeightKg: 72,
     targetWeightKg: 78,
-    activityLevel: 'moderado',
+    workRoutine: 'pesado',
     goal: 'ganhar_massa',
     pace: 'moderado',
   };
@@ -106,7 +106,7 @@ describe('perfil 3 — pessoa com GLP-1', () => {
     heightCm: 160,
     startWeightKg: 95,
     targetWeightKg: 75,
-    activityLevel: 'sedentario',
+    workRoutine: 'sentado',
     goal: 'emagrecer',
     pace: 'acelerado',
     usesGlp1: true,
@@ -151,7 +151,7 @@ describe('travas e casos de borda', () => {
     heightCm: 158,
     startWeightKg: 55,
     targetWeightKg: 50,
-    activityLevel: 'sedentario',
+    workRoutine: 'sentado',
     goal: 'emagrecer',
     pace: 'acelerado',
   };
@@ -188,7 +188,7 @@ describe('travas e casos de borda', () => {
   });
 
   it('manter peso não tem ajuste nem previsão', () => {
-    const plan = computePlan({ ...woman, goal: 'manter', activityLevel: 'moderado' }, 55, TODAY);
+    const plan = computePlan({ ...woman, goal: 'manter', workRoutine: 'pesado' }, 55, TODAY);
     expect(plan.dailyAdjustmentKcal).toBe(0);
     expect(plan.kgPerWeek).toBe(0);
     expect(plan.goalDate).toBeNull();

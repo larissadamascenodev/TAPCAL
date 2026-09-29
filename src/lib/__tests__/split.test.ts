@@ -1,6 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 
 import { exercicioPorId } from '@/lib/exercicios';
+import { planoDoMontador } from '@/lib/treino/migracao';
 import { buildPlans, focusLabel, splitsFor, suggestedWeekdays, suggestExercises, toggleExercise } from '@/lib/split';
 
 describe('montar o treino personalizado', () => {
@@ -36,5 +37,20 @@ describe('montar o treino personalizado', () => {
     const added = toggleExercise(plan, 'crossover-polia');
     expect(added.exercises.at(-1)).toMatchObject({ catalogId: 'crossover-polia', name: 'Crossover na polia', targetSets: 3 });
     expect(toggleExercise(added, 'crossover-polia').exercises).toEqual(plan.exercises);
+  });
+});
+
+describe('salvar o treino montado', () => {
+  it('vira um plano com um treino por dia e ids novos a cada vez', () => {
+    const plans = buildPlans({ weekdays: [1, 3, 5], split: 'abc' });
+    const a = planoDoMontador(plans, 'Treino ABC');
+    const b = planoDoMontador(plans, 'Treino ABC');
+    expect(a?.nome).toBe('Treino ABC');
+    expect(a?.treinos.map((t) => t.dia)).toEqual(['seg', 'qua', 'sex']);
+    expect(a?.treinos.every((t) => t.exercicios.length > 0)).toBe(true);
+    expect(a?.id).not.toBe(b?.id);
+    const ids = a!.treinos.flatMap((t) => [t.id, ...t.exercicios.map((e) => e.id)]);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids.some((id) => b!.treinos.some((t) => t.id === id))).toBe(false);
   });
 });

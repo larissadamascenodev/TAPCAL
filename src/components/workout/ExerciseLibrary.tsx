@@ -218,9 +218,8 @@ function DetalheExercicio({
   onToggle?: () => void;
 }) {
   const insets = useSafeAreaInsets();
-  const plans = useAppStore((s) => s.workoutPlans);
-  const sessions = useAppStore((s) => s.sessions);
-  const historico = useMemo(() => (exercicio ? historicoDoExercicio(exercicio.id, plans, sessions) : null), [exercicio, plans, sessions]);
+  const sessoes = useAppStore((s) => s.sessoes);
+  const historico = useMemo(() => (exercicio ? historicoDoExercicio(exercicio.id, sessoes) : null), [exercicio, sessoes]);
   const midia = exercicio ? midiaDoExercicio(exercicio, sexo) : null;
 
   return (
@@ -279,9 +278,9 @@ function DetalheExercicio({
                 <View style={styles.facts}>
                   <Fact
                     label={`Última vez (${formatDayMonth(historico.ultimaData)})`}
-                    value={historico.ultima.map((x) => `${formatDecimal(x.weightKg)} kg × ${x.reps}`).join(' · ')}
+                    value={historico.ultima.map((x) => `${formatDecimal(x.cargaKg)} kg × ${x.reps}`).join(' · ')}
                   />
-                  {historico.recorde && <Fact label="Recorde" value={`${formatDecimal(historico.recorde.weightKg)} kg × ${historico.recorde.reps}`} strong />}
+                  {historico.recorde && <Fact label="Recorde" value={`${formatDecimal(historico.recorde.cargaKg)} kg × ${historico.recorde.reps}`} strong />}
                 </View>
               ) : (
                 <Text variant="caption" tone="muted">

@@ -21,9 +21,9 @@ para layout, com as cores novas.
 
 ## Diferenças conscientes em relação aos mockups
 
-- **"Queimadas" virou "Déficit"** (ou "Superávit"): a meta do motor de metas já
-  inclui o treino pelo nível de atividade; somar calorias queimadas contaria o
-  treino duas vezes.
+- **"Queimadas" virou "Déficit"** (ou "Superávit"). Desde a etapa 2 do treino, o
+  fator de atividade é só a rotina de trabalho, e as kcal de cada treino entram
+  à parte, no orçamento do dia em que ele foi feito (linha "Treino +X kcal").
 - **Pílula "Pro" e "Seus módulos" (jejum, caneta) ficaram de fora**: são das
   fases 7 e 8 e da versão 1.1.
 - **Ilustração do corpo e "Ver execução" no treino**: trocadas por um cartão com
@@ -81,3 +81,11 @@ Mockup interativo em `v4.html`; `v4.png` mostra as seis telas.
 - `treino-biblioteca.png` — biblioteca (SPEC etapa 1): busca por nome e nomes alternativos, filtros por músculo e equipamento, corpo tocável para filtrar e miniatura com o mapa muscular.
 - `treino-exercicio.png` — detalhe do exercício: mapa muscular (principal em verde neon, secundários em verde claro, botão de virar), músculos, equipamento, "Como fazer" e histórico. Quando houver GIF licenciado, ele entra no lugar do mapa.
 - `treino-novo-dias.png` / `treino-novo-revisao.png` — criar treino personalizado: dias → divisão → foco → revisão com os exercícios de cada treino.
+
+## Treino (etapa 2: plano da semana, sessões e calorias)
+
+- `treino-dia.png` — semana de segunda a domingo com pílulas só do dia (ponto = treino a fazer, anel = hoje, apagado = descanso) e o cartão do dia escolhido: nome, exercícios com o mapa muscular, séries × repetições, duração e kcal estimadas, "Começar treino" (vale para qualquer dia).
+- `treino-semana-feito.png` — treino de segunda feito na terça: a segunda fica verde com ✓ e "feito na terça"; o calendário não muda sozinho.
+- `inicio-treino-kcal.png` — as kcal do treino entram no orçamento do dia em que ele foi feito ("Treino +130 kcal no orçamento de hoje").
+- `treino-meus-treinos.png` — Meus treinos: um ativo por vez; ativar, duplicar e apagar.
+- `rotina-trabalho.png` — rotina de trabalho (sentada, dinâmica, pesada) no lugar do nível de atividade; o treino não entra mais no fator.

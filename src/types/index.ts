@@ -11,7 +11,11 @@ export type DateKey = string;
 
 export type Sex = 'feminino' | 'masculino';
 
-export type ActivityLevel = 'sedentario' | 'leve' | 'moderado' | 'intenso' | 'muito_intenso';
+/**
+ * Rotina de trabalho (fator de atividade da meta). O treino entra à parte, pelas
+ * kcal registradas em cada sessão.
+ */
+export type WorkRoutine = 'sentado' | 'dinamico' | 'pesado';
 
 export type Goal = 'emagrecer' | 'manter' | 'ganhar_massa';
 
@@ -27,7 +31,7 @@ export type Profile = {
   /** Peso no momento em que o plano foi criado. O peso atual vem do histórico. */
   startWeightKg: number;
   targetWeightKg: number;
-  activityLevel: ActivityLevel;
+  workRoutine: WorkRoutine;
   goal: Goal;
   pace: Pace;
   /** Usa caneta GLP-1 (Mounjaro, Ozempic…). O módulo completo chega na fase 8. */

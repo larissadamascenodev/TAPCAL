@@ -6,8 +6,9 @@ import { mealTargets } from '@/lib/goals';
 import { DEFAULT_MEAL_TIMES, mealProgress, mealTime } from '@/lib/meals';
 import { streakMilestoneFraction, weightProgress } from '@/lib/progress';
 import { proteinTip } from '@/lib/tips';
-import { sessionsThisMonth } from '@/lib/workout';
-import type { FoodItem, WorkoutSession } from '@/types';
+import { treinosNoMes } from '@/lib/treino/plano';
+import type { FoodItem } from '@/types';
+import type { SessaoDeTreino } from '@/types/treino';
 
 describe('calorias por refeição', () => {
   it('divide a meta em 25/35/15/25 e fecha a soma no jantar', () => {
@@ -95,13 +96,13 @@ describe('progresso do peso', () => {
 });
 
 describe('treinos do mês', () => {
-  const s = (date: string, finished = true): WorkoutSession => ({
-    id: date, planId: 'a', date, startedAt: `${date}T10:00:00`, finishedAt: finished ? `${date}T11:00:00` : null, sets: [],
+  const s = (data: string): SessaoDeTreino => ({
+    id: data, planoId: 'a', treinoDoDiaId: 'a-seg', diaPlanejado: 'seg', data, inicio: `${data}T10:00:00`, fim: `${data}T11:00:00`, series: [], kcal: 0,
   });
 
-  it('conta só os concluídos no mês de hoje', () => {
-    const list = [s('2026-09-02'), s('2026-09-20'), s('2026-09-28', false), s('2026-08-30')];
-    expect(sessionsThisMonth(list, '2026-09-28')).toBe(2);
+  it('conta só os do mês de hoje', () => {
+    const list = [s('2026-09-02'), s('2026-09-20'), s('2026-08-30')];
+    expect(treinosNoMes(list, '2026-09-28')).toBe(2);
   });
 });
 

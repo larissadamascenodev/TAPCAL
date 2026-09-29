@@ -7,8 +7,10 @@ import { toDateKey } from '@/lib/dates';
 import { computePlan, type GoalPlan } from '@/lib/goals';
 import { loggedDates, streak } from '@/lib/progress';
 import { dayTotals, remaining } from '@/lib/totals';
-import { planForDate } from '@/lib/workout';
-import type { DateKey, DayLog, Macros, WorkoutPlan } from '@/types';
+import { kcalQueimadas } from '@/lib/treino/plano';
+import { diaDaData, planoAtivo, treinoDoDia } from '@/lib/treino/semana';
+import type { DateKey, DayLog, Macros } from '@/types';
+import type { TreinoDoDia } from '@/types/treino';
 
 import type { AppState } from './useAppStore';
 
@@ -35,8 +37,14 @@ export function remainingToday(s: AppState, today = toDateKey()): Macros | null 
   return plan ? remaining(plan.macros, eatenToday(s)) : null;
 }
 
-export function workoutToday(s: AppState, today = toDateKey()): WorkoutPlan | null {
-  return planForDate(s.workoutPlans, today);
+/** Treino do plano ativo que cai no dia (null = descanso ou sem plano). */
+export function workoutToday(s: AppState, today = toDateKey()): TreinoDoDia | null {
+  return treinoDoDia(planoAtivo(s.planos), diaDaData(today));
+}
+
+/** Kcal gastas em treinos no dia (entram no orçamento do dia em que o treino foi feito). */
+export function burnedOn(s: AppState, date = toDateKey()): number {
+  return kcalQueimadas(s.sessoes, date);
 }
 
 /** Registro de um dia qualquer: hoje, um dia do histórico ou vazio. */

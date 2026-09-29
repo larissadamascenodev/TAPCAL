@@ -9,7 +9,7 @@ import {
   midiaDoExercicio,
   slugDoDesenho,
 } from '@/lib/exercicios';
-import type { WorkoutPlan, WorkoutSession } from '@/types';
+import type { SessaoDeTreino } from '@/types/treino';
 
 describe('busca na biblioteca', () => {
   it('acha por nome alternativo, sem acento, em qualquer ordem', () => {
@@ -43,26 +43,33 @@ describe('mapa muscular e mídia', () => {
 });
 
 describe('histórico do exercício', () => {
-  const plans: WorkoutPlan[] = [
-    { id: 'a', name: 'A', focus: 'Pernas', weekdays: [1], exercises: [{ id: 'a-agacha', catalogId: 'agachamento-livre-barra', name: 'Agachamento', muscleGroup: 'Quadríceps', targetSets: 3, targetReps: '8-12', restSeconds: 90 }] },
-  ];
-  const s = (id: string, date: string, sets: [number, number][]): WorkoutSession => ({
+  const s = (id: string, data: string, series: [number, number][]): SessaoDeTreino => ({
     id,
-    planId: 'a',
-    date,
-    startedAt: '',
-    finishedAt: '',
-    sets: sets.map(([w, r], i) => ({ id: `${id}${i}`, exerciseId: 'a-agacha', weightKg: w, reps: r, completedAt: '' })),
+    planoId: 'p',
+    treinoDoDiaId: 'p-seg',
+    diaPlanejado: 'seg',
+    data,
+    inicio: `${data}T08:00:00`,
+    fim: `${data}T09:00:00`,
+    kcal: 0,
+    series: series.map(([cargaKg, reps], i) => ({
+      exercicioNoTreinoId: 'x',
+      exercicioId: 'agachamento-livre-barra',
+      numero: i + 1,
+      cargaKg,
+      reps,
+      concluidaEm: '',
+    })),
   });
 
   it('última sessão e recorde', () => {
-    const h = historicoDoExercicio('agachamento-livre-barra', plans, [s('1', '2026-09-20', [[80, 5]]), s('2', '2026-09-27', [[70, 12], [70, 10]])]);
+    const h = historicoDoExercicio('agachamento-livre-barra', [s('1', '2026-09-20', [[80, 5]]), s('2', '2026-09-27', [[70, 12], [70, 10]])]);
     expect(h.ultimaData).toBe('2026-09-27');
     expect(h.ultima.map((x) => x.reps)).toEqual([12, 10]);
-    expect(h.recorde).toEqual({ weightKg: 80, reps: 5 });
+    expect(h.recorde).toMatchObject({ cargaKg: 80, reps: 5 });
   });
 
   it('sem registro', () => {
-    expect(historicoDoExercicio('prancha', plans, [])).toEqual({ ultima: [], ultimaData: null, recorde: null });
+    expect(historicoDoExercicio('prancha', [])).toEqual({ ultima: [], ultimaData: null, recorde: null });
   });
 });

@@ -12,6 +12,7 @@ import type { Musculo } from '@/types/treino';
 import { exercicioPorId } from '@/lib/exercicios';
 import { WEEKDAY_LETTERS, WEEKDAY_SHORT } from '@/lib/format';
 import { buildPlans, SPLITS, splitsFor, suggestedWeekdays, toggleExercise, type SplitKey } from '@/lib/split';
+import { planoDoMontador } from '@/lib/treino/migracao';
 import { useAppStore } from '@/store/useAppStore';
 import { colors, fonts, radius, spacing } from '@/theme/theme';
 import type { WorkoutPlan } from '@/types';
@@ -35,8 +36,8 @@ const FOCUS: { key: Musculo; label: string }[] = [
 
 /** Criar um treino novo: personalizado (dias → divisão → foco → exercícios) ou com IA. */
 export default function TreinoNovoScreen() {
-  const hasPlans = useAppStore((s) => s.workoutPlans.length > 0);
-  const setWorkoutPlans = useAppStore((s) => s.setWorkoutPlans);
+  const hasActive = useAppStore((s) => s.planos.some((p) => p.ativo));
+  const salvarPlano = useAppStore((s) => s.salvarPlano);
   const sexo = useAppStore((s) => s.profile?.sex);
 
   const [step, setStep] = useState<Step>('tipo');
@@ -76,12 +77,15 @@ export default function TreinoNovoScreen() {
 
   const save = () => {
     const doSave = () => {
-      setWorkoutPlans(plans);
-      toast('Treino salvo');
-      router.back();
+      const def = SPLITS.find((x) => x.key === split);
+      const plano = planoDoMontador(plans, def ? `Treino ${def.name}` : 'Meu treino');
+      if (!plano) return;
+      salvarPlano(plano);
+      toast('Treino salvo e ativado');
+      router.dismissTo('/treino');
     };
-    if (hasPlans) {
-      confirmDestructive('Trocar seu treino?', 'A divisão atual será substituída por esta.', 'Trocar', doSave);
+    if (hasActive) {
+      confirmDestructive('Usar este treino?', 'Ele passa a ser o seu treino ativo. O atual fica guardado em Meus treinos.', 'Usar', doSave);
     } else doSave();
   };
 
@@ -107,7 +111,7 @@ export default function TreinoNovoScreen() {
           <DishTitle>Como quer montar?</DishTitle>
           <Choice
             icon="construct-outline"
-            title="Personalizado"
+            title="Montar do meu jeito"
             text="Você escolhe os dias, a divisão, o foco e os exercícios."
             onPress={() => setStep('dias')}
           />

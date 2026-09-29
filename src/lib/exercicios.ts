@@ -5,8 +5,8 @@
 
 import { EXERCICIOS } from '@/data/exercicios';
 import { normalize } from '@/lib/taco';
-import type { SetLog, WorkoutPlan, WorkoutSession } from '@/types';
-import type { Equipamento, Exercicio, Musculo } from '@/types/treino';
+import { recorde, ultimasSeries } from '@/lib/treino/plano';
+import type { Equipamento, Exercicio, Musculo, SerieFeita, SessaoDeTreino } from '@/types/treino';
 
 export const MUSCULO_LABELS: Record<Musculo, string> = {
   chest: 'Peito',
@@ -126,24 +126,13 @@ export function midiaDoExercicio(e: Exercicio, sexo: 'feminino' | 'masculino' | 
   return url ? { tipo: 'gif', url } : { tipo: 'mapa' };
 }
 
-export type Historico = { ultima: SetLog[]; ultimaData: string | null; recorde: { weightKg: number; reps: number } | null };
+export type Historico = { ultima: SerieFeita[]; ultimaData: string | null; recorde: SerieFeita | null };
 
 /**
  * Histórico do exercício da biblioteca: séries da última sessão em que ele foi
- * feito e o recorde, juntando todos os treinos que usam esse exercício.
+ * feito e o recorde, juntando todos os treinos (de qualquer plano) que o usam.
  */
-export function historicoDoExercicio(id: string, plans: readonly WorkoutPlan[], sessions: readonly WorkoutSession[]): Historico {
-  const idsNoPlano = new Set(plans.flatMap((p) => p.exercises.filter((e) => e.catalogId === id).map((e) => e.id)));
-  const comEle = sessions
-    .map((s) => ({ ...s, sets: s.sets.filter((x) => idsNoPlano.has(x.exerciseId)) }))
-    .filter((s) => s.sets.length)
-    .sort((a, b) => b.date.localeCompare(a.date));
-  // Recorde: maior carga; empate, mais repetições.
-  let recorde: Historico['recorde'] = null;
-  for (const x of comEle.flatMap((sess) => sess.sets)) {
-    if (!recorde || x.weightKg > recorde.weightKg || (x.weightKg === recorde.weightKg && x.reps > recorde.reps)) {
-      recorde = { weightKg: x.weightKg, reps: x.reps };
-    }
-  }
-  return { ultima: comEle[0]?.sets ?? [], ultimaData: comEle[0]?.date ?? null, recorde };
+export function historicoDoExercicio(id: string, sessoes: readonly SessaoDeTreino[]): Historico {
+  const ultimas = ultimasSeries(sessoes, id);
+  return { ultima: ultimas?.series ?? [], ultimaData: ultimas?.data ?? null, recorde: recorde(sessoes, id) };
 }

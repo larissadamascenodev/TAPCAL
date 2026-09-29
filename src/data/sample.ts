@@ -24,7 +24,7 @@ export const SAMPLE_PROFILE: Profile = {
   heightCm: 165, // ⚠️ palpite
   startWeightKg: 71,
   targetWeightKg: 65,
-  activityLevel: 'moderado', // ⚠️ palpite
+  workRoutine: 'sentado', // ⚠️ palpite
   goal: 'emagrecer',
   pace: 'moderado',
   usesGlp1: false,

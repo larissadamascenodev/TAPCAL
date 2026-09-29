@@ -15,8 +15,10 @@ import { useDoubleTap } from '@/hooks/useDoubleTap';
 import { mealTargets } from '@/lib/goals';
 import { weightTrend } from '@/lib/progress';
 import { dayTotals } from '@/lib/totals';
-import { estimatedMinutes, planForDate, shortFocus } from '@/lib/workout';
-import { goalPlan } from '@/store/selectors';
+import { formatInt } from '@/lib/format';
+import { minutosEstimados } from '@/lib/treino/plano';
+import { estadoDoDia, planoAtivo } from '@/lib/treino/semana';
+import { burnedOn, goalPlan, workoutToday } from '@/store/selectors';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing } from '@/theme/theme';
 
@@ -24,8 +26,8 @@ const WATER_STEP = 250;
 
 export default function InicioScreen() {
   const state = useAppStore();
-  const { profile, today: day, weights, workoutPlans, sessions, activeSession } = state;
-  const { addWater, startSession } = state;
+  const { profile, today: day, weights, sessaoAtiva } = state;
+  const { addWater, comecarTreino } = state;
   const today = day.date;
   const { width } = useWindowDimensions();
 
@@ -42,8 +44,11 @@ export default function InicioScreen() {
     );
   }
 
-  const workout = planForDate(workoutPlans, today);
-  const doneToday = sessions.some((s) => s.date === today);
+  const workout = workoutToday(state, today);
+  const doneToday = workout ? estadoDoDia(planoAtivo(state.planos), state.sessoes, workout.dia, today).tipo === 'feito' : false;
+  // Kcal dos treinos de hoje: aumentam o orçamento do dia.
+  const burned = burnedOn(state, today);
+  const budget = plan.targetKcal + burned;
 
   const onWater = () => {
     const next = day.waterMl + WATER_STEP;
@@ -52,18 +57,18 @@ export default function InicioScreen() {
   };
 
   const onWorkout = () => {
-    if (!activeSession && workout) startSession(workout.id);
+    if (!sessaoAtiva && workout) comecarTreino(workout.id);
     router.push('/treino-sessao');
   };
 
-  const workoutTile = activeSession
+  const workoutTile = sessaoAtiva
     ? { title: 'Em andamento', subtitle: 'Toque para continuar', action: 'Continuar' }
     : workout && doneToday
-      ? { title: shortFocus(workout), subtitle: 'Concluído hoje' }
+      ? { title: workout.nome, subtitle: burned ? `Concluído · ${formatInt(burned)} kcal` : 'Concluído hoje' }
       : workout
         ? {
-            title: shortFocus(workout),
-            subtitle: `${workout.exercises.length} exercícios · ${estimatedMinutes(workout)} min`,
+            title: workout.nome,
+            subtitle: `${workout.exercicios.length} exercícios · ${minutosEstimados(workout)} min`,
             action: 'Iniciar',
           }
         : { title: 'Descanso', subtitle: 'Dia de recuperar' };
@@ -78,10 +83,10 @@ export default function InicioScreen() {
         onPress={gaugeTap}
         accessibilityHint="Toque duas vezes para fotografar um prato"
         style={styles.gauge}>
-        <CalorieGauge eaten={eaten.kcal} goal={plan.targetKcal} width={gaugeWidth} />
+        <CalorieGauge eaten={eaten.kcal} goal={budget} width={gaugeWidth} />
       </Pressable>
       <View style={styles.stats}>
-        <GaugeStats eaten={eaten.kcal} goal={plan.targetKcal} adjustment={plan.dailyAdjustmentKcal} />
+        <GaugeStats eaten={eaten.kcal} goal={budget} adjustment={plan.dailyAdjustmentKcal} burned={burned} />
       </View>
 
       <MacroRows eaten={eaten} goal={plan.macros} style={styles.macros} />

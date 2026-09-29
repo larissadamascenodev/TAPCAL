@@ -14,18 +14,12 @@ import {
   toast,
 } from '@/components/ui';
 import { MapaMuscular } from '@/components/workout/MapaMuscular';
-import { exercicioPorId } from '@/lib/exercicios';
-import { formatDecimal, formatDuration } from '@/lib/format';
-import {
-  beatsRecord,
-  lastSetsFor,
-  nextExerciseIndex,
-  personalRecord,
-  setsDone,
-} from '@/lib/workout';
+import { exercicioPorId, MUSCULO_LABELS } from '@/lib/exercicios';
+import { formatDecimal, formatDuration, formatInt } from '@/lib/format';
+import { bateRecorde, proximoExercicio, recorde, repsLabel, seriesFeitas, ultimasSeries } from '@/lib/treino/plano';
 import { useAppStore } from '@/store/useAppStore';
 import { colors, fonts, radius, spacing } from '@/theme/theme';
-import type { Exercise, WorkoutSession } from '@/types';
+import type { ExercicioNoTreino, SessaoDeTreino, SessaoEmAndamento } from '@/types/treino';
 
 const KG_STEP = 2.5;
 
@@ -39,59 +33,63 @@ function useNow() {
   return now;
 }
 
-/** Carga e repetições iniciais: as da última série feita, ou da última vez, ou do alvo. */
-function suggestion(ex: Exercise, session: WorkoutSession, past: WorkoutSession[]) {
-  const here = session.sets.filter((s) => s.exerciseId === ex.id).at(-1);
-  if (here) return { kg: here.weightKg, reps: here.reps };
-  const last = lastSetsFor(past, ex.id).at(-1);
-  if (last) return { kg: last.weightKg, reps: last.reps };
-  return { kg: 10, reps: Number(ex.targetReps.split('-')[0]) || 10 };
+/** Carga e repetições iniciais: as da última série feita, ou da última vez, ou a carga inicial do plano. */
+function suggestion(ex: ExercicioNoTreino, session: SessaoEmAndamento, past: SessaoDeTreino[]) {
+  const here = session.series.filter((s) => s.exercicioNoTreinoId === ex.id).at(-1);
+  if (here) return { kg: here.cargaKg, reps: here.reps };
+  const last = ultimasSeries(past, ex.exercicioId)?.series.at(-1);
+  if (last) return { kg: last.cargaKg, reps: last.reps };
+  return { kg: ex.cargaInicialKg ?? 10, reps: ex.repsMin };
 }
 
 export default function TreinoSessaoScreen() {
-  const { activeSession: session, workoutPlans, sessions: past } = useAppStore();
-  const { logSet, removeSet, finishSession, cancelSession } = useAppStore();
+  const { sessaoAtiva: session, planos, sessoes: past } = useAppStore();
+  const { registrarSerie, apagarSerie, finalizarTreino, cancelarTreino } = useAppStore();
   const sexo = useAppStore((s) => s.profile?.sex);
-  const plan = session ? workoutPlans.find((p) => p.id === session.planId) : undefined;
+  const treino = session
+    ? planos.find((p) => p.id === session.planoId)?.treinos.find((t) => t.id === session.treinoDoDiaId)
+    : undefined;
   const now = useNow();
 
-  const [index, setIndex] = useState(() => (session && plan ? nextExerciseIndex(plan, session) : 0));
-  const exercise = plan?.exercises[index];
+  const [index, setIndex] = useState(() => (session && treino ? proximoExercicio(treino, session) : 0));
+  const exercise = treino?.exercicios[index];
   const [input, setInput] = useState(() =>
     session && exercise ? suggestion(exercise, session, past) : { kg: 10, reps: 10 },
   );
   const [restUntil, setRestUntil] = useState<number | null>(null);
 
-  if (!session || !plan || !exercise) return <Redirect href="/treino" />;
+  if (!session || !treino || !exercise) return <Redirect href="/treino" />;
 
-  const done = setsDone(session, exercise.id);
-  const exerciseDone = done >= exercise.targetSets;
-  const isLast = index === plan.exercises.length - 1;
-  const elapsed = (now - new Date(session.startedAt).getTime()) / 1000;
+  const info = exercicioPorId(exercise.exercicioId);
+  const done = seriesFeitas(session, exercise.id);
+  const exerciseDone = done >= exercise.series;
+  const isLast = index === treino.exercicios.length - 1;
+  const elapsed = (now - new Date(session.inicio).getTime()) / 1000;
   const restLeft = restUntil ? Math.ceil((restUntil - now) / 1000) : 0;
-  const lastTime = lastSetsFor(past, exercise.id);
-  const record = personalRecord(past, exercise.id);
+  const lastTime = ultimasSeries(past, exercise.exercicioId)?.series ?? [];
+  const record = recorde(past, exercise.exercicioId);
 
   const goTo = (i: number) => {
-    const ex = plan.exercises[i];
+    const ex = treino.exercicios[i];
     setIndex(i);
     setInput(suggestion(ex, session, past));
     setRestUntil(null);
   };
 
   const finish = () => {
-    const count = session.sets.length;
-    finishSession();
-    toast(count ? 'Treino salvo. Bom trabalho!' : 'Treino encerrado sem séries');
+    const count = session.series.length;
+    finalizarTreino();
+    const kcal = useAppStore.getState().sessoes[0]?.kcal ?? 0;
+    toast(count ? `Treino salvo · ${formatInt(kcal)} kcal no seu dia. Bom trabalho!` : 'Treino encerrado sem séries');
     router.back();
   };
 
   const completeSet = () => {
     // Recorde conta contra os treinos anteriores e as séries já feitas hoje.
-    const isRecord = beatsRecord([...past, session], exercise.id, input.kg, input.reps);
-    logSet(exercise.id, input.kg, input.reps);
+    const isRecord = bateRecorde([...past, session], exercise.exercicioId, input.kg, input.reps);
+    registrarSerie(exercise.id, input.kg, input.reps);
     toast(isRecord ? `Novo recorde: ${formatDecimal(input.kg)} kg` : 'Série registrada');
-    if (done + 1 < exercise.targetSets) setRestUntil(Date.now() + exercise.restSeconds * 1000);
+    if (done + 1 < exercise.series) setRestUntil(Date.now() + exercise.descansoSeg * 1000);
   };
 
   const onMain = () => {
@@ -103,7 +101,7 @@ export default function TreinoSessaoScreen() {
   const openOptions = () => {
     const cancel = () =>
       confirmDestructive('Descartar treino?', 'As séries de hoje não serão salvas.', 'Descartar', () => {
-        cancelSession();
+        cancelarTreino();
         router.back();
       });
     if (Platform.OS === 'web') {
@@ -117,9 +115,10 @@ export default function TreinoSessaoScreen() {
     ]);
   };
 
-  const exSets = session.sets.filter((s) => s.exerciseId === exercise.id);
-  const rows = Array.from({ length: Math.max(exercise.targetSets, exSets.length) }, (_, i) => exSets[i] ?? null);
+  const exSets = session.series.filter((s) => s.exercicioNoTreinoId === exercise.id);
+  const rows = Array.from({ length: Math.max(exercise.series, exSets.length) }, (_, i) => exSets[i] ?? null);
   const mainLabel = !exerciseDone ? `Concluir série ${done + 1}` : !isLast ? 'Próximo exercício' : 'Finalizar treino';
+  const reps = repsLabel(exercise);
 
   return (
     <Screen withTabBar={false}>
@@ -132,34 +131,30 @@ export default function TreinoSessaoScreen() {
         <IconButton icon="ellipsis-horizontal" label="Opções do treino" onPress={openOptions} />
       </View>
 
-      <View style={styles.progress} accessibilityLabel={`Exercício ${index + 1} de ${plan.exercises.length}`}>
-        {plan.exercises.map((ex, i) => (
+      <View style={styles.progress} accessibilityLabel={`Exercício ${index + 1} de ${treino.exercicios.length}`}>
+        {treino.exercicios.map((ex, i) => (
           <Pressable
             key={ex.id}
             onPress={() => goTo(i)}
             accessibilityRole="button"
-            accessibilityLabel={`Ir para ${ex.name}`}
+            accessibilityLabel={`Ir para ${exercicioPorId(ex.exercicioId)?.nome ?? `exercício ${i + 1}`}`}
             hitSlop={{ top: 12, bottom: 12 }}
-            style={[styles.seg, (i === index || setsDone(session, ex.id) >= ex.targetSets) && styles.segOn]}
+            style={[styles.seg, (i === index || seriesFeitas(session, ex.id) >= ex.series) && styles.segOn]}
           />
         ))}
       </View>
 
       <View style={styles.titleBlock}>
         <Text variant="label" tone="muted">
-          Exercício {index + 1} de {plan.exercises.length} · {exercise.muscleGroup}
+          Exercício {index + 1} de {treino.exercicios.length}
+          {info ? ` · ${MUSCULO_LABELS[info.musculoPrincipal]}` : ''}
         </Text>
-        <Text style={styles.exName}>{exercise.name}</Text>
+        <Text style={styles.exName}>{info?.nome ?? 'Exercício'}</Text>
       </View>
 
-      {exercicioPorId(exercise.catalogId) && (
+      {info && (
         <View style={styles.anim}>
-          <MapaMuscular
-            principal={exercicioPorId(exercise.catalogId)!.musculoPrincipal}
-            secundarios={exercicioPorId(exercise.catalogId)!.musculosSecundarios}
-            sexo={sexo}
-            altura={180}
-          />
+          <MapaMuscular principal={info.musculoPrincipal} secundarios={info.musculosSecundarios} sexo={sexo} altura={180} />
         </View>
       )}
 
@@ -168,12 +163,13 @@ export default function TreinoSessaoScreen() {
           icon="time-outline"
           text={
             lastTime.length
-              ? `Última vez: ${lastTime.map((s) => `${formatDecimal(s.weightKg)} kg × ${s.reps}`).join(' · ')}`
+              ? `Última vez: ${lastTime.map((s) => `${formatDecimal(s.cargaKg)} kg × ${s.reps}`).join(' · ')}`
               : 'Primeira vez neste exercício'
           }
         />
-        <Info icon="trophy-outline" text={record ? `Recorde: ${formatDecimal(record.weightKg)} kg × ${record.reps}` : 'Sem recorde ainda'} />
-        <Info icon="flag-outline" text={`Meta: ${exercise.targetSets} × ${exercise.targetReps.replace('-', '–')} · descanso ${exercise.restSeconds} s`} />
+        <Info icon="trophy-outline" text={record ? `Recorde: ${formatDecimal(record.cargaKg)} kg × ${record.reps}` : 'Sem recorde ainda'} />
+        <Info icon="flag-outline" text={`Meta: ${exercise.series} × ${reps} · descanso ${exercise.descansoSeg} s`} />
+        {exercise.observacao ? <Info icon="chatbubble-ellipses-outline" text={exercise.observacao} /> : null}
       </Glass>
 
       {!exerciseDone && (
@@ -213,21 +209,23 @@ export default function TreinoSessaoScreen() {
           const current = !set && i === done;
           return (
             <Pressable
-              key={set?.id ?? `p${i}`}
+              key={set ? `s${set.numero}` : `p${i}`}
               disabled={!set}
               onLongPress={() =>
                 set &&
-                confirmDestructive('Apagar série?', `${formatDecimal(set.weightKg)} kg × ${set.reps}`, 'Apagar', () => removeSet(set.id))
+                confirmDestructive('Apagar série?', `${formatDecimal(set.cargaKg)} kg × ${set.reps}`, 'Apagar', () =>
+                  apagarSerie(exercise.id, set.numero),
+                )
               }
               accessibilityHint={set ? 'Toque e segure para apagar' : undefined}
               style={[styles.setRow, current && styles.setCurrent]}>
               <Text style={[styles.setNum, current && { color: colors.lime2 }]}>{i + 1}</Text>
               <Text variant="bodyStrong" style={styles.setValue} tone={set || current ? 'primary' : 'muted'}>
                 {set
-                  ? `${formatDecimal(set.weightKg)} kg × ${set.reps}`
+                  ? `${formatDecimal(set.cargaKg)} kg × ${set.reps}`
                   : current
                     ? `${formatDecimal(input.kg)} kg × ${input.reps}`
-                    : `${exercise.targetReps.replace('-', '–')} reps`}
+                    : `${reps} reps`}
               </Text>
               <View style={[styles.check, set && styles.checkDone]}>
                 {set && <Ionicons name="checkmark" size={14} color={colors.ok} />}

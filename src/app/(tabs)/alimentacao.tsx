@@ -14,7 +14,7 @@ import { daysBetween } from '@/lib/dates';
 import { emptyDay } from '@/lib/day';
 import { mealTargets } from '@/lib/goals';
 import { dayTotals } from '@/lib/totals';
-import { dayLogFor, goalPlan } from '@/store/selectors';
+import { burnedOn, dayLogFor, goalPlan } from '@/store/selectors';
 import { useAppStore } from '@/store/useAppStore';
 import { colors, fonts, spacing } from '@/theme/theme';
 import type { FoodItem, MealType } from '@/types';
@@ -75,7 +75,7 @@ export default function AlimentacaoScreen() {
         <>
           <DateStrip today={today} past={PAST_DAYS} future={3} selected={shownDate} onSelect={setDate} />
           <View style={styles.block}>
-            <DaySummary eaten={eaten} goal={plan.macros} showTip={isToday} />
+            <DaySummary eaten={eaten} goal={{ ...plan.macros, kcal: plan.macros.kcal + burnedOn(state, shownDate) }} showTip={isToday} />
           </View>
           {isToday && plan.warnings.length > 0 && (
             <View style={styles.block}>

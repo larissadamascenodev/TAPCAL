@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { toast } from '@/components/ui';
 import { formatLiters } from '@/lib/format';
 import { SHORTCUT_WATER_ML, type ShortcutAction } from '@/lib/shortcuts';
-import { planForDate } from '@/lib/workout';
+import { workoutToday } from '@/store/selectors';
 import { useAppStore } from '@/store/useAppStore';
 
 /** Espera o store terminar de carregar do aparelho antes de mexer nos dados. */
@@ -33,9 +33,9 @@ export function runShortcut(action: ShortcutAction) {
     toast(`+250 ml · ${formatLiters(useAppStore.getState().today.waterMl)} L hoje`);
     return;
   }
-  const plan = planForDate(s.workoutPlans, s.today.date);
-  if (s.activeSession || plan) {
-    if (!s.activeSession && plan) s.startSession(plan.id);
+  const treino = workoutToday(s, s.today.date);
+  if (s.sessaoAtiva || treino) {
+    if (!s.sessaoAtiva && treino) s.comecarTreino(treino.id);
     router.replace('/treino-sessao');
   } else {
     router.replace('/treino');

@@ -67,6 +67,7 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="alimento" options={{ presentation: 'modal' }} />
           <Stack.Screen name="peso" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="rotina" options={{ presentation: 'modal' }} />
           <Stack.Screen
             name="treino-sessao"
             options={{ presentation: 'fullScreenModal', gestureEnabled: false }}
@@ -75,6 +76,7 @@ export default function RootLayout() {
           <Stack.Screen name="busca" options={{ presentation: 'modal' }} />
           <Stack.Screen name="exercicios" options={{ presentation: 'modal' }} />
           <Stack.Screen name="treino-novo" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="meus-treinos" options={{ presentation: 'modal' }} />
           <Stack.Screen
             name="editar-alimento"
             // transparente: a tela de Refeições aparece desfocada atrás da folha

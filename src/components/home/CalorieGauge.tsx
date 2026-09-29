@@ -1,3 +1,4 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { StyleSheet, View } from 'react-native';
 import Svg, { Circle, Defs, Line, RadialGradient, Stop } from 'react-native-svg';
 
@@ -99,20 +100,32 @@ type StatsProps = {
   goal: number;
   /** Ajuste do plano: negativo = déficit, positivo = superávit. */
   adjustment: number;
+  /** Kcal gastas em treinos hoje (já somadas em `goal`); aparecem numa linha embaixo. */
+  burned?: number;
 };
 
 /** Os três números embaixo do velocímetro: consumidas, faltam (ou acima) e o déficit do plano. */
-export function GaugeStats({ eaten, goal, adjustment }: StatsProps) {
+export function GaugeStats({ eaten, goal, adjustment, burned = 0 }: StatsProps) {
   const left = goal - eaten;
   const over = left < 0;
   // "do plano": é o ajuste embutido na meta, não o resultado do dia.
   const adjLabel = adjustment < 0 ? 'Déficit do plano' : adjustment > 0 ? 'Superávit do plano' : 'Ajuste do plano';
   const adjValue = adjustment === 0 ? '0' : `${adjustment > 0 ? '+' : '−'}${formatInt(Math.abs(adjustment))}`;
   return (
-    <View style={styles.stats}>
-      <Stat label="Consumidas" value={formatInt(eaten)} />
-      <Stat label={over ? 'Acima' : 'Faltam'} value={formatInt(Math.abs(left))} color={over ? colors.warnText : colors.lime} divider />
-      <Stat label={adjLabel} value={adjValue} divider />
+    <View>
+      <View style={styles.stats}>
+        <Stat label="Consumidas" value={formatInt(eaten)} />
+        <Stat label={over ? 'Acima' : 'Faltam'} value={formatInt(Math.abs(left))} color={over ? colors.warnText : colors.lime} divider />
+        <Stat label={adjLabel} value={adjValue} divider />
+      </View>
+      {burned > 0 && (
+        <View style={styles.burned} accessible accessibilityLabel={`Treino de hoje: mais ${formatInt(burned)} calorias no orçamento`}>
+          <Ionicons name="flame" size={14} color={colors.lime} />
+          <Text variant="caption" tone="secondary" style={styles.burnedText}>
+            Treino <Text style={styles.burnedValue}>+{formatInt(burned)} kcal</Text> no orçamento de hoje
+          </Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -170,6 +183,20 @@ const styles = StyleSheet.create({
   },
   stats: {
     flexDirection: 'row',
+  },
+  burned: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 12,
+  },
+  burnedText: {
+    fontFamily: fonts.body.semibold,
+  },
+  burnedValue: {
+    fontFamily: fonts.body.bold,
+    color: colors.lime,
   },
   stat: {
     flex: 1,

@@ -10,24 +10,24 @@
  */
 
 import { addDays, ageOn } from '@/lib/dates';
-import type { ActivityLevel, DateKey, Goal, Macros, MealType, Pace, Profile, Sex } from '@/types';
+import type { DateKey, Goal, Macros, MealType, Pace, Profile, Sex, WorkRoutine } from '@/types';
 
 export const KCAL_PER_KG = 7700;
 
-export const ACTIVITY_FACTORS: Record<ActivityLevel, number> = {
-  sedentario: 1.2,
-  leve: 1.375,
-  moderado: 1.55,
-  intenso: 1.725,
-  muito_intenso: 1.9,
+/**
+ * Fator de atividade só pela rotina de trabalho. O treino não entra aqui: as
+ * kcal de cada sessão somam nas queimadas do dia em que ela foi feita.
+ */
+export const ROUTINE_FACTORS: Record<WorkRoutine, number> = {
+  sentado: 1.2,
+  dinamico: 1.375,
+  pesado: 1.55,
 };
 
-export const ACTIVITY_LABELS: Record<ActivityLevel, string> = {
-  sedentario: 'Sedentário',
-  leve: 'Leve (1 a 3 treinos por semana)',
-  moderado: 'Moderado (3 a 5 treinos por semana)',
-  intenso: 'Intenso (6 a 7 treinos por semana)',
-  muito_intenso: 'Muito intenso (treino pesado e trabalho físico)',
+export const ROUTINE_LABELS: Record<WorkRoutine, string> = {
+  sentado: 'Sentada (escritório, estudo)',
+  dinamico: 'Dinâmica (em pé, andando bastante)',
+  pesado: 'Trabalho físico pesado',
 };
 
 /** Quantos kg por semana cada ritmo representa. */
@@ -85,8 +85,8 @@ export function bmr(sex: Sex, weightKg: number, heightCm: number, age: number): 
 }
 
 /** Gasto diário total = TMB × fator de atividade. */
-export function tdee(bmrKcal: number, activity: ActivityLevel): number {
-  return bmrKcal * ACTIVITY_FACTORS[activity];
+export function tdee(bmrKcal: number, routine: WorkRoutine): number {
+  return bmrKcal * ROUTINE_FACTORS[routine];
 }
 
 /** Peso com IMC 25 na altura dada — referência de proteína para quem tem IMC ≥ 30. */
@@ -150,7 +150,7 @@ type PlanInput = Pick<
   | 'birthDate'
   | 'heightCm'
   | 'targetWeightKg'
-  | 'activityLevel'
+  | 'workRoutine'
   | 'goal'
   | 'pace'
   | 'usesGlp1'
@@ -167,7 +167,7 @@ export function computePlan(profile: PlanInput, weightKg: number, today: DateKey
   const age = ageOn(profile.birthDate, today);
   const bmiValue = bmi(weightKg, heightCm);
   const bmrKcal = bmr(sex, weightKg, heightCm, age);
-  const tdeeKcal = tdee(bmrKcal, profile.activityLevel);
+  const tdeeKcal = tdee(bmrKcal, profile.workRoutine);
 
   // Objetivo coerente com o peso? Ex.: "emagrecer" com meta acima do peso atual.
   const diffKg = targetWeightKg - weightKg;

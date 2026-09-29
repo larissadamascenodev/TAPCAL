@@ -1,8 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import mockAsyncStorage from '@react-native-async-storage/async-storage/jest/async-storage-mock';
 
-import { goalPlan, remainingToday, workoutToday } from '@/store/selectors';
-import { useAppStore } from '@/store/useAppStore';
+import { SAMPLE_PROFILE, SAMPLE_WORKOUT_PLANS, sampleSessions } from '@/data/sample';
+import { burnedOn, goalPlan, remainingToday, workoutToday } from '@/store/selectors';
+import { migrarStore, useAppStore } from '@/store/useAppStore';
+import type { Profile } from '@/types';
+import type { PlanoDeTreino } from '@/types/treino';
 
 jest.mock('@react-native-async-storage/async-storage', () => mockAsyncStorage);
 
@@ -86,20 +89,107 @@ describe('refeições, água e peso', () => {
 });
 
 describe('treino', () => {
-  it('registra séries e só guarda treino com pelo menos uma série', () => {
-    store().startSession('plano-a');
-    store().finishSession();
-    expect(store().sessions).toHaveLength(0);
+  const planoTeste = (): PlanoDeTreino => ({
+    id: 'p',
+    nome: 'Meu treino',
+    origem: 'personalizado',
+    ativo: true,
+    criadoEm: '2026-09-01T10:00:00.000Z',
+    treinos: [
+      {
+        id: 't-seg',
+        dia: 'seg',
+        nome: 'Pernas e glúteos',
+        exercicios: [{ id: 'e1', exercicioId: 'agachamento-livre-barra', series: 3, repsMin: 10, repsMax: 12, descansoSeg: 90 }],
+      },
+    ],
+  });
 
-    store().startSession('plano-a');
-    store().logSet('ex-supino', 12, 10);
-    store().logSet('ex-supino', 14, 8);
-    store().finishSession();
+  it('só guarda treino com pelo menos uma série, numera as séries e calcula as kcal', () => {
+    store().salvarPlano(planoTeste());
+    store().comecarTreino('t-seg');
+    store().finalizarTreino();
+    expect(store().sessoes).toHaveLength(0);
 
-    expect(store().activeSession).toBeNull();
-    expect(store().sessions).toHaveLength(1);
-    expect(store().sessions[0].sets).toHaveLength(2);
-    expect(store().sessions[0].finishedAt).not.toBeNull();
+    store().comecarTreino('t-seg');
+    store().registrarSerie('e1', 60, 12);
+    store().registrarSerie('e1', 60, 12);
+    jest.advanceTimersByTime(60 * 60_000);
+    store().finalizarTreino();
+
+    expect(store().sessaoAtiva).toBeNull();
+    const [s] = store().sessoes;
+    expect(s.series.map((x) => [x.numero, x.exercicioId])).toEqual([
+      [1, 'agachamento-livre-barra'],
+      [2, 'agachamento-livre-barra'],
+    ]);
+    // sem peso registrado: usa 70 kg → (3,5 − 1) × 70 × 1 h
+    expect(s.kcal).toBe(175);
+  });
+
+  it('PRONTO QUANDO: treino de segunda feito na terça conta nas queimadas de terça', () => {
+    store().salvarPlano(planoTeste());
+    jest.setSystemTime(at(2026, 9, 29, 18)); // terça
+    store().comecarTreino('t-seg');
+    store().registrarSerie('e1', 60, 10);
+    jest.advanceTimersByTime(45 * 60_000);
+    store().finalizarTreino();
+    const [s] = store().sessoes;
+    expect(s).toMatchObject({ diaPlanejado: 'seg', data: '2026-09-29' });
+    expect(burnedOn(store(), '2026-09-29')).toBe(s.kcal);
+    expect(burnedOn(store(), '2026-09-28')).toBe(0);
+  });
+
+  it('um plano ativo por vez: salvar outro desativa o anterior; duplicar e apagar', () => {
+    store().salvarPlano(planoTeste());
+    store().salvarPlano({ ...planoTeste(), id: 'q', nome: 'Outro' });
+    expect(store().planos.map((p) => [p.id, p.ativo])).toEqual([
+      ['p', false],
+      ['q', true],
+    ]);
+    store().ativarPlano('p');
+    store().duplicarPlano('p');
+    expect(store().planos).toHaveLength(3);
+    expect(store().planos[2]).toMatchObject({ nome: 'Meu treino (cópia)', ativo: false });
+    expect(store().planos[2].treinos[0].id).not.toBe('t-seg');
+    store().apagarPlano('q');
+    expect(store().planos.map((p) => p.id)).not.toContain('q');
+  });
+
+  it('apagar série renumera as seguintes', () => {
+    store().salvarPlano(planoTeste());
+    store().comecarTreino('t-seg');
+    store().registrarSerie('e1', 60, 12);
+    store().registrarSerie('e1', 62.5, 10);
+    store().registrarSerie('e1', 65, 8);
+    store().apagarSerie('e1', 2);
+    expect(store().sessaoAtiva?.series.map((x) => [x.numero, x.cargaKg])).toEqual([
+      [1, 60],
+      [2, 65],
+    ]);
+  });
+});
+
+describe('migração dos dados salvos (v1 → v2)', () => {
+  it('treinos antigos viram um plano novo, com as sessões e a rotina de trabalho', () => {
+    const antigo = {
+      profile: { ...SAMPLE_PROFILE, workRoutine: undefined, activityLevel: 'moderado' },
+      weights: [{ id: 'w', date: '2026-09-20', weightKg: 70 }],
+      workoutPlans: SAMPLE_WORKOUT_PLANS,
+      sessions: sampleSessions('2026-09-28'),
+      activeSession: null,
+    };
+    const novo = migrarStore(antigo, 1) as { profile: Profile; planos: PlanoDeTreino[]; sessoes: unknown[] };
+    expect(novo.profile.workRoutine).toBe('sentado');
+    expect('activityLevel' in novo.profile).toBe(false);
+    expect(novo.planos).toHaveLength(1);
+    const [plano] = novo.planos;
+    expect(plano.ativo).toBe(true);
+    // A seg/qui, B ter/sex, C qua/sáb
+    expect(plano.treinos.map((t) => t.dia)).toEqual(['seg', 'ter', 'qua', 'qui', 'sex', 'sab']);
+    expect(plano.treinos[0].exercicios[0]).toMatchObject({ exercicioId: 'supino-reto-halteres', series: 4, repsMin: 8, repsMax: 12 });
+    expect(novo.sessoes).toHaveLength(3);
+    expect(migrarStore({ planos: [] }, 2)).toEqual({ planos: [] });
   });
 });
 
@@ -113,8 +203,9 @@ describe('dados de exemplo', () => {
     expect(s.today.meals.almoco.length).toBeGreaterThan(0);
     expect(s.weights.at(-1)?.date).toBe('2026-09-28');
 
-    // 28/09/2026 é segunda-feira → Treino A
-    expect(workoutToday(s, '2026-09-28')?.id).toBe('plano-a');
+    // 28/09/2026 é segunda-feira → treino de peito, ombro e tríceps
+    expect(workoutToday(s, '2026-09-28')?.nome).toBe('Peito, ombro e tríceps');
+    expect(s.sessoes.every((x) => x.kcal > 0)).toBe(true);
 
     const plan = goalPlan(s, '2026-09-28');
     expect(plan).not.toBeNull();

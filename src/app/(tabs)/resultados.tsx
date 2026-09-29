@@ -1,26 +1,27 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { WeightCard } from '@/components/home/WeightCard';
 import { TabPage } from '@/components/navigation/TabPage';
 import { EmptyState, Glass, IconButton, SectionHeader, Text, toast } from '@/components/ui';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { formatDayMonth, formatDecimal, formatInt, formatLiters } from '@/lib/format';
-import { ACTIVITY_LABELS, bmi, GOAL_LABELS, PACE_LABELS } from '@/lib/goals';
+import { bmi, GOAL_LABELS, PACE_LABELS, ROUTINE_LABELS } from '@/lib/goals';
 import { loggedDates, streak, weightProgress, weightTrend } from '@/lib/progress';
-import { sessionsThisMonth } from '@/lib/workout';
+import { treinosNoMes } from '@/lib/treino/plano';
 import { currentWeightKg, goalPlan } from '@/store/selectors';
 import { useAppStore } from '@/store/useAppStore';
 import { colors, fonts, gradients, radius, spacing } from '@/theme/theme';
 
-/** "Moderado (3 a 5 treinos por semana)" → "Moderado". */
-const shortActivity = (label: string) => label.split(' (')[0];
+/** "Sentada (escritório, estudo)" → "Sentada". */
+const shortRoutine = (label: string) => label.split(' (')[0];
 
 export default function ResultadosScreen() {
   const state = useAppStore();
-  const { profile, today: day, history, weights, sessions } = state;
+  const { profile, today: day, history, weights, sessoes } = state;
   const today = day.date;
   const plan = useMemo(() => goalPlan(state, today), [state, today]);
   const trend = useMemo(() => weightTrend(weights, today), [weights, today]);
@@ -40,7 +41,7 @@ export default function ResultadosScreen() {
   const losing = profile.targetWeightKg < profile.startWeightKg;
   const keeping = profile.goal === 'manter' || progress.totalKg === 0;
   const startBmi = bmi(profile.startWeightKg, profile.heightCm);
-  const workouts = sessionsThisMonth(sessions, today);
+  const workouts = treinosNoMes(sessoes, today);
   const adj = plan.dailyAdjustmentKcal;
 
   return (
@@ -120,7 +121,7 @@ export default function ResultadosScreen() {
         <Row label="Peso inicial" value={`${formatDecimal(profile.startWeightKg)} kg`} />
         <Row label="Meta de peso" value={`${formatDecimal(profile.targetWeightKg)} kg`} />
         <Row label="Altura" value={`${formatDecimal(profile.heightCm / 100, 2)} m`} />
-        <Row label="Nível de atividade" value={shortActivity(ACTIVITY_LABELS[profile.activityLevel])} />
+        <Row label="Rotina de trabalho" value={shortRoutine(ROUTINE_LABELS[profile.workRoutine])} onPress={() => router.push('/rotina')} />
         <Row label="Usa caneta (GLP-1)" value={profile.usesGlp1 ? 'Sim' : 'Não'} last />
       </Glass>
 
@@ -175,14 +176,29 @@ function Tile({ label, value, unit, note }: { label: string; value: string; unit
   );
 }
 
-function Row({ label, value, accent, last }: { label: string; value: string; accent?: boolean; last?: boolean }) {
-  return (
-    <View style={[styles.row, !last && styles.rowLine]}>
+type RowProps = { label: string; value: string; accent?: boolean; last?: boolean; onPress?: () => void };
+
+function Row({ label, value, accent, last, onPress }: RowProps) {
+  const content = (
+    <>
       <Text tone="secondary" style={styles.rowLabel}>
         {label}
       </Text>
-      <Text style={[styles.rowValue, accent && styles.rowAccent]}>{value}</Text>
-    </View>
+      <View style={styles.rowEnd}>
+        <Text style={[styles.rowValue, accent && styles.rowAccent]}>{value}</Text>
+        {onPress && <Ionicons name="chevron-forward" size={16} color={colors.ink3} />}
+      </View>
+    </>
+  );
+  if (!onPress) return <View style={[styles.row, !last && styles.rowLine]}>{content}</View>;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${label}: ${value}. Toque para mudar`}
+      onPress={onPress}
+      style={({ pressed }) => [styles.row, !last && styles.rowLine, pressed && styles.rowPressed]}>
+      {content}
+    </Pressable>
   );
 }
 
@@ -338,6 +354,14 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     textAlign: 'right',
     fontVariant: ['tabular-nums'],
+  },
+  rowEnd: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  rowPressed: {
+    backgroundColor: colors.glassFill,
   },
   rowAccent: {
     color: colors.lime,

@@ -23,6 +23,8 @@ import { toDateKey } from '@/lib/dates';
 import { emptyDay, rolloverDay } from '@/lib/day';
 import { updateFoodInMeals, type FoodPatch } from '@/lib/foodEdit';
 import { newId } from '@/lib/id';
+import { kcalDaSessao } from '@/lib/treino/met';
+import { converterPlanos } from '@/lib/treino/migracao';
 import type {
   DayLog,
   FoodItem,
@@ -32,6 +34,7 @@ import type {
   WorkoutPlan,
   WorkoutSession,
 } from '@/types';
+import type { PlanoDeTreino, SessaoDeTreino, SessaoEmAndamento } from '@/types/treino';
 
 export type NewFoodItem = Omit<FoodItem, 'id' | 'createdAt'>;
 
@@ -40,11 +43,12 @@ type Data = {
   today: DayLog;
   history: DayLog[];
   weights: WeightEntry[];
-  workoutPlans: WorkoutPlan[];
-  /** Treinos finalizados, do mais novo para o mais antigo. */
-  sessions: WorkoutSession[];
+  /** Planos de treino; só um ativo por vez. */
+  planos: PlanoDeTreino[];
+  /** Treinos terminados. */
+  sessoes: SessaoDeTreino[];
   /** Treino em andamento, se houver. */
-  activeSession: WorkoutSession | null;
+  sessaoAtiva: SessaoEmAndamento | null;
 };
 
 type Actions = {
@@ -62,12 +66,18 @@ type Actions = {
   /** Registra o peso do dia (substitui se já houver um na mesma data). */
   logWeight: (weightKg: number) => void;
 
-  setWorkoutPlans: (plans: WorkoutPlan[]) => void;
-  startSession: (planId: string) => void;
-  logSet: (exerciseId: string, weightKg: number, reps: number) => void;
-  removeSet: (setId: string) => void;
-  finishSession: () => void;
-  cancelSession: () => void;
+  /** Guarda um plano novo; por padrão vira o ativo (o anterior fica em Meus treinos). */
+  salvarPlano: (plano: PlanoDeTreino, ativar?: boolean) => void;
+  ativarPlano: (id: string) => void;
+  duplicarPlano: (id: string) => void;
+  apagarPlano: (id: string) => void;
+  /** Começa um treino do plano ativo HOJE, seja de que dia ele for. */
+  comecarTreino: (treinoDoDiaId: string) => void;
+  registrarSerie: (exercicioNoTreinoId: string, cargaKg: number, reps: number) => void;
+  apagarSerie: (exercicioNoTreinoId: string, numero: number) => void;
+  /** Termina o treino: calcula as kcal e guarda (sem nenhuma série, descarta). */
+  finalizarTreino: () => void;
+  cancelarTreino: () => void;
 
   loadSample: () => void;
   clearAll: () => void;
@@ -84,22 +94,24 @@ function blankData(): Data {
     today: emptyDay(toDateKey(now())),
     history: [],
     weights: [],
-    workoutPlans: [],
-    sessions: [],
-    activeSession: null,
+    planos: [],
+    sessoes: [],
+    sessaoAtiva: null,
   };
 }
 
 export function sampleData(): Data {
   const today = toDateKey(now());
+  const weights = sampleWeights(today);
+  const { plano, sessoes } = converterPlanos(SAMPLE_WORKOUT_PLANS, sampleSessions(today), weights[0].weightKg, `${today}T09:00:00`);
   return {
     profile: SAMPLE_PROFILE,
     today: sampleDay(today),
     history: sampleHistory(today),
-    weights: sampleWeights(today),
-    workoutPlans: SAMPLE_WORKOUT_PLANS,
-    sessions: sampleSessions(today),
-    activeSession: null,
+    weights,
+    planos: plano ? [plano] : [],
+    sessoes,
+    sessaoAtiva: null,
   };
 }
 
@@ -161,40 +173,91 @@ export const useAppStore = create<AppState>()(
           set({ weights });
         },
 
-        setWorkoutPlans: (workoutPlans) => set({ workoutPlans }),
+        salvarPlano: (plano, ativar = true) => {
+          const outros = get().planos.map((p) => (ativar ? { ...p, ativo: false } : p));
+          set({ planos: [...outros, { ...plano, ativo: ativar }] });
+        },
 
-        startSession: (planId) => {
-          if (get().activeSession) return;
-          const date = rolled().date;
+        ativarPlano: (id) => set({ planos: get().planos.map((p) => ({ ...p, ativo: p.id === id })) }),
+
+        duplicarPlano: (id) => {
+          const p = get().planos.find((x) => x.id === id);
+          if (!p) return;
+          const novoId = newId();
+          // Ids novos em tudo, para as sessões de um não se misturarem com as do outro.
+          const copia: PlanoDeTreino = {
+            ...p,
+            id: novoId,
+            nome: `${p.nome} (cópia)`,
+            ativo: false,
+            criadoEm: nowIso(),
+            treinos: p.treinos.map((t) => {
+              const tId = newId();
+              return { ...t, id: tId, exercicios: t.exercicios.map((e) => ({ ...e, id: newId() })) };
+            }),
+          };
+          set({ planos: [...get().planos, copia] });
+        },
+
+        apagarPlano: (id) => set({ planos: get().planos.filter((p) => p.id !== id) }),
+
+        comecarTreino: (treinoDoDiaId) => {
+          if (get().sessaoAtiva) return;
+          const plano = get().planos.find((p) => p.ativo);
+          const treino = plano?.treinos.find((t) => t.id === treinoDoDiaId);
+          if (!plano || !treino) return;
           set({
-            activeSession: { id: newId(), planId, date, startedAt: nowIso(), finishedAt: null, sets: [] },
+            sessaoAtiva: {
+              id: newId(),
+              planoId: plano.id,
+              treinoDoDiaId: treino.id,
+              diaPlanejado: treino.dia,
+              data: rolled().date,
+              inicio: nowIso(),
+              series: [],
+              ...(treino.cardio ? { cardioMinutos: treino.cardio.minutos } : {}),
+            },
           });
         },
 
-        logSet: (exerciseId, weightKg, reps) => {
-          const s = get().activeSession;
-          if (!s) return;
-          const entry = { id: newId(), exerciseId, weightKg, reps, completedAt: nowIso() };
-          set({ activeSession: { ...s, sets: [...s.sets, entry] } });
+        registrarSerie: (exercicioNoTreinoId, cargaKg, reps) => {
+          const s = get().sessaoAtiva;
+          const treino = get()
+            .planos.find((p) => p.id === s?.planoId)
+            ?.treinos.find((t) => t.id === s?.treinoDoDiaId);
+          const ex = treino?.exercicios.find((e) => e.id === exercicioNoTreinoId);
+          if (!s || !ex) return;
+          const numero = s.series.filter((x) => x.exercicioNoTreinoId === exercicioNoTreinoId).length + 1;
+          const serie = { exercicioNoTreinoId, exercicioId: ex.exercicioId, numero, cargaKg, reps, concluidaEm: nowIso() };
+          set({ sessaoAtiva: { ...s, series: [...s.series, serie] } });
         },
 
-        removeSet: (setId) => {
-          const s = get().activeSession;
+        apagarSerie: (exercicioNoTreinoId, numero) => {
+          const s = get().sessaoAtiva;
           if (!s) return;
-          set({ activeSession: { ...s, sets: s.sets.filter((x) => x.id !== setId) } });
+          // Tira a série e renumera as seguintes do mesmo exercício.
+          const series = s.series
+            .filter((x) => !(x.exercicioNoTreinoId === exercicioNoTreinoId && x.numero === numero))
+            .map((x) => (x.exercicioNoTreinoId === exercicioNoTreinoId && x.numero > numero ? { ...x, numero: x.numero - 1 } : x));
+          set({ sessaoAtiva: { ...s, series } });
         },
 
-        finishSession: () => {
-          const s = get().activeSession;
+        finalizarTreino: () => {
+          const s = get().sessaoAtiva;
           if (!s) return;
-          // Treino sem nenhuma série não entra no histórico.
-          const sessions = s.sets.length
-            ? [{ ...s, finishedAt: nowIso() }, ...get().sessions]
-            : get().sessions;
-          set({ sessions, activeSession: null });
+          if (!s.series.length) {
+            set({ sessaoAtiva: null });
+            return;
+          }
+          const { weights, profile, planos } = get();
+          const peso = weights.at(-1)?.weightKg ?? profile?.startWeightKg ?? 70;
+          const cardio = planos.find((p) => p.id === s.planoId)?.treinos.find((t) => t.id === s.treinoDoDiaId)?.cardio;
+          const fim = nowIso();
+          const sessao: SessaoDeTreino = { ...s, fim, kcal: kcalDaSessao(s, fim, peso, cardio) };
+          set({ sessoes: [sessao, ...get().sessoes], sessaoAtiva: null });
         },
 
-        cancelSession: () => set({ activeSession: null }),
+        cancelarTreino: () => set({ sessaoAtiva: null }),
 
         loadSample: () => set(sampleData()),
         clearAll: () => set(blankData()),
@@ -202,19 +265,46 @@ export const useAppStore = create<AppState>()(
     },
     {
       name: 'tapcal-store',
-      version: 1,
+      version: 2,
+      // v1 → v2: treinos no formato do SPEC e rotina de trabalho no perfil.
+      migrate: (antigo, versao) => migrarStore(antigo as Record<string, unknown>, versao) as unknown as Data,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (s): Data => ({
         profile: s.profile,
         today: s.today,
         history: s.history,
         weights: s.weights,
-        workoutPlans: s.workoutPlans,
-        sessions: s.sessions,
-        activeSession: s.activeSession,
+        planos: s.planos,
+        sessoes: s.sessoes,
+        sessaoAtiva: s.sessaoAtiva,
       }),
       // Ao reabrir o app num dia novo, zera refeições e água.
       onRehydrateStorage: () => (state) => state?.ensureToday(),
     },
   ),
 );
+
+/**
+ * Migração dos dados salvos. v1 → v2: os treinos antigos viram um plano no
+ * formato novo (as sessões vêm junto) e o nível de atividade vira a rotina de
+ * trabalho — o treino deixa de entrar no fator e passa a somar pelas kcal.
+ */
+export function migrarStore(antigo: Record<string, unknown>, versao: number): Record<string, unknown> {
+  if (versao >= 2) return antigo;
+  const { workoutPlans, sessions, activeSession: _descartado, ...resto } = antigo as {
+    workoutPlans?: WorkoutPlan[];
+    sessions?: WorkoutSession[];
+    activeSession?: unknown;
+  } & Record<string, unknown>;
+  const perfil = resto.profile as (Profile & { activityLevel?: string }) | null | undefined;
+  const pesos = (resto.weights as WeightEntry[] | undefined) ?? [];
+  const peso = pesos.at(-1)?.weightKg ?? perfil?.startWeightKg ?? 70;
+  const { plano, sessoes } = converterPlanos(workoutPlans ?? [], sessions ?? [], peso);
+  let profile = perfil ?? null;
+  if (perfil && !perfil.workRoutine) {
+    const { activityLevel, ...semNivel } = perfil;
+    profile = { ...semNivel, workRoutine: activityLevel === 'muito_intenso' ? 'pesado' : 'sentado' };
+  }
+  return { ...resto, profile, planos: plano ? [plano] : [], sessoes, sessaoAtiva: null };
+}
+

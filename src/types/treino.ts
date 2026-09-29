@@ -57,3 +57,98 @@ export type Exercicio = {
   /** 'usuario' = criado pela própria pessoa. */
   origem: 'tapcal' | 'usuario';
 };
+
+// ─── Plano e semana de treino ───────────────────────────────────────────────
+
+export type DiaSemana = 'seg' | 'ter' | 'qua' | 'qui' | 'sex' | 'sab' | 'dom';
+
+export type ExercicioNoTreino = {
+  id: string;
+  exercicioId: string;
+  series: number;
+  repsMin: number;
+  /** Igual a repsMin quando for número fixo. */
+  repsMax: number;
+  descansoSeg: number;
+  cargaInicialKg?: number;
+  observacao?: string;
+};
+
+export type Cardio = {
+  atividade: 'caminhada' | 'corrida' | 'bicicleta' | 'eliptico';
+  minutos: number;
+  intensidade: 'leve' | 'moderada' | 'intensa';
+};
+
+export type TreinoDoDia = {
+  id: string;
+  dia: DiaSemana;
+  /** Ex.: 'Pernas e glúteos'. Aparece dentro do dia, nunca na pílula. */
+  nome: string;
+  /** Na ordem de execução. */
+  exercicios: ExercicioNoTreino[];
+  cardio?: Cardio;
+};
+
+/** Respostas do mini-onboarding do treino com IA (etapa 5). */
+export type RespostasTreinoIA = {
+  experiencia: 'iniciante' | 'intermediario' | 'avancado';
+  local: 'academia-completa' | 'academia-pequena' | 'casa';
+  equipamentosCasa: Equipamento[];
+  dias: DiaSemana[];
+  tempo: '30-45' | '45-60' | '60-90' | '90+';
+  foco: ('corpo-todo' | 'gluteos' | 'pernas' | 'abdomen' | 'costas' | 'peito' | 'ombros' | 'bracos')[];
+  lesoes: RegiaoArticular[];
+  cardio: 'ja-faco' | 'quero-comecar' | 'agora-nao';
+  cardioAtividade?: Cardio['atividade'];
+};
+
+export type PlanoDeTreino = {
+  id: string;
+  nome: string;
+  origem: 'personalizado' | 'ia';
+  /** Só um plano ativo por vez. */
+  ativo: boolean;
+  /** Dia sem treino = descanso. */
+  treinos: TreinoDoDia[];
+  /** ISO. */
+  criadoEm: string;
+  ia?: {
+    respostas: RespostasTreinoIA;
+    /** YYYY-MM-DD da segunda-feira em que o bloco começou. */
+    inicioBloco: string;
+    /** 5 (4 normais + 1 de alívio). */
+    semanasNoBloco: number;
+    explicacao: string;
+  };
+};
+
+export type SerieFeita = {
+  exercicioNoTreinoId: string;
+  exercicioId: string;
+  numero: number;
+  cargaKg: number;
+  reps: number;
+  /** ISO. */
+  concluidaEm: string;
+};
+
+export type SessaoDeTreino = {
+  id: string;
+  planoId: string;
+  treinoDoDiaId: string;
+  /** De qual dia era o treino (ex.: 'seg'). */
+  diaPlanejado: DiaSemana;
+  /** YYYY-MM-DD em que foi FEITO, no fuso do aparelho. */
+  data: string;
+  /** ISO. */
+  inicio: string;
+  /** ISO. */
+  fim: string;
+  series: SerieFeita[];
+  cardioMinutos?: number;
+  kcal: number;
+};
+
+/** Treino em andamento: ainda sem fim e sem kcal. */
+export type SessaoEmAndamento = Omit<SessaoDeTreino, 'fim' | 'kcal'>;
