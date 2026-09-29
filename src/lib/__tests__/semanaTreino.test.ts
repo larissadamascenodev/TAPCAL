@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { kcalAtividade, kcalDaSessao, minutosDaSessao } from '@/lib/treino/met';
+import { kcalAtividade, kcalDaSessao, minutosDaSessao, tempoDeTreinoMs } from '@/lib/treino/met';
 import { kcalEstimadas, kcalQueimadas, minutosEstimados, numerosDaSemana, proximosTreinos, repsLabel } from '@/lib/treino/plano';
 import { datasDaSemana, diaDaData, estadoDoDia, notaFeitoEm } from '@/lib/treino/semana';
 import type { PlanoDeTreino, SessaoDeTreino, TreinoDoDia } from '@/types/treino';
@@ -110,5 +110,16 @@ describe('kcal do treino por MET', () => {
     expect(kcalEstimadas(t, 70)).toBe(Math.round(2.5 * 70 * (5 / 60)));
     expect(repsLabel({ repsMin: 10, repsMax: 12 })).toBe('10–12');
     expect(repsLabel({ repsMin: 10, repsMax: 10 })).toBe('10');
+  });
+});
+
+describe('cronômetro com pausa', () => {
+  it('desconta as pausas e congela enquanto pausado', () => {
+    const inicio = '2026-09-29T10:00:00.000Z';
+    const agora = Date.parse('2026-09-29T11:00:00.000Z');
+    expect(tempoDeTreinoMs({ inicio }, agora)).toBe(60 * 60_000);
+    expect(tempoDeTreinoMs({ inicio, pausaMs: 15 * 60_000 }, agora)).toBe(45 * 60_000);
+    expect(tempoDeTreinoMs({ inicio, pausaMs: 5 * 60_000, pausadoEm: '2026-09-29T10:40:00.000Z' }, agora)).toBe(35 * 60_000);
+    expect(minutosDaSessao(inicio, '2026-09-29T11:00:00.000Z', 20 * 60_000)).toBe(40);
   });
 });

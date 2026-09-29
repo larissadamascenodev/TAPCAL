@@ -32,10 +32,16 @@ export function kcalAtividade(met: number, pesoKg: number, minutos: number): num
   return Math.max(0, (met - 1) * pesoKg * (Math.max(0, minutos) / 60));
 }
 
-/** Minutos da sessão pelo cronômetro, limitados a 3 horas. */
-export function minutosDaSessao(inicio: string, fim: string): number {
-  const ms = Date.parse(fim) - Date.parse(inicio);
+/** Minutos da sessão pelo cronômetro, sem o tempo pausado, limitados a 3 horas. */
+export function minutosDaSessao(inicio: string, fim: string, pausaMs = 0): number {
+  const ms = Date.parse(fim) - Date.parse(inicio) - pausaMs;
   return Number.isFinite(ms) ? Math.min(MAX_MINUTOS_SESSAO, Math.max(0, ms / 60_000)) : 0;
+}
+
+/** Tempo de treino corrido até `agora` (ms), descontando as pausas (e a pausa atual). */
+export function tempoDeTreinoMs(s: Pick<SessaoEmAndamento, 'inicio' | 'pausaMs' | 'pausadoEm'>, agora: number): number {
+  const fimDaConta = s.pausadoEm ? Date.parse(s.pausadoEm) : agora;
+  return Math.max(0, fimDaConta - Date.parse(s.inicio) - (s.pausaMs ?? 0));
 }
 
 /**
@@ -43,12 +49,12 @@ export function minutosDaSessao(inicio: string, fim: string): number {
  * (se houver) pelo MET do cardio. Arredondado.
  */
 export function kcalDaSessao(
-  sessao: Pick<SessaoEmAndamento, 'inicio' | 'cardioMinutos'>,
+  sessao: Pick<SessaoEmAndamento, 'inicio' | 'cardioMinutos' | 'pausaMs'>,
   fim: string,
   pesoKg: number,
   cardio?: Cardio,
 ): number {
-  const total = minutosDaSessao(sessao.inicio, fim);
+  const total = minutosDaSessao(sessao.inicio, fim, sessao.pausaMs);
   const minCardio = cardio ? Math.min(total, sessao.cardioMinutos ?? 0) : 0;
   const metCardio = cardio ? MET_CARDIO[cardio.atividade][cardio.intensidade] : MET_MUSCULACAO;
   return Math.round(kcalAtividade(MET_MUSCULACAO, pesoKg, total - minCardio) + kcalAtividade(metCardio, pesoKg, minCardio));

@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Redirect, router } from 'expo-router';
+import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
 
@@ -16,6 +16,7 @@ import {
 import { MapaMuscular } from '@/components/workout/MapaMuscular';
 import { exercicioPorId, MUSCULO_LABELS } from '@/lib/exercicios';
 import { formatDecimal, formatDuration, formatInt } from '@/lib/format';
+import { tempoDeTreinoMs } from '@/lib/treino/met';
 import { bateRecorde, proximoExercicio, recorde, repsLabel, seriesFeitas, ultimasSeries } from '@/lib/treino/plano';
 import { historicoQueConta, seriesNaSemana, sugerirCarga, type Sugestao } from '@/lib/treino/progressao';
 import { useAppStore } from '@/store/useAppStore';
@@ -54,7 +55,9 @@ function suggestion(ex: ExercicioNoTreino, session: SessaoEmAndamento, past: Ses
 
 export default function TreinoSessaoScreen() {
   const { sessaoAtiva: session, planos, sessoes: past } = useAppStore();
-  const { registrarSerie, apagarSerie, finalizarTreino, cancelarTreino } = useAppStore();
+  const { registrarSerie, apagarSerie, finalizarTreino, cancelarTreino, pausarTreino, retomarTreino } = useAppStore();
+  // Vindo da lista de exercícios da aba Treino: abre direto naquele exercício.
+  const { ex: exInicial } = useLocalSearchParams<{ ex?: string }>();
   const sexo = useAppStore((s) => s.profile?.sex);
   const plano = session ? planos.find((p) => p.id === session.planoId) : undefined;
   const doPlano = session ? plano?.treinos.find((t) => t.id === session.treinoDoDiaId) : undefined;
@@ -62,7 +65,11 @@ export default function TreinoSessaoScreen() {
   const treino = doPlano && session && { ...doPlano, exercicios: doPlano.exercicios.map((e) => ({ ...e, series: seriesNaSemana(e.series, plano, session.data) })) };
   const now = useNow();
 
-  const [index, setIndex] = useState(() => (session && treino ? proximoExercicio(treino, session) : 0));
+  const [index, setIndex] = useState(() => {
+    if (!session || !treino) return 0;
+    const pedido = exInicial ? treino.exercicios.findIndex((e) => e.id === exInicial) : -1;
+    return pedido >= 0 ? pedido : proximoExercicio(treino, session);
+  });
   const exercise = treino?.exercicios[index];
   const [input, setInput] = useState(() =>
     session && exercise ? suggestion(exercise, session, past, planos) : { kg: 10, reps: 10 },
@@ -75,7 +82,8 @@ export default function TreinoSessaoScreen() {
   const done = seriesFeitas(session, exercise.id);
   const exerciseDone = done >= exercise.series;
   const isLast = index === treino.exercicios.length - 1;
-  const elapsed = (now - new Date(session.inicio).getTime()) / 1000;
+  const elapsed = tempoDeTreinoMs(session, now) / 1000;
+  const pausado = !!session.pausadoEm;
   const restLeft = restUntil ? Math.ceil((restUntil - now) / 1000) : 0;
   const lastTime = ultimasSeries(past, exercise.exercicioId)?.series ?? [];
   const record = recorde(past, exercise.exercicioId);
@@ -137,10 +145,14 @@ export default function TreinoSessaoScreen() {
     <Screen withTabBar={false}>
       <View style={styles.top}>
         <IconButton icon="chevron-down" label="Minimizar" onPress={() => router.back()} />
-        <View style={styles.clock} accessibilityLabel={`Tempo de treino ${formatDuration(elapsed)}`}>
-          <View style={styles.dot} />
-          <Text style={styles.clockText}>{formatDuration(elapsed)}</Text>
-        </View>
+        <Pressable
+          style={[styles.clock, pausado && styles.clockPausado]}
+          accessibilityRole="button"
+          accessibilityLabel={`Tempo de treino ${formatDuration(elapsed)}${pausado ? ', pausado' : ''}. Toque para ${pausado ? 'continuar' : 'pausar'}`}
+          onPress={pausado ? retomarTreino : pausarTreino}>
+          <Ionicons name={pausado ? 'play' : 'pause'} size={13} color={pausado ? colors.lime : colors.ink2} />
+          <Text style={[styles.clockText, pausado && { color: colors.ink3 }]}>{formatDuration(elapsed)}</Text>
+        </Pressable>
         <IconButton icon="ellipsis-horizontal" label="Opções do treino" onPress={openOptions} />
       </View>
 
@@ -317,11 +329,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
   },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.lime,
+  clockPausado: {
+    borderColor: colors.limeEdge,
   },
   clockText: {
     fontFamily: fonts.display.semibold,

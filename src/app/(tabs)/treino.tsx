@@ -6,12 +6,12 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { TabPage } from '@/components/navigation/TabPage';
 import { EmptyState, Glass, IconButton, NeonButton, SectionHeader, Text } from '@/components/ui';
 import { StatTile } from '@/components/ui/StatTile';
-import { MapaMuscular } from '@/components/workout/MapaMuscular';
+import { CardDescanso, CardEmAndamento, CardTreino } from '@/components/workout/CardTreinoDoDia';
+import { ListaExerciciosDoDia } from '@/components/workout/ListaExerciciosDoDia';
 import { SemanaTreino } from '@/components/workout/SemanaTreino';
 import { daysBetween, fromDateKey } from '@/lib/dates';
-import { exercicioPorId } from '@/lib/exercicios';
 import { formatDayMonth, formatInt, formatTons, WEEKDAY_SHORT } from '@/lib/format';
-import { minutosDaSessao } from '@/lib/treino/met';
+import { kcalAtividade, MET_MUSCULACAO, minutosDaSessao } from '@/lib/treino/met';
 import { ehSemanaDeAlivio, horaDaProximaFase, semanaDoBloco, seriesNaSemana } from '@/lib/treino/progressao';
 import {
   concluidas,
@@ -19,16 +19,15 @@ import {
   minutosEstimados,
   numerosDaSemana,
   proximosTreinos,
-  repsLabel,
   volume,
   volumePorDia,
 } from '@/lib/treino/plano';
 import { datasDaSemana, DIA_NOME, DIAS, diaDaData, estadoDoDia, notaFeitoEm, planoAtivo, type EstadoDoDia } from '@/lib/treino/semana';
 import { currentWeightKg } from '@/store/selectors';
 import { useAppStore } from '@/store/useAppStore';
-import { colors, fonts, gradients, radius, spacing } from '@/theme/theme';
+import { colors, fonts, radius, spacing } from '@/theme/theme';
 import type { DateKey } from '@/types';
-import type { DiaSemana, TreinoDoDia } from '@/types/treino';
+import type { DiaSemana, SessaoDeTreino, TreinoDoDia } from '@/types/treino';
 
 /** "Hoje", "Amanhã", "Ontem" ou "Qui, 02/10". */
 function dayLabel(date: DateKey, today: DateKey): string {
@@ -40,9 +39,9 @@ function dayLabel(date: DateKey, today: DateKey): string {
   return `${wd.charAt(0)}${wd.slice(1).toLowerCase()}, ${formatDayMonth(date)}`;
 }
 
-/** Duração arredondada ("48 min"; menos de 1 minuto vira "1 min"). */
-function minutosLabel(inicio: string, fim: string): string {
-  return `${Math.max(1, Math.round(minutosDaSessao(inicio, fim)))} min`;
+/** Duração arredondada, sem as pausas ("48 min"; menos de 1 minuto vira "1 min"). */
+function minutosLabel(s: Pick<SessaoDeTreino, 'inicio' | 'fim' | 'pausaMs'>): string {
+  return `${Math.max(1, Math.round(minutosDaSessao(s.inicio, s.fim, s.pausaMs)))} min`;
 }
 
 /**
@@ -53,7 +52,7 @@ function minutosLabel(inicio: string, fim: string): string {
  */
 export default function TreinoScreen() {
   const state = useAppStore();
-  const { today: day, planos, sessoes, sessaoAtiva, comecarTreino } = state;
+  const { today: day, planos, sessoes, sessaoAtiva, comecarTreino, pausarTreino, retomarTreino } = state;
   const sexo = state.profile?.sex;
   const today = day.date;
   const peso = currentWeightKg(state) ?? 70;
@@ -71,9 +70,9 @@ export default function TreinoScreen() {
   const maxVol = Math.max(1, ...vol.map((v) => v.volumeKg));
   const semana = datasDaSemana(today);
 
-  const start = (t: TreinoDoDia) => {
+  const start = (t: TreinoDoDia, ex?: string) => {
     comecarTreino(t.id);
-    router.push('/treino-sessao');
+    router.push(ex ? { pathname: '/treino-sessao', params: { ex } } : '/treino-sessao');
   };
 
   const actions = (
@@ -121,10 +120,25 @@ export default function TreinoScreen() {
   const e = estados[dia];
   // Na semana de alívio (plano da IA), cada exercício aparece com menos séries.
   const alivio = ehSemanaDeAlivio(plano, today);
+  const naSemana = (tr: TreinoDoDia, data: DateKey) => ({
+    ...tr,
+    exercicios: tr.exercicios.map((x) => ({ ...x, series: seriesNaSemana(x.series, planos.find((p) => p.id === sessaoAtiva?.planoId) ?? plano, data) })),
+  });
   const t = e.treino && { ...e.treino, exercicios: e.treino.exercicios.map((x) => ({ ...x, series: seriesNaSemana(x.series, plano, today) })) };
   const data = semana[DIAS.indexOf(dia)];
-  const emAndamento = sessaoAtiva && t && sessaoAtiva.treinoDoDiaId === t.id;
-  const kicker = `${e.hoje ? 'HOJE · ' : ''}${DIA_NOME[dia].toUpperCase()}`;
+  const kicker = `${e.hoje ? 'HOJE' : DIA_NOME[dia].toUpperCase()}`;
+
+  // Treino em andamento: o card principal vira o cronômetro (em hoje e no dia do treino).
+  const doAtivo = sessaoAtiva && planos.find((p) => p.id === sessaoAtiva.planoId)?.treinos.find((x) => x.id === sessaoAtiva.treinoDoDiaId);
+  const treinoAtivo = doAtivo && sessaoAtiva ? naSemana(doAtivo, sessaoAtiva.data) : null;
+  const mostraAtivo = !!(sessaoAtiva && treinoAtivo && (e.hoje || sessaoAtiva.diaPlanejado === dia));
+  const lista = mostraAtivo ? treinoAtivo : t;
+  const modo = mostraAtivo ? 'andamento' : e.tipo === 'feito' ? 'feito' : 'planejado';
+  const seriesDaLista = mostraAtivo && sessaoAtiva ? sessaoAtiva.series : e.tipo === 'feito' && e.sessao ? e.sessao.series : [];
+  const abrirSessao = (ex?: string) => router.push(ex ? { pathname: '/treino-sessao', params: { ex } } : '/treino-sessao');
+
+  // Cardio do plano: quantos dias têm cardio e o de hoje.
+  const comCardio = plano.treinos.filter((x) => x.cardio);
 
   return (
     <TabPage>
@@ -155,8 +169,8 @@ export default function TreinoScreen() {
         </Glass>
       )}
 
-      {sessaoAtiva && !emAndamento && (
-        <Pressable accessibilityRole="button" onPress={() => router.push('/treino-sessao')} style={styles.banner}>
+      {sessaoAtiva && !mostraAtivo && (
+        <Pressable accessibilityRole="button" onPress={() => abrirSessao()} style={styles.banner}>
           <View style={styles.liveDot} />
           <Text variant="bodyStrong" style={styles.flex}>
             Treino em andamento
@@ -168,89 +182,75 @@ export default function TreinoScreen() {
         </Pressable>
       )}
 
-      {/* Treino do dia escolhido */}
-      <Glass flush tint={gradients.workoutHero} contentStyle={styles.hero}>
-        {!t ? (
-          <>
-            <Text style={styles.kicker}>{kicker} · DESCANSO</Text>
-            <Text style={styles.heroTitle}>Dia de recuperar</Text>
-            {upcoming[0] && (
-              <Text tone="secondary" style={styles.heroNote}>
-                Próximo: {dayLabel(upcoming[0].data, today).toLowerCase()} · {upcoming[0].treino.nome}
-              </Text>
-            )}
-          </>
-        ) : (
-          <>
-            <Text style={styles.kicker}>
-              {kicker}
-              {emAndamento ? ' · EM ANDAMENTO' : e.tipo === 'feito' ? ' · FEITO' : ''}
+      {/* Card principal: treino do dia, ou o cronômetro do treino em andamento */}
+      {mostraAtivo && sessaoAtiva && treinoAtivo ? (
+        <CardEmAndamento
+          treino={treinoAtivo}
+          sessao={sessaoAtiva}
+          kcal={(min) => kcalAtividade(MET_MUSCULACAO, peso, min)}
+          onAbrir={() => abrirSessao()}
+          onPausar={pausarTreino}
+          onContinuar={retomarTreino}
+        />
+      ) : !t ? (
+        <CardDescanso kicker={kicker} proximo={upcoming[0] && `${dayLabel(upcoming[0].data, today).toLowerCase()} · ${upcoming[0].treino.nome}`} />
+      ) : (
+        <CardTreino
+          kicker={kicker}
+          sexo={sexo}
+          treino={t}
+          resumo={`~${minutosEstimados(t)} min · ~${formatInt(kcalEstimadas(t, peso))} kcal`}
+          feito={
+            e.tipo === 'feito' && e.sessao
+              ? `Concluído${e.feitoEm ? ` · ${notaFeitoEm(e.feitoEm)}` : ''} · ${minutosLabel(e.sessao)} · ${formatInt(e.sessao.kcal)} kcal`
+              : undefined
+          }
+          bloqueado={!!sessaoAtiva}
+          dica={
+            data !== today
+              ? `${data < today ? 'Ficou para trás? Pode fazer hoje' : 'Quer adiantar? Pode fazer hoje'}: ele fica marcado ${dia === 'sab' || dia === 'dom' ? 'no' : 'na'} ${DIA_NOME[dia]} e as calorias entram no seu dia de hoje.`
+              : undefined
+          }
+          onIniciar={() => start(t)}
+        />
+      )}
+
+      {/* Cardio */}
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => router.push({ pathname: '/em-breve', params: { secao: 'aerobico' } })}
+        style={({ pressed }) => [pressed && styles.pressed]}>
+        <Glass contentStyle={styles.cardio}>
+          <View style={styles.cardioIcon}>
+            <Ionicons name="heart" size={18} color={colors.lime} />
+          </View>
+          <View style={styles.flex}>
+            <Text style={styles.cardioTitle}>Cardio da semana</Text>
+            <Text variant="caption" tone="muted">
+              {comCardio.length
+                ? `${comCardio.length} ${comCardio.length === 1 ? 'sessão planejada' : 'sessões planejadas'}${lista?.cardio ? ` · neste dia: ${lista.cardio.minutos} min de ${lista.cardio.atividade === 'eliptico' ? 'elíptico' : lista.cardio.atividade}` : ''}`
+                : 'Caminhada, corrida, bicicleta e elíptico'}
             </Text>
-            <Text style={styles.heroTitle}>{t.nome}</Text>
-            <View style={styles.tags}>
-              <Tag text={`${t.exercicios.length} exercícios`} />
-              <Tag text={`~${minutosEstimados(t)} min`} />
-              <Tag text={`~${formatInt(kcalEstimadas(t, peso))} kcal`} />
-            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={colors.ink3} />
+        </Glass>
+      </Pressable>
 
-            <View style={styles.exList}>
-              {t.exercicios.map((x) => {
-                const ex = exercicioPorId(x.exercicioId);
-                return (
-                  <View key={x.id} style={styles.exRow}>
-                    <View style={styles.thumb}>
-                      {ex && <MapaMuscular principal={ex.musculoPrincipal} altura={44} podeVirar={false} sexo={sexo} />}
-                    </View>
-                    <View style={styles.flex}>
-                      <Text style={styles.exName} numberOfLines={1}>
-                        {ex?.nome ?? 'Exercício'}
-                      </Text>
-                      <Text variant="caption" tone="muted">
-                        {x.series} × {repsLabel(x)} · descanso {x.descansoSeg} s
-                      </Text>
-                    </View>
-                  </View>
-                );
-              })}
-            </View>
-
-            {t.cardio && (
-              <View style={styles.cardioRow}>
-                <Ionicons name="walk-outline" size={16} color={colors.ink2} />
-                <Text variant="caption" tone="secondary">
-                  No fim: {t.cardio.minutos} min de {t.cardio.atividade === 'eliptico' ? 'elíptico' : t.cardio.atividade}, ritmo {t.cardio.intensidade}
-                </Text>
-              </View>
-            )}
-
-            {emAndamento ? (
-              <NeonButton label="Continuar treino" onPress={() => router.push('/treino-sessao')} style={styles.heroBtn} />
-            ) : e.tipo === 'feito' && e.sessao ? (
-              <View style={styles.doneRow}>
-                <Ionicons name="checkmark-circle" size={18} color={colors.ok} />
-                <Text variant="bodyStrong" style={styles.doneText}>
-                  Concluído{e.feitoEm ? ` · ${notaFeitoEm(e.feitoEm)}` : ''} · {minutosLabel(e.sessao.inicio, e.sessao.fim)} ·{' '}
-                  {formatInt(e.sessao.kcal)} kcal
-                </Text>
-              </View>
-            ) : sessaoAtiva ? (
-              <Text tone="secondary" style={styles.heroNote}>
-                Termine o treino em andamento para começar este.
-              </Text>
-            ) : (
-              <>
-                <NeonButton label="Começar treino" onPress={() => start(t)} style={styles.heroBtn} />
-                {data !== today && (
-                  <Text variant="caption" tone="muted" style={styles.heroHint}>
-                    {data < today ? 'Ficou para trás? Pode fazer hoje' : 'Quer adiantar? Pode fazer hoje'}: ele fica marcado{' '}
-                    {dia === 'sab' || dia === 'dom' ? 'no' : 'na'} {DIA_NOME[dia]} e as calorias entram no seu dia de hoje.
-                  </Text>
-                )}
-              </>
-            )}
-          </>
-        )}
-      </Glass>
+      {/* Exercícios do dia */}
+      {lista && (
+        <>
+          <SectionHeader title={mostraAtivo ? 'Exercícios do treino' : e.hoje ? 'Exercícios de hoje' : `Exercícios ${dia === 'sab' || dia === 'dom' ? 'do' : 'da'} ${DIA_NOME[dia]}`} />
+          <ListaExerciciosDoDia
+            key={`${lista.id}-${modo}`}
+            treino={lista}
+            modo={modo}
+            series={seriesDaLista}
+            historico={sessoes}
+            sexo={sexo}
+            onAbrir={modo === 'andamento' ? abrirSessao : modo === 'planejado' && !sessaoAtiva && t ? (ex) => start(t, ex) : undefined}
+          />
+        </>
+      )}
 
       {actions}
 
@@ -341,7 +341,7 @@ export default function TreinoScreen() {
                   <Text style={styles.listTitle}>{tr?.nome ?? 'Treino'}</Text>
                   <Text variant="caption" tone="muted">
                     {dayLabel(s.data, today)}
-                    {outroDia ? ` · treino de ${DIA_NOME[s.diaPlanejado]}` : ''} · {minutosLabel(s.inicio, s.fim)} ·{' '}
+                    {outroDia ? ` · treino de ${DIA_NOME[s.diaPlanejado]}` : ''} · {minutosLabel(s)} ·{' '}
                     {formatInt(s.kcal)} kcal · {formatTons(volume(s.series))} t
                   </Text>
                 </View>
@@ -355,16 +355,6 @@ export default function TreinoScreen() {
         </Text>
       )}
     </TabPage>
-  );
-}
-
-function Tag({ text }: { text: string }) {
-  return (
-    <View style={styles.tag}>
-      <Text variant="caption" tone="secondary" style={styles.tagText}>
-        {text}
-      </Text>
-    </View>
   );
 }
 
@@ -411,15 +401,30 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.tideEdge,
   },
+  cardio: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 14,
+  },
+  cardioIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.limeWash,
+    borderWidth: 1,
+    borderColor: colors.limeEdge,
+  },
+  cardioTitle: {
+    fontFamily: fonts.body.bold,
+    fontSize: 15,
+    lineHeight: 20,
+  },
   fase: {
     gap: 6,
     padding: 16,
-  },
-  cardioRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: spacing.md,
   },
   faseBtn: {
     marginTop: spacing.sm,
@@ -456,86 +461,6 @@ const styles = StyleSheet.create({
   bannerLink: {
     fontFamily: fonts.body.bold,
     color: colors.lime,
-  },
-  exList: {
-    marginTop: spacing.md,
-    gap: 8,
-  },
-  exRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  thumb: {
-    width: 40,
-    height: 48,
-    borderRadius: 12,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.glassFill,
-  },
-  exName: {
-    fontFamily: fonts.body.bold,
-    fontSize: 14,
-    lineHeight: 19,
-  },
-  heroHint: {
-    marginTop: spacing.sm,
-    textAlign: 'center',
-  },
-  doneText: {
-    flex: 1,
-    color: colors.ok,
-  },
-  hero: {
-    padding: 18,
-    minHeight: 210,
-  },
-  kicker: {
-    fontFamily: fonts.body.bold,
-    fontSize: 11.5,
-    letterSpacing: 1.8,
-    color: colors.lime,
-  },
-  heroTitle: {
-    marginTop: spacing.sm,
-    maxWidth: '85%',
-    fontFamily: fonts.display.bold,
-    fontSize: 28,
-    lineHeight: 32,
-    letterSpacing: -1,
-  },
-  heroNote: {
-    marginTop: spacing.md,
-  },
-  tags: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: spacing.md,
-  },
-  tag: {
-    height: 26,
-    paddingHorizontal: 10,
-    borderRadius: 13,
-    justifyContent: 'center',
-    backgroundColor: colors.track,
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  tagText: {
-    fontFamily: fonts.body.bold,
-    fontSize: 11,
-  },
-  heroBtn: {
-    marginTop: spacing.lg,
-  },
-  doneRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginTop: spacing.lg,
   },
   actions: {
     flexDirection: 'row',

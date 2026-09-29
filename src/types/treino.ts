@@ -149,8 +149,13 @@ export type SessaoDeTreino = {
   fim: string;
   series: SerieFeita[];
   cardioMinutos?: number;
+  /** Tempo total com o treino pausado (ms); fica fora da duração e das kcal. */
+  pausaMs?: number;
   kcal: number;
 };
 
 /** Treino em andamento: ainda sem fim e sem kcal. */
-export type SessaoEmAndamento = Omit<SessaoDeTreino, 'fim' | 'kcal'>;
+export type SessaoEmAndamento = Omit<SessaoDeTreino, 'fim' | 'kcal'> & {
+  /** ISO de quando foi pausado (ausente = rodando). */
+  pausadoEm?: string;
+};

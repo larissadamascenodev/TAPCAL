@@ -1,18 +1,17 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import Svg, { Circle, G } from 'react-native-svg';
 
 import { Text } from '@/components/ui/Text';
-import { addDays, dayFraction, fromDateKey } from '@/lib/dates';
+import { addDays, fromDateKey } from '@/lib/dates';
 import { WEEKDAY_SHORT } from '@/lib/format';
 import { colors, fonts, spacing } from '@/theme/theme';
 import type { DateKey } from '@/types';
 
+import { TodayRing } from './TodayRing';
+
 const ITEM_W = 50;
 const GAP = 2;
 const RING = 40;
-const R = 18.5;
-const C = 2 * Math.PI * R;
 
 type Props = {
   today: DateKey;
@@ -30,15 +29,6 @@ type Props = {
  */
 export function DateStrip({ today, past = 3, future = 10, selected, onSelect }: Props) {
   const scroll = useRef<ScrollView>(null);
-  const [now, setNow] = useState(() => new Date());
-
-  // O anel anda sozinho: atualiza a cada minuto.
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 60_000);
-    return () => clearInterval(id);
-  }, []);
-
-  const frac = Math.max(0.02, dayFraction(now));
   const days = Array.from({ length: past + future + 1 }, (_, i) => addDays(today, i - past));
   // Deixa hoje como o quarto dia visível, com três dias antes dele.
   const startX = Math.max(0, past - 3) * (ITEM_W + GAP);
@@ -67,23 +57,7 @@ export function DateStrip({ today, past = 3, future = 10, selected, onSelect }: 
             style={[styles.day, isFuture && styles.future]}>
             <Text style={[styles.week, isToday && styles.strong]}>{WEEKDAY_SHORT[d.getDay()]}</Text>
             <View style={[styles.num, isSelected && styles.selected]}>
-              {isToday && (
-                <Svg width={RING} height={RING} style={StyleSheet.absoluteFill}>
-                  <G rotation={-90} origin={`${RING / 2}, ${RING / 2}`}>
-                    <Circle cx={RING / 2} cy={RING / 2} r={R} fill="none" stroke={colors.line} strokeWidth={2.2} />
-                    <Circle
-                      cx={RING / 2}
-                      cy={RING / 2}
-                      r={R}
-                      fill="none"
-                      stroke={colors.white}
-                      strokeWidth={2.2}
-                      strokeLinecap="round"
-                      strokeDasharray={`${frac * C} ${C}`}
-                    />
-                  </G>
-                </Svg>
-              )}
+              {isToday && <TodayRing />}
               <Text style={[styles.numText, isToday && styles.strong, isToday && styles.bold]}>
                 {String(d.getDate()).padStart(2, '0')}
               </Text>

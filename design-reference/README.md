@@ -83,8 +83,7 @@ Mockup interativo em `v4.html`; `v4.png` mostra as seis telas.
 
 ## Treino (etapa 2: plano da semana, sessões e calorias)
 
-- `treino-dia.png` — semana de segunda a domingo com pílulas só do dia (ponto = treino a fazer, anel = hoje, apagado = descanso) e o cartão do dia escolhido: nome, exercícios com o mapa muscular, séries × repetições, duração e kcal estimadas, "Começar treino" (vale para qualquer dia).
-- `treino-semana-feito.png` — treino de segunda feito na terça: a segunda fica verde com ✓ e "feito na terça"; o calendário não muda sozinho.
+- Treino de segunda feito na terça: a segunda fica verde com ✓ e "feito na terça"; o calendário não muda sozinho. (As telas da aba foram refeitas: ver "Aba Treino v2".)
 - `inicio-treino-kcal.png` — as kcal do treino entram no orçamento do dia em que ele foi feito ("Treino +130 kcal no orçamento de hoje").
 - `treino-meus-treinos.png` — Meus treinos: um ativo por vez; ativar, duplicar e apagar.
 - `rotina-trabalho.png` — rotina de trabalho (sentada, dinâmica, pesada) no lugar do nível de atividade; o treino não entra mais no fator.
@@ -111,3 +110,12 @@ Mockup interativo em `v4.html`; `v4.png` mostra as seis telas.
 - `treino-ia-resultado.png` — "Seu treino está pronto": a semana, um card por dia (séries × repetições), "Por que esse treino" com a explicação e os números das regras, e "De onde vêm os números" (expansível). Botões: Começar a usar, Gerar outro e Editar. Etiqueta "Exemplo" quando o Supabase não está configurado; aviso discreto quando a IA não respondeu e as regras escolheram.
 - `treino-ia-alivio.png` — 5ª semana do bloco: aviso "Semana de alívio: menos séries, mesma técnica" e o card "Montar a próxima fase".
 - As telas de apoio ("Você vê os músculos de cada exercício" e "De onde vêm os números") aparecem só na primeira vez.
+
+## Aba Treino v2 (pedido de ajuste depois da etapa 5)
+
+- `treino-v2-hoje.png` — faixa de datas no mesmo desenho do Início (dia em cima, número, "HOJE" com o anel do dia), com o anel em verde; ponto embaixo = treino a fazer, ✓ = feito. Card principal enxuto: "HOJE · 4 EXERCÍCIOS", nome do treino, tempo e kcal estimados, desenho dos músculos ao fundo e "Iniciar treino". Embaixo: "Cardio da semana" e "Exercícios de hoje".
+- `treino-v2-exercicio-aberto.png` — tocar num exercício abre as séries em linha do tempo, com a última vez; antes de começar, "Começar por este".
+- `treino-v2-em-andamento.png` — com o treino rodando, o card vira o cronômetro (pausar/continuar), kcal até agora, séries feitas, o exercício atual e "Abrir treino"; tocar no card abre o treino.
+- `treino-v2-linha-do-tempo.png` — lista com o progresso de cada exercício (2/4, ✓); séries feitas com carga × repetições e horário, a atual marcada e "Abrir exercício".
+- No treino em andamento, tocar no relógio pausa ou continua; o tempo pausado não conta na duração nem nas kcal.
+- Referência enviada: mockup "A semana inteira de treino já montada" (usado só como inspiração, sem copiar).

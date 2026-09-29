@@ -190,6 +190,25 @@ describe('treino', () => {
     expect(sug).toMatchObject({ tipo: 'subir', cargaKg: 65, motivo: 'Suba para 65 kg: você fez 12, 12, 12 na última vez' });
   });
 
+  it('pausar: o tempo parado fica fora da duração e das kcal', () => {
+    store().salvarPlano(planoTeste());
+    store().comecarTreino('t-seg');
+    store().registrarSerie('e1', 60, 12);
+    jest.advanceTimersByTime(30 * 60_000);
+    store().pausarTreino();
+    jest.advanceTimersByTime(20 * 60_000); // pausado
+    store().retomarTreino();
+    jest.advanceTimersByTime(20 * 60_000);
+    store().pausarTreino();
+    jest.advanceTimersByTime(10 * 60_000); // termina pausado
+    store().finalizarTreino();
+    const [s] = store().sessoes;
+    expect(s.pausaMs).toBe(30 * 60_000);
+    expect('pausadoEm' in s).toBe(false);
+    // 50 min de treino: (3,5 − 1) × 70 × 50/60
+    expect(s.kcal).toBe(146);
+  });
+
   it('apagar série renumera as seguintes', () => {
     store().salvarPlano(planoTeste());
     store().comecarTreino('t-seg');

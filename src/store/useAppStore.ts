@@ -86,6 +86,9 @@ type Actions = {
   /** Termina o treino: calcula as kcal e guarda (sem nenhuma série, descarta). */
   finalizarTreino: () => void;
   cancelarTreino: () => void;
+  /** Pausa o cronômetro do treino (o tempo parado não conta). */
+  pausarTreino: () => void;
+  retomarTreino: () => void;
   /** Cria um exercício só desta pessoa e devolve ele (para já entrar no treino). */
   criarExercicio: (novo: NovoExercicio) => Exercicio;
   salvarRespostasTreinoIA: (r: RespostasTreinoIA) => void;
@@ -270,11 +273,27 @@ export const useAppStore = create<AppState>()(
           const peso = weights.at(-1)?.weightKg ?? profile?.startWeightKg ?? 70;
           const cardio = planos.find((p) => p.id === s.planoId)?.treinos.find((t) => t.id === s.treinoDoDiaId)?.cardio;
           const fim = nowIso();
-          const sessao: SessaoDeTreino = { ...s, fim, kcal: kcalDaSessao(s, fim, peso, cardio) };
+          // Terminar pausado: a pausa em curso também fica fora da conta.
+          const { pausadoEm, ...resto } = s;
+          const pausaMs = (s.pausaMs ?? 0) + (pausadoEm ? Math.max(0, Date.parse(fim) - Date.parse(pausadoEm)) : 0);
+          const base = pausaMs ? { ...resto, pausaMs } : resto;
+          const sessao: SessaoDeTreino = { ...base, fim, kcal: kcalDaSessao(base, fim, peso, cardio) };
           set({ sessoes: [sessao, ...get().sessoes], sessaoAtiva: null });
         },
 
         cancelarTreino: () => set({ sessaoAtiva: null }),
+
+        pausarTreino: () => {
+          const s = get().sessaoAtiva;
+          if (s && !s.pausadoEm) set({ sessaoAtiva: { ...s, pausadoEm: nowIso() } });
+        },
+
+        retomarTreino: () => {
+          const s = get().sessaoAtiva;
+          if (!s?.pausadoEm) return;
+          const { pausadoEm, ...resto } = s;
+          set({ sessaoAtiva: { ...resto, pausaMs: (s.pausaMs ?? 0) + Math.max(0, now().getTime() - Date.parse(pausadoEm)) } });
+        },
 
         salvarRespostasTreinoIA: (r) => set({ respostasTreinoIA: r }),
 
