@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import Animated, { ZoomIn } from 'react-native-reanimated';
 
 import { Text } from '@/components/ui';
 import { exercicioPorId, MUSCULO_LABELS } from '@/lib/exercicios';
@@ -26,6 +27,8 @@ type Props = {
   sexo?: 'feminino' | 'masculino';
   /** Em andamento: abre o exercício no treino. Planejado: começa o treino por ele. */
   onAbrir?: (exercicioNoTreinoId: string) => void;
+  /** Em andamento: tocar numa série que falta abre o registro dela. */
+  onSerie?: (exercicioNoTreinoId: string) => void;
 };
 
 const NO = 30;
@@ -42,15 +45,17 @@ const nomeCardio = (c: Cardio) => (c.atividade === 'eliptico' ? 'elíptico' : c.
  * na linha; o atual tem um reflexo de vidro e o ponto em destaque. Fechado,
  * mostra só o exercício; aberto, as séries. O atual (ou o primeiro) já vem aberto.
  */
-export function ListaExerciciosDoDia({ treino, modo, titulo, series, historico, sexo, onAbrir }: Props) {
+export function ListaExerciciosDoDia({ treino, modo, titulo, series, historico, sexo, onAbrir, onSerie }: Props) {
   const idAtual =
     modo === 'andamento'
       ? treino.exercicios[proximoExercicio(treino, { series: [...series] })]?.id
       : modo === 'planejado'
         ? treino.exercicios[0]?.id
         : undefined;
-  const [escolha, setEscolha] = useState<{ id: string | null } | null>(null);
-  const aberto = escolha ? escolha.id : (idAtual ?? null);
+  // A escolha da pessoa vale enquanto o exercício atual não muda; quando ele
+  // termina, a lista volta a abrir o próximo sozinha.
+  const [escolha, setEscolha] = useState<{ id: string | null; base: string | undefined } | null>(null);
+  const aberto = escolha && escolha.base === idAtual ? escolha.id : (idAtual ?? null);
 
   return (
     <View>
@@ -75,8 +80,9 @@ export function ListaExerciciosDoDia({ treino, modo, titulo, series, historico, 
             sexo={sexo}
             aberto={aberto === e.id}
             ultimo={ultimo}
-            onToggle={() => setEscolha({ id: aberto === e.id ? null : e.id })}
+            onToggle={() => setEscolha({ id: aberto === e.id ? null : e.id, base: idAtual })}
             onAbrir={onAbrir && (() => onAbrir(e.id))}
+            onSerie={onSerie && (() => onSerie(e.id))}
           />
         );
       })}
@@ -111,6 +117,7 @@ function Item({
   ultimo,
   onToggle,
   onAbrir,
+  onSerie,
 }: {
   item: ExercicioNoTreino;
   ordem: number;
@@ -123,6 +130,7 @@ function Item({
   ultimo: boolean;
   onToggle: () => void;
   onAbrir?: () => void;
+  onSerie?: () => void;
 }) {
   const ex = exercicioPorId(item.exercicioId);
   const nome = ex?.nome ?? 'Exercício';
@@ -136,7 +144,7 @@ function Item({
       <View style={styles.trilho}>
         <View style={[styles.no, atual && styles.noAtual, completo && styles.noFeito]}>
           {completo ? (
-            <Ionicons name="checkmark" size={14} color={colors.onLime} />
+            <Ionicons name="checkmark" size={15} color={colors.lime} />
           ) : (
             <Text style={[styles.noText, atual && styles.noTextAtual]}>{String(ordem).padStart(2, '0')}</Text>
           )}
@@ -160,9 +168,13 @@ function Item({
               {nome}
             </Text>
             <Text variant="caption" tone="muted">
-              {ex ? MUSCULO_LABELS[ex.musculoPrincipal] : ''}
-              {modo !== 'planejado' ? ` · ${Math.min(feitas.length, item.series)}/${item.series}` : ''}
+              {ex ? MUSCULO_LABELS[ex.musculoPrincipal] : ''} · {item.series} {item.series === 1 ? 'série' : 'séries'}
             </Text>
+            <View style={styles.pontos} accessibilityLabel={`${Math.min(feitas.length, item.series)} de ${item.series} séries feitas`}>
+              {Array.from({ length: item.series }, (_, k) => (
+                <View key={k} style={[styles.pontoSerie, k < feitas.length && styles.pontoSerieFeito]} />
+              ))}
+            </View>
           </View>
           <Ionicons name={aberto ? 'chevron-up' : 'chevron-down'} size={17} color={colors.ink3} />
         </Pressable>
@@ -174,8 +186,18 @@ function Item({
               const agora = !s && modo === 'andamento' && k === feitas.length;
               const ult = antes[k];
               return (
-                <View key={k} style={styles.serie}>
-                  <View style={[styles.bolinha, s && styles.bolinhaFeita, agora && styles.bolinhaAgora]} />
+                <Pressable
+                  key={k}
+                  disabled={!onSerie || !!s}
+                  accessibilityRole={onSerie && !s ? 'button' : undefined}
+                  accessibilityHint={onSerie && !s ? 'Registrar carga e repetições' : undefined}
+                  onPress={onSerie}
+                  style={({ pressed }) => [styles.serie, pressed && styles.pressed]}>
+                  {s ? (
+                    <Animated.View entering={ZoomIn.duration(280)} style={[styles.bolinha, styles.bolinhaFeita]} />
+                  ) : (
+                    <View style={[styles.bolinha, agora && styles.bolinhaAgora]} />
+                  )}
                   <View style={styles.flex}>
                     <Text style={[styles.serieTitulo, !s && !agora && styles.serieFutura]}>
                       Série {k + 1} · {s ? `${formatDecimal(s.cargaKg)} kg × ${s.reps}` : `${reps} repetições`}
@@ -183,8 +205,10 @@ function Item({
                     <Text variant="caption" tone="muted">
                       {s
                         ? `feita às ${hora(s.concluidaEm)}`
-                        : agora
-                          ? 'agora'
+                        : agora && onSerie
+                          ? 'agora · toque para registrar'
+                          : agora
+                            ? 'agora'
                           : ult
                             ? `última vez: ${formatDecimal(ult.cargaKg)} kg × ${ult.reps}`
                             : k === 0 && item.cargaInicialKg
@@ -192,7 +216,8 @@ function Item({
                               : `descanso de ${item.descansoSeg} s`}
                     </Text>
                   </View>
-                </View>
+                  {agora && onSerie ? <Ionicons name="create-outline" size={16} color={colors.lime} /> : null}
+                </Pressable>
               );
             })}
             {item.observacao ? (
@@ -253,8 +278,8 @@ const styles = StyleSheet.create({
     borderColor: colors.lime,
   },
   noFeito: {
-    backgroundColor: colors.lime,
-    borderColor: colors.lime,
+    backgroundColor: colors.glassFillStrong,
+    borderColor: colors.line2,
   },
   noText: {
     fontFamily: fonts.display.semibold,
@@ -329,11 +354,25 @@ const styles = StyleSheet.create({
     borderColor: colors.line2,
   },
   bolinhaFeita: {
-    backgroundColor: colors.ink2,
-    borderColor: colors.ink2,
+    backgroundColor: colors.lime,
+    borderColor: colors.lime,
   },
   bolinhaAgora: {
     borderColor: colors.lime,
+    borderWidth: 2,
+  },
+  pontos: {
+    flexDirection: 'row',
+    gap: 4,
+    marginTop: 6,
+  },
+  pontoSerie: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.track,
+  },
+  pontoSerieFeito: {
     backgroundColor: colors.lime,
   },
   serieTitulo: {

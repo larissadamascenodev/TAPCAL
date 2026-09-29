@@ -76,8 +76,11 @@ export const colors = {
   bodyEdge: 'rgba(255,255,255,0.22)',
   musclePrimary: '#D1FB39',
   muscleSecondary: 'rgba(209,251,57,0.40)',
+  // Mapa de calor dos músculos (relatório): pouco → muito
+  muscleHeat1: 'rgba(209,251,57,0.22)',
+  muscleHeat2: 'rgba(209,251,57,0.55)',
   // Miolo do botão neon: vidro escuro quase fechado, para a luz aparecer só na borda
-  neonInner: 'rgba(12,12,15,0.9)',
+  neonInner: 'rgba(22,23,26,0.94)',
   // Fundo atrás da folha de edição: leve sobre o desfoque; sem desfoque (Android), bem mais fechado
   modalScrim: 'rgba(5,5,6,0.45)',
   modalScrimSolid: 'rgba(5,5,6,0.85)',
@@ -144,7 +147,10 @@ export const gradients = {
   // Base da foto do prato no resultado: escurece até o tom do fundo, sob o vidro
   photoFade: ['rgba(5,5,6,0)', 'rgba(5,5,6,1)'] as const,
   // Borda do botão neon: verde neon e menta girando em volta do vidro, com um trecho mais fraco
-  neonRing: ['#D1FB39', '#2ED3A0', 'rgba(46,211,160,0.28)', 'rgba(209,251,57,0.28)', '#D1FB39'] as const,
+  // Só o verde do app: duas marcas de luz que giram em volta, sumindo entre elas
+  neonRing: ['#D1FB39', 'rgba(209,251,57,0.12)', 'rgba(209,251,57,0)', 'rgba(209,251,57,0.12)', '#D1FB39'] as const,
+  // Miolo de vidro do botão neon: reflexo mais claro em cima
+  neonGlass: ['rgba(255,255,255,0.16)', 'rgba(255,255,255,0.05)', 'rgba(255,255,255,0.02)'] as const,
   // Véu sobre a foto desfocada atrás da folha de vidro: fechado no topo (emenda
   // com a foto), depois deixa passar a cor do prato
   ambientVeil: ['rgba(5,5,6,1)', 'rgba(5,5,6,0.72)', 'rgba(5,5,6,0.72)'] as const,

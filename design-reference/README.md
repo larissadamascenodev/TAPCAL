@@ -111,13 +111,14 @@ Mockup interativo em `v4.html`; `v4.png` mostra as seis telas.
 - `treino-ia-alivio.png` — 5ª semana do bloco: aviso "Semana de alívio: menos séries, mesma técnica" e o card "Montar a próxima fase".
 - As telas de apoio ("Você vê os músculos de cada exercício" e "De onde vêm os números") aparecem só na primeira vez.
 
-## Aba Treino v3 (escolhida: "Foco no dia" + linha do tempo)
+## Aba Treino v4 ("Foco no dia" + linha do tempo, com os ajustes)
 
 Escolha feita entre as opções em `opcoes-treino/` (A, B e C): o topo da C e a linha do tempo da B, sem cartões.
 
-- `treino-v3-hoje.png` — Treino com a biblioteca e Meus treinos no topo; a semana (sem cápsula) com o anel de hoje; o corpo grande com os músculos do dia direto no fundo escuro, o nome do treino por cima, tempo e kcal e "Iniciar treino". Abaixo, as abas Exercícios · Cardio · Semana.
-- `treino-v3-linha-do-tempo.png` — exercícios em linha do tempo, sem cartões: o título diz o dia ("Hoje · terça-feira", "Segunda-feira"); fechado mostra só o exercício; o atual (ou o primeiro) já vem aberto com as séries; reflexo de vidro no exercício atual.
-- `treino-v3-em-andamento.png` — cápsula ao vivo (tempo, séries, pausar) e o destaque vira o exercício atual, com as séries feitas, a atual e as que faltam, e "Abrir exercício".
-- `treino-v3-series.png` — séries do exercício atual na linha do tempo durante o treino.
-- `treino-v3-semana.png` — aba Semana: números da semana, volume, próximos e concluídos.
-- Tom: escuro e vidro; o verde só nos detalhes (anel de hoje, ponto do exercício atual, músculos, série atual). O verde do fundo no Treino é mais fraco que nas outras abas.
+- `treino-v4-hoje.png` — biblioteca (livro) e Meus treinos no topo; semana com o anel de hoje; corpo grande com os músculos do dia; nome do treino em até 2 linhas; "Iniciar treino" no botão de vidro com as marcas de luz girando (só o verde do app).
+- `treino-v4-em-andamento.png` — o destaque vira o exercício atual (séries feitas, a atual e as que faltam) e o tempo de treino fica ao lado de "Abrir exercício", com pausar/continuar. Vendo outro dia, a cápsula com o tempo aparece no topo.
+- `treino-v4-linha-do-tempo.png` — linha do tempo sem cartões: bolinhas de séries concluídas em cada exercício; o exercício concluído fica com o nó de vidro e o ✓ no verde do app.
+- `treino-v4-registrar-serie.png` — tocar numa série (treino em andamento) abre o modal com carga e repetições; "Concluir série" registra e o modal passa para a próxima com animação; a bolinha da série feita aparece com animação na lista.
+- `treino-v4-semana-mapa.png` — aba Semana: esta semana ou 30 dias; treinos, tempo e kcal; mapa de calor do corpo (frente e costas) e músculos mais trabalhados; treinos mais feitos; volume por dia.
+- `treino-v4-semana-listas.png` — próximos e concluídos abrem na própria aba (exercícios planejados; séries feitas com carga × repetições).
+- Tom: escuro e vidro; verde só em detalhes.

@@ -15,9 +15,10 @@
  */
 
 import { daysBetween } from '@/lib/dates';
+import { exercicioPorId } from '@/lib/exercicios';
 import { formatDecimal } from '@/lib/format';
 import type { DateKey } from '@/types';
-import type { Exercicio, ExercicioNoTreino, PlanoDeTreino, SerieFeita, SessaoDeTreino } from '@/types/treino';
+import type { Exercicio, ExercicioNoTreino, PlanoDeTreino, SerieFeita, SessaoDeTreino, SessaoEmAndamento } from '@/types/treino';
 
 /** Quantas sessões seguidas batendo o topo da faixa são exigidas para subir. */
 export const SESSOES_PARA_SUBIR = 1;
@@ -155,4 +156,31 @@ export function sugerirCarga(
     repsAlvo: alvo.repsMax,
     motivo: semCarga ? `Busque ${alvo.repsMax} repetições em todas as séries` : `Mantenha ${kg(carga)} e busque ${alvo.repsMax} repetições`,
   };
+}
+
+/** Sugestão da progressão para um exercício do treino (null = sem histórico). */
+export function sugestaoDoExercicio(
+  ex: ExercicioNoTreino,
+  sessoes: readonly SessaoDeTreino[],
+  planos: readonly Pick<PlanoDeTreino, 'id' | 'ia'>[],
+): Sugestao | null {
+  const info = exercicioPorId(ex.exercicioId);
+  return info ? sugerirCarga(ex, info, historicoQueConta(sessoes, planos, ex.exercicioId)) : null;
+}
+
+/**
+ * Carga e repetições para a próxima série: as da última série feita hoje;
+ * senão, a sugestão da progressão; senão, a carga inicial do plano.
+ */
+export function valoresDaProximaSerie(
+  ex: ExercicioNoTreino,
+  sessao: Pick<SessaoEmAndamento, 'series'>,
+  sessoes: readonly SessaoDeTreino[],
+  planos: readonly Pick<PlanoDeTreino, 'id' | 'ia'>[],
+): { kg: number; reps: number } {
+  const aqui = sessao.series.filter((s) => s.exercicioNoTreinoId === ex.id).at(-1);
+  if (aqui) return { kg: aqui.cargaKg, reps: aqui.reps };
+  const sug = sugestaoDoExercicio(ex, sessoes, planos);
+  if (sug) return { kg: sug.cargaKg, reps: sug.repsAlvo };
+  return { kg: ex.cargaInicialKg ?? 10, reps: ex.repsMin };
 }

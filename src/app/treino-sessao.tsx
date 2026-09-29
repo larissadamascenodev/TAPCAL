@@ -18,10 +18,9 @@ import { exercicioPorId, MUSCULO_LABELS } from '@/lib/exercicios';
 import { formatDecimal, formatDuration, formatInt } from '@/lib/format';
 import { tempoDeTreinoMs } from '@/lib/treino/met';
 import { bateRecorde, proximoExercicio, recorde, repsLabel, seriesFeitas, ultimasSeries } from '@/lib/treino/plano';
-import { historicoQueConta, seriesNaSemana, sugerirCarga, type Sugestao } from '@/lib/treino/progressao';
+import { seriesNaSemana, sugestaoDoExercicio, valoresDaProximaSerie } from '@/lib/treino/progressao';
 import { useAppStore } from '@/store/useAppStore';
 import { colors, fonts, radius, spacing } from '@/theme/theme';
-import type { ExercicioNoTreino, PlanoDeTreino, SessaoDeTreino, SessaoEmAndamento } from '@/types/treino';
 
 const KG_STEP = 2.5;
 
@@ -33,24 +32,6 @@ function useNow() {
     return () => clearInterval(id);
   }, []);
   return now;
-}
-
-/** Sugestão da progressão de carga para o exercício (null = sem histórico). */
-function progressao(ex: ExercicioNoTreino, past: SessaoDeTreino[], planos: PlanoDeTreino[]): Sugestao | null {
-  const info = exercicioPorId(ex.exercicioId);
-  return info ? sugerirCarga(ex, info, historicoQueConta(past, planos, ex.exercicioId)) : null;
-}
-
-/**
- * Carga e repetições iniciais: as da última série feita hoje; senão, a
- * sugestão da progressão (com base na última vez); senão, a carga inicial do plano.
- */
-function suggestion(ex: ExercicioNoTreino, session: SessaoEmAndamento, past: SessaoDeTreino[], planos: PlanoDeTreino[]) {
-  const here = session.series.filter((s) => s.exercicioNoTreinoId === ex.id).at(-1);
-  if (here) return { kg: here.cargaKg, reps: here.reps };
-  const sug = progressao(ex, past, planos);
-  if (sug) return { kg: sug.cargaKg, reps: sug.repsAlvo };
-  return { kg: ex.cargaInicialKg ?? 10, reps: ex.repsMin };
 }
 
 export default function TreinoSessaoScreen() {
@@ -72,7 +53,7 @@ export default function TreinoSessaoScreen() {
   });
   const exercise = treino?.exercicios[index];
   const [input, setInput] = useState(() =>
-    session && exercise ? suggestion(exercise, session, past, planos) : { kg: 10, reps: 10 },
+    session && exercise ? valoresDaProximaSerie(exercise, session, past, planos) : { kg: 10, reps: 10 },
   );
   const [restUntil, setRestUntil] = useState<number | null>(null);
 
@@ -88,12 +69,12 @@ export default function TreinoSessaoScreen() {
   const lastTime = ultimasSeries(past, exercise.exercicioId)?.series ?? [];
   const record = recorde(past, exercise.exercicioId);
   // A linha do motivo só aparece antes da primeira série do exercício hoje.
-  const sugestao = done === 0 ? progressao(exercise, past, planos) : null;
+  const sugestao = done === 0 ? sugestaoDoExercicio(exercise, past, planos) : null;
 
   const goTo = (i: number) => {
     const ex = treino.exercicios[i];
     setIndex(i);
-    setInput(suggestion(ex, session, past, planos));
+    setInput(valoresDaProximaSerie(ex, session, past, planos));
     setRestUntil(null);
   };
 

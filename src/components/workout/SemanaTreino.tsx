@@ -48,7 +48,7 @@ export function SemanaTreino({ hoje, estados, selecionado, onSelect }: Props) {
             </View>
             <View style={styles.mark}>
               {e.tipo === 'feito' ? (
-                <Ionicons name="checkmark" size={12} color={colors.ok} />
+                <Ionicons name="checkmark" size={12} color={colors.lime} />
               ) : e.tipo === 'pendente' ? (
                 <View style={[styles.dot, on && styles.dotOn]} />
               ) : null}
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.display.bold,
   },
   done: {
-    color: colors.ok,
+    color: colors.ink,
   },
   mark: {
     height: 12,

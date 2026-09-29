@@ -100,3 +100,39 @@ export function MapaDeFoco({ musculos, sexo = 'feminino', altura = 200 }: { musc
     </View>
   );
 }
+
+/** Mapa de calor (frente e costas): quanto mais séries, mais forte o verde. */
+export function MapaDeCalor({
+  niveis,
+  sexo = 'feminino',
+  altura = 220,
+}: {
+  niveis: readonly { musculo: Musculo; nivel: 1 | 2 | 3 }[];
+  sexo?: 'feminino' | 'masculino';
+  altura?: number;
+}) {
+  // Músculos que viram o mesmo desenho (ex.: abdutores → glúteo) ficam com o nível mais alto.
+  const porSlug = new Map<string, number>();
+  for (const { musculo, nivel } of niveis) {
+    const slug = slugDoDesenho(musculo);
+    porSlug.set(slug, Math.max(porSlug.get(slug) ?? 0, nivel));
+  }
+  const data: ExtendedBodyPart[] = [...porSlug.entries()].map(([slug, intensity]) => ({ slug: slug as ExtendedBodyPart['slug'], intensity }));
+  const corpo = (side: 'front' | 'back') => (
+    <Body
+      data={data}
+      side={side}
+      gender={sexo === 'feminino' ? 'female' : 'male'}
+      scale={altura / 400}
+      colors={[colors.muscleHeat1, colors.muscleHeat2, colors.musclePrimary]}
+      defaultFill={colors.bodyFill}
+      border={colors.bodyEdge}
+    />
+  );
+  return (
+    <View style={styles.foco} accessible accessibilityRole="image" accessibilityLabel="Mapa dos músculos trabalhados, de frente e de costas">
+      {corpo('front')}
+      {corpo('back')}
+    </View>
+  );
+}

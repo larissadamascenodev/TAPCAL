@@ -30,8 +30,8 @@ type Props = {
 };
 
 /**
- * Botão principal das folhas (CONTINUAR, SALVAR): pílula de vidro escuro com uma
- * borda de luz neon girando em volta.
+ * Botão principal (CONTINUAR, SALVAR, INICIAR): pílula de vidro com duas marcas
+ * de luz no verde do app girando em volta.
  */
 export function NeonButton({ label, onPress, disabled, style }: Props) {
   const reduce = useReducedMotion();
@@ -58,8 +58,8 @@ export function NeonButton({ label, onPress, disabled, style }: Props) {
         )}
         <View pointerEvents="none" style={styles.inner}>
           <LinearGradient
-            colors={gradients.glassSheen}
-            locations={[0, 0.45, 1]}
+            colors={gradients.neonGlass}
+            locations={[0, 0.5, 1]}
             start={{ x: 0, y: 0 }}
             end={{ x: 0.7, y: 1 }}
             style={StyleSheet.absoluteFill}
@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
   glow: {
     borderRadius: radius.pill,
     ...Platform.select({
-      ios: { shadowColor: colors.lime, shadowOpacity: 0.4, shadowRadius: 16, shadowOffset: { width: 0, height: 0 } },
+      ios: { shadowColor: colors.lime, shadowOpacity: 0.22, shadowRadius: 14, shadowOffset: { width: 0, height: 0 } },
       default: {},
     }),
   },
@@ -97,6 +97,10 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     overflow: 'hidden',
     backgroundColor: colors.neonInner,
+    // Vidro: borda de reflexo em cima, mais clara que o resto
+    borderWidth: 1,
+    borderColor: colors.lineSoft,
+    borderTopColor: colors.glassHighlight,
   },
   label: {
     fontFamily: fonts.display.bold,

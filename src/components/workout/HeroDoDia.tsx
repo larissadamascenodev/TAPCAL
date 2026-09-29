@@ -13,6 +13,7 @@ import type { Musculo, SessaoEmAndamento, TreinoDoDia } from '@/types/treino';
 import { MapaMuscular } from './MapaMuscular';
 
 const ALTURA = 360;
+// O corpo termina acima da linha dos botões (o cronômetro fica à direita, embaixo dele).
 
 /** Relógio que atualiza a cada segundo. */
 function useAgora() {
@@ -43,7 +44,7 @@ function Palco({ musculos, sexo, children }: { musculos: readonly Musculo[]; sex
     <View style={styles.palco}>
       {musculos.length > 0 && (
         <View style={styles.corpo} pointerEvents="none">
-          <MapaMuscular principal={musculos[0]} secundarios={musculos.slice(1, 4)} sexo={sexo} altura={ALTURA - 20} podeVirar={false} />
+          <MapaMuscular principal={musculos[0]} secundarios={musculos.slice(1, 4)} sexo={sexo} altura={ALTURA - 84} podeVirar={false} />
         </View>
       )}
       <View style={styles.texto}>{children}</View>
@@ -77,7 +78,7 @@ export function HeroTreino({
       <Text style={styles.kicker}>
         {kicker} · {n} {n === 1 ? 'exercício' : 'exercícios'}
       </Text>
-      <Text style={styles.titulo} numberOfLines={3}>
+      <Text style={styles.titulo} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.75}>
         {treino.nome}
       </Text>
       <View style={styles.chips}>
@@ -89,7 +90,7 @@ export function HeroTreino({
       </View>
       {feito ? (
         <View style={styles.feito}>
-          <Ionicons name="checkmark-circle" size={17} color={colors.ok} />
+          <Ionicons name="checkmark-circle" size={17} color={colors.lime} />
           <Text variant="caption" style={styles.feitoText}>
             {feito}
           </Text>
@@ -133,11 +134,15 @@ export function HeroEmAndamento({
   sessao,
   sexo,
   onAbrir,
+  onPausar,
+  onContinuar,
 }: {
   treino: TreinoDoDia;
   sessao: SessaoEmAndamento;
   sexo?: 'feminino' | 'masculino';
   onAbrir: () => void;
+  onPausar: () => void;
+  onContinuar: () => void;
 }) {
   const i = proximoExercicio(treino, sessao);
   const atual = treino.exercicios[i];
@@ -148,8 +153,13 @@ export function HeroEmAndamento({
     return (
       <Palco musculos={musculosDoTreino(treino)} sexo={sexo}>
         <Text style={styles.kicker}>Tudo feito</Text>
-        <Text style={styles.titulo}>{treino.nome}</Text>
-        <NeonButton label="Finalizar treino" onPress={onAbrir} style={styles.btn} />
+        <Text style={styles.titulo} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.75}>
+          {treino.nome}
+        </Text>
+        <View style={styles.acoes}>
+          <NeonButton label="Finalizar treino" onPress={onAbrir} style={styles.flex} />
+          <Cronometro sessao={sessao} onPausar={onPausar} onContinuar={onContinuar} />
+        </View>
       </Palco>
     );
   }
@@ -158,7 +168,7 @@ export function HeroEmAndamento({
       <Text style={styles.kicker}>
         Agora · exercício {i + 1} de {treino.exercicios.length}
       </Text>
-      <Text style={styles.titulo} numberOfLines={3}>
+      <Text style={styles.titulo} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.75}>
         {ex?.nome ?? 'Exercício'}
       </Text>
       <View style={styles.series}>
@@ -174,8 +184,28 @@ export function HeroEmAndamento({
           );
         })}
       </View>
-      <NeonButton label="Abrir exercício" onPress={onAbrir} style={styles.btn} />
+      <View style={styles.acoes}>
+        <NeonButton label="Abrir exercício" onPress={onAbrir} style={styles.flex} />
+        <Cronometro sessao={sessao} onPausar={onPausar} onContinuar={onContinuar} />
+      </View>
     </Palco>
+  );
+}
+
+/** Tempo de treino correndo, com pausar/continuar (fica ao lado do botão do destaque). */
+function Cronometro({ sessao, onPausar, onContinuar }: { sessao: SessaoEmAndamento; onPausar: () => void; onContinuar: () => void }) {
+  const agora = useAgora();
+  const pausado = !!sessao.pausadoEm;
+  const tempo = formatDuration(tempoDeTreinoMs(sessao, agora) / 1000);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Tempo de treino ${tempo}${pausado ? ', pausado' : ''}. Toque para ${pausado ? 'continuar' : 'pausar'}`}
+      onPress={pausado ? onContinuar : onPausar}
+      style={({ pressed }) => [styles.crono, pressed && styles.pressed]}>
+      <Ionicons name={pausado ? 'play' : 'pause'} size={13} color={pausado ? colors.lime : colors.ink2} />
+      <Text style={[styles.tempo, pausado && styles.tempoPausado]}>{tempo}</Text>
+    </Pressable>
   );
 }
 
@@ -242,11 +272,11 @@ const styles = StyleSheet.create({
   },
   titulo: {
     marginTop: spacing.sm,
-    maxWidth: '62%',
+    maxWidth: '74%',
     fontFamily: fonts.display.bold,
-    fontSize: 36,
-    lineHeight: 38,
-    letterSpacing: -1.6,
+    fontSize: 30,
+    lineHeight: 34,
+    letterSpacing: -1.2,
   },
   chips: {
     flexDirection: 'row',
@@ -285,7 +315,7 @@ const styles = StyleSheet.create({
   feitoText: {
     flex: 1,
     fontFamily: fonts.body.bold,
-    color: colors.ok,
+    color: colors.ink2,
   },
   descanso: {
     paddingTop: spacing.xl,
@@ -324,6 +354,27 @@ const styles = StyleSheet.create({
   },
   serieTextOn: {
     color: colors.ink,
+  },
+  flex: {
+    flex: 1,
+  },
+  acoes: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: spacing.lg,
+  },
+  crono: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    height: 58,
+    paddingHorizontal: 16,
+    borderRadius: 29,
+    backgroundColor: colors.glassFillStrong,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderTopColor: colors.frostCardEdgeTop,
   },
   capsulaWrap: {
     alignItems: 'center',
