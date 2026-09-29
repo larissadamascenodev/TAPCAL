@@ -1,10 +1,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useIsFocused } from 'expo-router';
 import { useState } from 'react';
 import * as Haptics from 'expo-haptics';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import Animated, { ZoomIn } from 'react-native-reanimated';
+import Svg, { Circle } from 'react-native-svg';
 
 import { Text } from '@/components/ui';
 import { exercicioPorId, MUSCULO_LABELS } from '@/lib/exercicios';
@@ -27,10 +29,11 @@ type Props = {
   /** Treinos anteriores, para "última vez". */
   historico: readonly SessaoDeTreino[];
   sexo?: 'feminino' | 'masculino';
-  /** Em andamento: abre o exercício no treino. Planejado: começa o treino por ele. */
+  /**
+   * Em andamento: abre o treino ao vivo nesse exercício (também ao tocar numa
+   * série). Planejado: começa o treino por ele.
+   */
   onAbrir?: (exercicioNoTreinoId: string) => void;
-  /** Em andamento: tocar numa série que falta abre o registro dela. */
-  onSerie?: (exercicioNoTreinoId: string) => void;
   /**
    * Edição do treino (vale também para plano da IA): adicionar no fim,
    * remover (arrastando para o lado ou no modo de edição) e mudar a ordem.
@@ -47,11 +50,22 @@ const tique = () => {
   if (Platform.OS !== 'web') Haptics.selectionAsync();
 };
 
-const NO = 30;
+const NO = 40;
+const NO_R = 18;
+const NO_C = 2 * Math.PI * NO_R;
 
 const hora = (iso: string) => {
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? '' : `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+};
+
+/** Depois do selo, a linha verde desce até o próximo exercício. */
+const DESCER = {
+  animationName: { from: { height: '0%' as const }, to: { height: '100%' as const } },
+  animationDuration: 520,
+  animationDelay: 220,
+  animationFillMode: 'both' as const,
+  animationTimingFunction: 'ease-out' as const,
 };
 
 const nomeCardio = (c: Cardio) => (c.atividade === 'eliptico' ? 'elíptico' : c.atividade);
@@ -61,8 +75,15 @@ const nomeCardio = (c: Cardio) => (c.atividade === 'eliptico' ? 'elíptico' : c.
  * na linha; o atual tem um reflexo de vidro e o ponto em destaque. Fechado,
  * mostra só o exercício; aberto, as séries. O atual (ou o primeiro) já vem aberto.
  */
-export function ListaExerciciosDoDia({ treino, modo, titulo, series, historico, sexo, onAbrir, onSerie, edicao }: Props) {
+export function ListaExerciciosDoDia({ treino, modo, titulo, series, historico, sexo, onAbrir, edicao }: Props) {
   const [editando, setEditando] = useState(false);
+  // O selo de "feito" entra com animação quando a pessoa volta para a lista
+  // (as séries são marcadas no treino ao vivo, com esta tela escondida).
+  const focado = useIsFocused();
+  const [vistos, setVistos] = useState<readonly string[]>([]);
+  const completos = treino.exercicios.filter((e) => modo !== 'planejado' && series.filter((s) => s.exercicioNoTreinoId === e.id).length >= e.series).map((e) => e.id);
+  if (focado && completos.some((id) => !vistos.includes(id))) setVistos(completos);
+  const selados = new Set(completos.filter((id) => focado || vistos.includes(id)));
   const idAtual =
     modo === 'andamento'
       ? treino.exercicios[proximoExercicio(treino, { series: [...series] })]?.id
@@ -118,13 +139,13 @@ export function ListaExerciciosDoDia({ treino, modo, titulo, series, historico, 
             modo={modo}
             atual={e.id === idAtual}
             feitas={feitas}
+            selo={selados.has(e.id)}
             historico={historico}
             sexo={sexo}
             aberto={aberto === e.id}
             ultimo={ultimo}
             onToggle={() => setEscolha({ id: aberto === e.id ? null : e.id, base: idAtual })}
             onAbrir={onAbrir && (() => onAbrir(e.id))}
-            onSerie={onSerie && (() => onSerie(e.id))}
             onLongPress={
               edicao &&
               (() => {
@@ -245,19 +266,66 @@ function ItemEdicao({
   );
 }
 
+/**
+ * Ponto do exercício na linha do tempo:
+ * - o atual (treino rodando) é um círculo aberto, tracejado, que vai se
+ *   fechando em verde a cada série feita;
+ * - feito, vira um selo verde com o check (entra com um "pop");
+ * - os outros, só o número.
+ */
+function NoDoExercicio({ ordem, estado, progresso, selo }: { ordem: number; estado: 'feito' | 'atual' | 'proximo' | 'depois'; progresso: number; selo: boolean }) {
+  const numero = String(ordem).padStart(2, '0');
+  if (estado === 'feito' && selo) {
+    return (
+      <Animated.View entering={ZoomIn.springify().damping(11).stiffness(180)} style={styles.selo}>
+        <Ionicons name="checkmark" size={21} color={colors.onLime} />
+      </Animated.View>
+    );
+  }
+  if (estado === 'atual' || estado === 'feito') {
+    const p = estado === 'feito' ? 1 : progresso;
+    return (
+      <View style={styles.noAberto}>
+        <Svg width={NO} height={NO} style={styles.noSvg}>
+          <Circle cx={NO / 2} cy={NO / 2} r={NO_R} fill="none" stroke={colors.limeEdge} strokeWidth={2} strokeDasharray="2.5 4" strokeLinecap="round" />
+          {p > 0 && (
+            <Circle
+              cx={NO / 2}
+              cy={NO / 2}
+              r={NO_R}
+              fill="none"
+              stroke={colors.lime}
+              strokeWidth={2.5}
+              strokeLinecap="round"
+              strokeDasharray={`${NO_C * p} ${NO_C}`}
+              transform={`rotate(-90 ${NO / 2} ${NO / 2})`}
+            />
+          )}
+        </Svg>
+        <Text style={[styles.noText, styles.noTextAtual]}>{numero}</Text>
+      </View>
+    );
+  }
+  return (
+    <View style={[styles.no, estado === 'proximo' && styles.noProximo]}>
+      <Text style={[styles.noText, estado === 'proximo' && styles.noTextProximo]}>{numero}</Text>
+    </View>
+  );
+}
+
 function Item({
   item,
   ordem,
   modo,
   atual,
   feitas,
+  selo,
   historico,
   sexo,
   aberto,
   ultimo,
   onToggle,
   onAbrir,
-  onSerie,
   onLongPress,
 }: {
   item: ExercicioNoTreino;
@@ -265,13 +333,14 @@ function Item({
   modo: Modo;
   atual: boolean;
   feitas: readonly SerieFeita[];
+  /** Mostra o selo de feito (a animação dele toca quando a lista está à vista). */
+  selo: boolean;
   historico: readonly SessaoDeTreino[];
   sexo?: 'feminino' | 'masculino';
   aberto: boolean;
   ultimo: boolean;
   onToggle: () => void;
   onAbrir?: () => void;
-  onSerie?: () => void;
   onLongPress?: () => void;
 }) {
   const ex = exercicioPorId(item.exercicioId);
@@ -280,18 +349,20 @@ function Item({
   const reps = repsLabel(item);
   const antes = ultimasSeries([...historico], item.exercicioId)?.series ?? [];
   const linhas = Math.max(item.series, feitas.length);
+  const estado = completo ? 'feito' : atual && modo === 'andamento' ? 'atual' : atual ? 'proximo' : 'depois';
+  const aoVivo = modo === 'andamento' && !!onAbrir;
 
   return (
     <View style={styles.item}>
       <View style={styles.trilho}>
-        <View style={[styles.no, atual && styles.noAtual, completo && styles.noFeito]}>
-          {completo ? (
-            <Ionicons name="checkmark" size={15} color={colors.lime} />
-          ) : (
-            <Text style={[styles.noText, atual && styles.noTextAtual]}>{String(ordem).padStart(2, '0')}</Text>
-          )}
+        <View style={styles.noWrap}>
+          <NoDoExercicio ordem={ordem} estado={estado} progresso={Math.min(1, feitas.length / Math.max(1, item.series))} selo={selo} />
         </View>
-        {!ultimo && <View style={[styles.linha, completo && styles.linhaFeita]} />}
+        {!ultimo && (
+          <View style={styles.linha}>
+            {completo && selo && <Animated.View style={[styles.linhaFeita, DESCER]} />}
+          </View>
+        )}
       </View>
 
       <View style={styles.conteudo}>
@@ -306,18 +377,25 @@ function Item({
           {(atual || aberto) && (
             <LinearGradient pointerEvents="none" colors={gradients.timelineAtual} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={styles.reflexo} />
           )}
-          <View style={styles.thumb}>{ex && <MapaMuscular principal={ex.musculoPrincipal} altura={44} podeVirar={false} sexo={sexo} />}</View>
+          <View style={[styles.thumb, completo && styles.thumbFeito]}>
+            {ex && <MapaMuscular principal={ex.musculoPrincipal} altura={46} podeVirar={false} sexo={sexo} />}
+          </View>
           <View style={styles.flex}>
+            {estado === 'atual' ? <Text style={styles.agoraRotulo}>Agora</Text> : null}
             <Text style={[styles.nome, completo && styles.nomeFeito]} numberOfLines={2}>
               {nome}
             </Text>
-            <Text variant="caption" tone="muted">
-              {ex ? MUSCULO_LABELS[ex.musculoPrincipal] : ''} · {item.series} {item.series === 1 ? 'série' : 'séries'}
-            </Text>
-            <View style={styles.pontos} accessibilityLabel={`${Math.min(feitas.length, item.series)} de ${item.series} séries feitas`}>
-              {Array.from({ length: item.series }, (_, k) => (
-                <View key={k} style={[styles.pontoSerie, k < feitas.length && styles.pontoSerieFeito]} />
-              ))}
+            <View style={styles.meta}>
+              <Text variant="caption" tone="muted" numberOfLines={1} style={styles.flexShrink}>
+                {ex ? MUSCULO_LABELS[ex.musculoPrincipal] : ''} · {item.series} × {reps}
+              </Text>
+              {modo !== 'planejado' && (
+                <View style={styles.pontos} accessibilityLabel={`${Math.min(feitas.length, item.series)} de ${item.series} séries feitas`}>
+                  {Array.from({ length: item.series }, (_, k) => (
+                    <View key={k} style={[styles.pontoSerie, k < feitas.length && styles.pontoSerieFeito]} />
+                  ))}
+                </View>
+              )}
             </View>
           </View>
           <Ionicons name={aberto ? 'chevron-up' : 'chevron-down'} size={17} color={colors.ink3} />
@@ -332,27 +410,30 @@ function Item({
               return (
                 <Pressable
                   key={k}
-                  disabled={!onSerie || !!s}
-                  accessibilityRole={onSerie && !s ? 'button' : undefined}
-                  accessibilityHint={onSerie && !s ? 'Registrar carga e repetições' : undefined}
-                  onPress={onSerie}
-                  style={({ pressed }) => [styles.serie, pressed && styles.pressed]}>
+                  disabled={!aoVivo}
+                  accessibilityRole={aoVivo ? 'button' : undefined}
+                  accessibilityLabel={`Série ${k + 1}${s ? `, feita: ${formatDecimal(s.cargaKg)} kg × ${s.reps}` : ''}`}
+                  accessibilityHint={aoVivo ? 'Abre o treino ao vivo neste exercício' : undefined}
+                  onPress={onAbrir}
+                  style={({ pressed }) => [styles.serie, agora && styles.serieAgora, pressed && styles.pressed]}>
                   {s ? (
-                    <Animated.View entering={ZoomIn.duration(280)} style={[styles.bolinha, styles.bolinhaFeita]} />
+                    <Animated.View entering={ZoomIn.duration(260)} style={[styles.bolinha, styles.bolinhaFeita]}>
+                      <Ionicons name="checkmark" size={11} color={colors.onLime} />
+                    </Animated.View>
                   ) : (
-                    <View style={[styles.bolinha, agora && styles.bolinhaAgora]} />
+                    <View style={[styles.bolinha, agora && styles.bolinhaAgora]}>
+                      <Text style={[styles.bolinhaText, agora && styles.bolinhaTextAgora]}>{k + 1}</Text>
+                    </View>
                   )}
                   <View style={styles.flex}>
                     <Text style={[styles.serieTitulo, !s && !agora && styles.serieFutura]}>
-                      Série {k + 1} · {s ? `${formatDecimal(s.cargaKg)} kg × ${s.reps}` : `${reps} repetições`}
+                      {s ? `${formatDecimal(s.cargaKg)} kg × ${s.reps}` : `Série ${k + 1} · ${reps} repetições`}
                     </Text>
                     <Text variant="caption" tone="muted">
                       {s
-                        ? `feita às ${hora(s.concluidaEm)}`
-                        : agora && onSerie
-                          ? 'agora · toque para registrar'
-                          : agora
-                            ? 'agora'
+                        ? `série ${k + 1} · feita às ${hora(s.concluidaEm)}`
+                        : agora
+                          ? 'é a vez desta série'
                           : ult
                             ? `última vez: ${formatDecimal(ult.cargaKg)} kg × ${ult.reps}`
                             : k === 0 && item.cargaInicialKg
@@ -360,18 +441,18 @@ function Item({
                               : `descanso de ${item.descansoSeg} s`}
                     </Text>
                   </View>
-                  {agora && onSerie ? <Ionicons name="create-outline" size={16} color={colors.lime} /> : null}
+                  {aoVivo && agora ? <Ionicons name="chevron-forward" size={16} color={colors.lime} /> : null}
                 </Pressable>
               );
             })}
             {item.observacao ? (
-              <Text variant="caption" tone="secondary">
+              <Text variant="caption" tone="secondary" style={styles.obs}>
                 {item.observacao}
               </Text>
             ) : null}
             {onAbrir && (
               <Pressable accessibilityRole="button" onPress={onAbrir} hitSlop={8} style={({ pressed }) => [styles.acao, pressed && styles.pressed]}>
-                <Text style={styles.acaoText}>{modo === 'andamento' ? 'Abrir exercício' : 'Começar por este'}</Text>
+                <Text style={styles.acaoText}>{modo === 'andamento' ? 'Abrir no treino ao vivo' : 'Começar por este'}</Text>
                 <Ionicons name="chevron-forward" size={15} color={colors.ink} />
               </Pressable>
             )}
@@ -407,10 +488,16 @@ const styles = StyleSheet.create({
     width: NO,
     alignItems: 'center',
   },
+  noWrap: {
+    width: NO,
+    height: NO,
+    marginTop: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   no: {
     width: NO,
     height: NO,
-    marginTop: 14,
     borderRadius: NO / 2,
     alignItems: 'center',
     justifyContent: 'center',
@@ -418,29 +505,58 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.line,
   },
-  noAtual: {
-    borderColor: colors.lime,
-  },
-  noFeito: {
-    backgroundColor: colors.glassFillStrong,
+  noProximo: {
     borderColor: colors.line2,
+  },
+  noAberto: {
+    width: NO,
+    height: NO,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  noSvg: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+  },
+  selo: {
+    width: NO,
+    height: NO,
+    borderRadius: NO / 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.lime,
+    borderWidth: 2.5,
+    borderColor: colors.limeLight,
+    transform: [{ rotate: '-8deg' }],
+    shadowColor: colors.lime,
+    shadowOpacity: 0.45,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 0 },
   },
   noText: {
     fontFamily: fonts.display.semibold,
-    fontSize: 11,
+    fontSize: 13,
     color: colors.ink3,
+    fontVariant: ['tabular-nums'],
+  },
+  noTextProximo: {
+    color: colors.ink,
   },
   noTextAtual: {
-    color: colors.ink,
+    color: colors.lime,
   },
   linha: {
     flex: 1,
-    width: 1.5,
-    marginTop: 4,
+    width: 2,
+    marginTop: 6,
+    borderRadius: 1,
+    overflow: 'hidden',
     backgroundColor: colors.line,
   },
   linhaFeita: {
-    backgroundColor: colors.ink3,
+    width: 2,
+    backgroundColor: colors.lime,
   },
   conteudo: {
     flex: 1,
@@ -466,34 +582,67 @@ const styles = StyleSheet.create({
     borderRadius: 18,
   },
   thumb: {
-    width: 36,
-    height: 44,
+    width: 44,
+    height: 52,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: colors.glassFill,
+    borderWidth: 1,
+    borderColor: colors.lineSoft,
+  },
+  thumbFeito: {
+    opacity: 0.6,
+  },
+  agoraRotulo: {
+    fontFamily: fonts.body.bold,
+    fontSize: 10.5,
+    letterSpacing: 1.6,
+    textTransform: 'uppercase',
+    color: colors.lime,
+    marginBottom: 1,
   },
   nome: {
     fontFamily: fonts.body.bold,
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: 16,
+    lineHeight: 21,
   },
   nomeFeito: {
     color: colors.ink2,
   },
+  meta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 2,
+  },
+  flexShrink: {
+    flexShrink: 1,
+  },
   series: {
-    gap: 10,
+    gap: 4,
     paddingTop: spacing.sm,
-    paddingLeft: 4,
   },
   serie: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    marginLeft: -10,
+    borderRadius: 14,
+  },
+  serieAgora: {
+    backgroundColor: colors.limeWash,
+    borderWidth: 1,
+    borderColor: colors.limeEdge,
   },
   bolinha: {
-    width: 10,
-    height: 10,
-    marginTop: 5,
-    borderRadius: 5,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1.5,
     borderColor: colors.line2,
   },
@@ -503,21 +652,31 @@ const styles = StyleSheet.create({
   },
   bolinhaAgora: {
     borderColor: colors.lime,
-    borderWidth: 2,
+    borderStyle: 'dashed',
+  },
+  bolinhaText: {
+    fontFamily: fonts.body.bold,
+    fontSize: 10.5,
+    color: colors.ink3,
+  },
+  bolinhaTextAgora: {
+    color: colors.lime,
   },
   pontos: {
     flexDirection: 'row',
-    gap: 4,
-    marginTop: 6,
+    gap: 3,
   },
   pontoSerie: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
     backgroundColor: colors.track,
   },
   pontoSerieFeito: {
     backgroundColor: colors.lime,
+  },
+  obs: {
+    marginTop: 4,
   },
   serieTitulo: {
     fontFamily: fonts.body.semibold,

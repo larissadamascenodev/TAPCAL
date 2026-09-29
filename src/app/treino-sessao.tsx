@@ -1,18 +1,13 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import Animated, { FadeIn, FadeOut, ZoomIn } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Circle, G } from 'react-native-svg';
 
-import {
-  Button,
-  confirmDestructive,
-  Glass,
-  IconButton,
-  Screen,
-  Stepper,
-  Text,
-  toast,
-} from '@/components/ui';
+import { BackdropGlow } from '@/components/ui/BackdropGlow';
+import { confirmDestructive, Glass, IconButton, NeonButton, Text, toast } from '@/components/ui';
 import { MapaMuscular } from '@/components/workout/MapaMuscular';
 import { exercicioPorId, MUSCULO_LABELS } from '@/lib/exercicios';
 import { formatDecimal, formatDuration, formatInt } from '@/lib/format';
@@ -21,8 +16,14 @@ import { bateRecorde, proximoExercicio, recorde, repsLabel, seriesFeitas, ultima
 import { seriesNaSemana, sugestaoDoExercicio, valoresDaProximaSerie } from '@/lib/treino/progressao';
 import { useAppStore } from '@/store/useAppStore';
 import { colors, fonts, radius, spacing } from '@/theme/theme';
+import type { SerieFeita } from '@/types/treino';
 
 const KG_STEP = 2.5;
+/** Palco (animação do exercício ou o descanso): mesma altura nos dois, para nada pular. */
+const PALCO = 300;
+const ANEL = 188;
+const ANEL_R = 84;
+const ANEL_C = 2 * Math.PI * ANEL_R;
 
 /** Relógio que atualiza a cada segundo. */
 function useNow() {
@@ -34,10 +35,21 @@ function useNow() {
   return now;
 }
 
+const hora = (iso: string) => {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '' : `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+};
+
+/**
+ * Treino ao vivo: os tracinhos dos exercícios, o palco (desenho dos músculos
+ * ou, depois de uma série, o descanso contando), carga e repetições, as
+ * séries em linha do tempo e o botão de concluir, fixo embaixo.
+ */
 export default function TreinoSessaoScreen() {
+  const insets = useSafeAreaInsets();
   const { sessaoAtiva: session, planos, sessoes: past } = useAppStore();
   const { registrarSerie, apagarSerie, finalizarTreino, cancelarTreino, pausarTreino, retomarTreino } = useAppStore();
-  // Vindo da lista de exercícios da aba Treino: abre direto naquele exercício.
+  // Vindo da aba Treino: abre direto no exercício tocado.
   const { ex: exInicial } = useLocalSearchParams<{ ex?: string }>();
   const sexo = useAppStore((s) => s.profile?.sex);
   const plano = session ? planos.find((p) => p.id === session.planoId) : undefined;
@@ -52,10 +64,8 @@ export default function TreinoSessaoScreen() {
     return pedido >= 0 ? pedido : proximoExercicio(treino, session);
   });
   const exercise = treino?.exercicios[index];
-  const [input, setInput] = useState(() =>
-    session && exercise ? valoresDaProximaSerie(exercise, session, past, planos) : { kg: 10, reps: 10 },
-  );
-  const [restUntil, setRestUntil] = useState<number | null>(null);
+  const [input, setInput] = useState(() => (session && exercise ? valoresDaProximaSerie(exercise, session, past, planos) : { kg: 10, reps: 10 }));
+  const [descanso, setDescanso] = useState<{ ate: number; total: number } | null>(null);
 
   if (!session || !treino || !exercise) return <Redirect href="/treino" />;
 
@@ -65,17 +75,18 @@ export default function TreinoSessaoScreen() {
   const isLast = index === treino.exercicios.length - 1;
   const elapsed = tempoDeTreinoMs(session, now) / 1000;
   const pausado = !!session.pausadoEm;
-  const restLeft = restUntil ? Math.ceil((restUntil - now) / 1000) : 0;
+  const restante = descanso ? Math.max(0, Math.ceil((descanso.ate - now) / 1000)) : 0;
+  const descansando = restante > 0 && !exerciseDone;
   const lastTime = ultimasSeries(past, exercise.exercicioId)?.series ?? [];
   const record = recorde(past, exercise.exercicioId);
-  // A linha do motivo só aparece antes da primeira série do exercício hoje.
   const sugestao = done === 0 ? sugestaoDoExercicio(exercise, past, planos) : null;
+  const reps = repsLabel(exercise);
 
   const goTo = (i: number) => {
     const ex = treino.exercicios[i];
     setIndex(i);
     setInput(valoresDaProximaSerie(ex, session, past, planos));
-    setRestUntil(null);
+    setDescanso(null);
   };
 
   const finish = () => {
@@ -91,7 +102,7 @@ export default function TreinoSessaoScreen() {
     const isRecord = bateRecorde([...past, session], exercise.exercicioId, input.kg, input.reps);
     registrarSerie(exercise.id, input.kg, input.reps);
     toast(isRecord ? `Novo recorde: ${formatDecimal(input.kg)} kg` : 'Série registrada');
-    if (done + 1 < exercise.series) setRestUntil(Date.now() + exercise.descansoSeg * 1000);
+    if (done + 1 < exercise.series) setDescanso({ ate: Date.now() + exercise.descansoSeg * 1000, total: exercise.descansoSeg });
   };
 
   const onMain = () => {
@@ -117,360 +128,627 @@ export default function TreinoSessaoScreen() {
     ]);
   };
 
+  const ajustarDescanso = (seg: number) =>
+    setDescanso((d) => (d ? { ate: Math.max(Date.now() + 1000, d.ate + seg * 1000), total: Math.max(d.total, Math.ceil((d.ate + seg * 1000 - Date.now()) / 1000)) } : d));
+
   const exSets = session.series.filter((s) => s.exercicioNoTreinoId === exercise.id);
   const rows = Array.from({ length: Math.max(exercise.series, exSets.length) }, (_, i) => exSets[i] ?? null);
   const mainLabel = !exerciseDone ? `Concluir série ${done + 1}` : !isLast ? 'Próximo exercício' : 'Finalizar treino';
-  const reps = repsLabel(exercise);
 
   return (
-    <Screen withTabBar={false}>
-      <View style={styles.top}>
-        <IconButton icon="chevron-down" label="Minimizar" onPress={() => router.back()} />
-        <Pressable
-          style={[styles.clock, pausado && styles.clockPausado]}
-          accessibilityRole="button"
-          accessibilityLabel={`Tempo de treino ${formatDuration(elapsed)}${pausado ? ', pausado' : ''}. Toque para ${pausado ? 'continuar' : 'pausar'}`}
-          onPress={pausado ? retomarTreino : pausarTreino}>
-          <Ionicons name={pausado ? 'play' : 'pause'} size={13} color={pausado ? colors.lime : colors.ink2} />
-          <Text style={[styles.clockText, pausado && { color: colors.ink3 }]}>{formatDuration(elapsed)}</Text>
-        </Pressable>
-        <IconButton icon="ellipsis-horizontal" label="Opções do treino" onPress={openOptions} />
-      </View>
-
-      <View style={styles.progress} accessibilityLabel={`Exercício ${index + 1} de ${treino.exercicios.length}`}>
-        {treino.exercicios.map((ex, i) => (
+    <View style={styles.root}>
+      <BackdropGlow forca={0.35} />
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.sm, paddingBottom: insets.bottom + 110 }]}
+        showsVerticalScrollIndicator={false}>
+        {/* Topo: minimizar, tempo de treino (toque pausa) e opções */}
+        <View style={styles.top}>
+          <IconButton icon="chevron-down" label="Minimizar" onPress={() => router.back()} />
           <Pressable
-            key={ex.id}
-            onPress={() => goTo(i)}
+            style={[styles.clock, pausado && styles.clockPausado]}
             accessibilityRole="button"
-            accessibilityLabel={`Ir para ${exercicioPorId(ex.exercicioId)?.nome ?? `exercício ${i + 1}`}`}
-            hitSlop={{ top: 12, bottom: 12 }}
-            style={[styles.seg, (i === index || seriesFeitas(session, ex.id) >= ex.series) && styles.segOn]}
-          />
-        ))}
-      </View>
-
-      <View style={styles.titleBlock}>
-        <Text variant="label" tone="muted">
-          Exercício {index + 1} de {treino.exercicios.length}
-          {info ? ` · ${MUSCULO_LABELS[info.musculoPrincipal]}` : ''}
-        </Text>
-        <Text style={styles.exName}>{info?.nome ?? 'Exercício'}</Text>
-      </View>
-
-      {info && (
-        <View style={styles.anim}>
-          <MapaMuscular principal={info.musculoPrincipal} secundarios={info.musculosSecundarios} sexo={sexo} altura={180} />
+            accessibilityLabel={`Tempo de treino ${formatDuration(elapsed)}${pausado ? ', pausado' : ''}. Toque para ${pausado ? 'continuar' : 'pausar'}`}
+            onPress={pausado ? retomarTreino : pausarTreino}>
+            <View style={[styles.liveDot, pausado && styles.liveDotOff]} />
+            <Text style={[styles.clockText, pausado && styles.clockTextOff]}>{formatDuration(elapsed)}</Text>
+            <Ionicons name={pausado ? 'play' : 'pause'} size={12} color={colors.ink3} />
+          </Pressable>
+          <IconButton icon="ellipsis-horizontal" label="Opções do treino" onPress={openOptions} />
         </View>
-      )}
 
-      <Glass flush contentStyle={styles.stage}>
-        <Info
-          icon="time-outline"
-          text={
-            lastTime.length
-              ? `Última vez: ${lastTime.map((s) => `${formatDecimal(s.cargaKg)} kg × ${s.reps}`).join(' · ')}`
-              : 'Primeira vez neste exercício'
-          }
-        />
-        <Info icon="trophy-outline" text={record ? `Recorde: ${formatDecimal(record.cargaKg)} kg × ${record.reps}` : 'Sem recorde ainda'} />
-        <Info icon="flag-outline" text={`Meta: ${exercise.series} × ${reps} · descanso ${exercise.descansoSeg} s`} />
-        {exercise.observacao ? <Info icon="chatbubble-ellipses-outline" text={exercise.observacao} /> : null}
-      </Glass>
-
-      {!exerciseDone && (
-        <View style={styles.inputs}>
-          <Glass flush style={styles.inputCard} contentStyle={styles.input}>
-            <Text variant="label" tone="muted">
-              Carga
-            </Text>
-            <Text style={styles.inputValue}>
-              {formatDecimal(input.kg)}
-              <Text variant="caption" tone="muted">
-                {' '}kg
-              </Text>
-            </Text>
-            <Stepper
-              label="carga"
-              onMinus={() => setInput((v) => ({ ...v, kg: Math.max(0, v.kg - KG_STEP) }))}
-              onPlus={() => setInput((v) => ({ ...v, kg: v.kg + KG_STEP }))}
-            />
-          </Glass>
-          <Glass flush style={styles.inputCard} contentStyle={styles.input}>
-            <Text variant="label" tone="muted">
-              Repetições
-            </Text>
-            <Text style={styles.inputValue}>{input.reps}</Text>
-            <Stepper
-              label="repetições"
-              onMinus={() => setInput((v) => ({ ...v, reps: Math.max(1, v.reps - 1) }))}
-              onPlus={() => setInput((v) => ({ ...v, reps: v.reps + 1 }))}
-            />
-          </Glass>
+        {/* Tracinhos: um por exercício, enchendo conforme as séries */}
+        <View style={styles.progress} accessibilityLabel={`Exercício ${index + 1} de ${treino.exercicios.length}`}>
+          {treino.exercicios.map((ex, i) => {
+            const f = Math.min(1, seriesFeitas(session, ex.id) / ex.series);
+            return (
+              <Pressable
+                key={ex.id}
+                onPress={() => goTo(i)}
+                accessibilityRole="button"
+                accessibilityLabel={`Ir para ${exercicioPorId(ex.exercicioId)?.nome ?? `exercício ${i + 1}`}`}
+                hitSlop={{ top: 12, bottom: 12 }}
+                style={[styles.seg, i === index && styles.segAtual]}>
+                <View style={[styles.segFill, { width: `${f * 100}%` }]} />
+              </Pressable>
+            );
+          })}
         </View>
-      )}
 
-      {!exerciseDone && sugestao && (
-        <View style={[styles.motivo, sugestao.tipo === 'subir' || sugestao.tipo === 'mais-reps' ? styles.motivoSobe : null]} accessibilityLiveRegion="polite">
-          <Ionicons
-            name={sugestao.tipo === 'subir' || sugestao.tipo === 'mais-reps' ? 'trending-up' : sugestao.tipo === 'reduzir' ? 'trending-down' : 'repeat'}
-            size={16}
-            color={sugestao.tipo === 'subir' || sugestao.tipo === 'mais-reps' ? colors.lime : colors.ink2}
-          />
-          <Text variant="caption" style={styles.motivoText}>
-            {sugestao.motivo}
+        {/* Nome do exercício */}
+        <View style={styles.titulo}>
+          <Text style={styles.eyebrow}>
+            Exercício {index + 1} de {treino.exercicios.length}
+            {info ? ` · ${MUSCULO_LABELS[info.musculoPrincipal]}` : ''}
+          </Text>
+          <Text style={styles.exName} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8}>
+            {info?.nome ?? 'Exercício'}
           </Text>
         </View>
-      )}
 
-      <View style={styles.sets}>
-        {rows.map((set, i) => {
-          const current = !set && i === done;
-          return (
-            <Pressable
-              key={set ? `s${set.numero}` : `p${i}`}
-              disabled={!set}
-              onLongPress={() =>
-                set &&
-                confirmDestructive('Apagar série?', `${formatDecimal(set.cargaKg)} kg × ${set.reps}`, 'Apagar', () =>
-                  apagarSerie(exercise.id, set.numero),
-                )
-              }
-              accessibilityHint={set ? 'Toque e segure para apagar' : undefined}
-              style={[styles.setRow, current && styles.setCurrent]}>
-              <Text style={[styles.setNum, current && { color: colors.lime2 }]}>{i + 1}</Text>
-              <Text variant="bodyStrong" style={styles.setValue} tone={set || current ? 'primary' : 'muted'}>
-                {set
-                  ? `${formatDecimal(set.cargaKg)} kg × ${set.reps}`
-                  : current
-                    ? `${formatDecimal(input.kg)} kg × ${input.reps}`
-                    : `${reps} reps`}
-              </Text>
-              <View style={[styles.check, set && styles.checkDone]}>
-                {set && <Ionicons name="checkmark" size={14} color={colors.ok} />}
+        {/* Palco: desenho dos músculos, ou o descanso contando */}
+        <Glass flush style={styles.palcoGlass} contentStyle={styles.palco}>
+          {descansando && descanso ? (
+            <Animated.View key="descanso" entering={FadeIn.duration(220)} exiting={FadeOut.duration(160)} style={styles.descanso}>
+              <View style={styles.anel}>
+                <Svg width={ANEL} height={ANEL}>
+                  <G rotation={-90} origin={`${ANEL / 2}, ${ANEL / 2}`}>
+                    <Circle cx={ANEL / 2} cy={ANEL / 2} r={ANEL_R} fill="none" stroke={colors.track} strokeWidth={8} />
+                    <Circle
+                      cx={ANEL / 2}
+                      cy={ANEL / 2}
+                      r={ANEL_R}
+                      fill="none"
+                      stroke={colors.lime}
+                      strokeWidth={8}
+                      strokeLinecap="round"
+                      strokeDasharray={`${(restante / descanso.total) * ANEL_C} ${ANEL_C}`}
+                    />
+                  </G>
+                </Svg>
+                <View style={styles.anelCentro}>
+                  <Text style={styles.anelRotulo}>DESCANSO</Text>
+                  <Text style={styles.anelTempo} accessibilityLiveRegion="polite">
+                    {formatDuration(restante)}
+                  </Text>
+                </View>
               </View>
-            </Pressable>
-          );
-        })}
-      </View>
+              <Text variant="caption" tone="secondary">
+                Próxima: série {done + 1} · {formatDecimal(input.kg)} kg × {input.reps}
+              </Text>
+              <View style={styles.descansoBtns}>
+                <Pill label="−15 s" onPress={() => ajustarDescanso(-15)} />
+                <Pill label="Pular" forte onPress={() => setDescanso(null)} />
+                <Pill label="+15 s" onPress={() => ajustarDescanso(15)} />
+              </View>
+            </Animated.View>
+          ) : (
+            <Animated.View key="corpo" entering={FadeIn.duration(220)} exiting={FadeOut.duration(160)} style={styles.corpo}>
+              {info && <MapaMuscular principal={info.musculoPrincipal} secundarios={info.musculosSecundarios} sexo={sexo} altura={PALCO - 60} />}
+              {info && (
+                <View style={styles.musculos}>
+                  <View style={[styles.musculo, styles.musculoPrincipal]}>
+                    <View style={[styles.musculoCor, { backgroundColor: colors.musclePrimary }]} />
+                    <Text style={styles.musculoText}>{MUSCULO_LABELS[info.musculoPrincipal]}</Text>
+                  </View>
+                  {info.musculosSecundarios.slice(0, 2).map((m) => (
+                    <View key={m} style={styles.musculo}>
+                      <View style={[styles.musculoCor, { backgroundColor: colors.muscleSecondary }]} />
+                      <Text style={styles.musculoText}>{MUSCULO_LABELS[m]}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </Animated.View>
+          )}
+        </Glass>
 
-      {restLeft > 0 && (
-        <View style={styles.rest}>
-          <View>
-            <Text style={styles.restTime}>{formatDuration(restLeft)}</Text>
-            <Text variant="caption" tone="secondary">
-              Descanso · próxima série
+        {/* Última vez, recorde e meta */}
+        <View style={styles.fatos}>
+          <Fato icon="time-outline" rotulo="Última vez" valor={lastTime.length ? lastTime.map((s) => `${formatDecimal(s.cargaKg)}×${s.reps}`).join(' · ') : 'primeira vez'} />
+          <Fato icon="trophy-outline" rotulo="Recorde" valor={record ? `${formatDecimal(record.cargaKg)} kg × ${record.reps}` : '—'} />
+          <Fato icon="flag-outline" rotulo="Meta" valor={`${exercise.series} × ${reps} · ${exercise.descansoSeg} s`} />
+        </View>
+        {sugestao && (
+          <View style={styles.sugestao}>
+            <Ionicons name={sugestao.tipo === 'reduzir' ? 'trending-down' : sugestao.tipo === 'manter' ? 'repeat' : 'trending-up'} size={15} color={colors.lime} />
+            <Text variant="caption" style={styles.sugestaoText}>
+              {sugestao.motivo}
             </Text>
           </View>
-          <Pressable onPress={() => setRestUntil(null)} style={styles.skip} accessibilityRole="button">
-            <Text variant="caption" style={styles.skipText}>
-              Pular
-            </Text>
-          </Pressable>
-        </View>
-      )}
+        )}
+        {exercise.observacao ? (
+          <Text variant="caption" tone="secondary">
+            {exercise.observacao}
+          </Text>
+        ) : null}
 
-      <Button
-        label={mainLabel}
-        fullWidth
-        icon={<Ionicons name={exerciseDone && !isLast ? 'arrow-forward' : 'checkmark'} size={18} color={colors.onLime} />}
-        onPress={onMain}
-        style={styles.main}
-      />
-    </Screen>
+        {/* Carga e repetições */}
+        {!exerciseDone && (
+          <Glass flush contentStyle={styles.entrada}>
+            <Ajuste
+              rotulo="Carga"
+              valor={formatDecimal(input.kg)}
+              unidade="kg"
+              onMenos={() => setInput((v) => ({ ...v, kg: Math.max(0, v.kg - KG_STEP) }))}
+              onMais={() => setInput((v) => ({ ...v, kg: v.kg + KG_STEP }))}
+            />
+            <View style={styles.entradaLinha} />
+            <Ajuste
+              rotulo="Repetições"
+              valor={String(input.reps)}
+              unidade={`meta ${reps}`}
+              onMenos={() => setInput((v) => ({ ...v, reps: Math.max(1, v.reps - 1) }))}
+              onMais={() => setInput((v) => ({ ...v, reps: v.reps + 1 }))}
+            />
+          </Glass>
+        )}
+
+        {/* Séries em linha do tempo */}
+        <View style={styles.series}>
+          {rows.map((set, i) => (
+            <LinhaSerie
+              key={set ? `s${set.numero}` : `p${i}`}
+              numero={i + 1}
+              serie={set}
+              atual={!set && i === done}
+              previa={!set && i === done ? `${formatDecimal(input.kg)} kg × ${input.reps}` : `${reps} repetições`}
+              ultima={i === rows.length - 1}
+              onApagar={
+                set
+                  ? () => confirmDestructive('Apagar série?', `${formatDecimal(set.cargaKg)} kg × ${set.reps}`, 'Apagar', () => apagarSerie(exercise.id, set.numero))
+                  : undefined
+              }
+            />
+          ))}
+        </View>
+      </ScrollView>
+
+      {/* Botão fixo embaixo */}
+      <View style={[styles.rodape, { paddingBottom: insets.bottom + spacing.md }]}>
+        <NeonButton label={mainLabel} onPress={onMain} />
+      </View>
+    </View>
   );
 }
 
-function Info({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text: string }) {
+function Pill({ label, forte, onPress }: { label: string; forte?: boolean; onPress: () => void }) {
   return (
-    <View style={styles.info}>
-      <Ionicons name={icon} size={15} color={colors.ink3} />
-      <Text variant="caption" tone="secondary" style={styles.infoText}>
-        {text}
+    <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.pill, forte && styles.pillForte, pressed && styles.pressed]}>
+      <Text style={[styles.pillText, forte && styles.pillTextForte]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function Fato({ icon, rotulo, valor }: { icon: keyof typeof Ionicons.glyphMap; rotulo: string; valor: string }) {
+  return (
+    <View style={styles.fato}>
+      <View style={styles.fatoTopo}>
+        <Ionicons name={icon} size={12} color={colors.ink3} />
+        <Text style={styles.fatoRotulo}>{rotulo}</Text>
+      </View>
+      <Text style={styles.fatoValor} numberOfLines={2}>
+        {valor}
       </Text>
     </View>
   );
 }
 
+/** Uma linha de ajuste: − valor + (carga ou repetições). */
+function Ajuste({ rotulo, valor, unidade, onMenos, onMais }: { rotulo: string; valor: string; unidade: string; onMenos: () => void; onMais: () => void }) {
+  return (
+    <View style={styles.ajuste}>
+      <RoundBtn icon="remove" label={`Diminuir ${rotulo.toLowerCase()}`} onPress={onMenos} />
+      <View style={styles.ajusteMeio}>
+        <Text style={styles.ajusteRotulo}>{rotulo}</Text>
+        <Text style={styles.ajusteValor}>{valor}</Text>
+        <Text style={styles.ajusteUnidade}>{unidade}</Text>
+      </View>
+      <RoundBtn icon="add" label={`Aumentar ${rotulo.toLowerCase()}`} onPress={onMais} />
+    </View>
+  );
+}
+
+function RoundBtn({ icon, label, onPress }: { icon: 'add' | 'remove'; label: string; onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={label} hitSlop={6} onPress={onPress} style={({ pressed }) => [styles.round, pressed && styles.pressed]}>
+      <Ionicons name={icon} size={24} color={colors.ink} />
+    </Pressable>
+  );
+}
+
+/** Série na linha do tempo: feita (selo com ✓), a atual (círculo tracejado) ou a que falta. */
+function LinhaSerie({
+  numero,
+  serie,
+  atual,
+  previa,
+  ultima,
+  onApagar,
+}: {
+  numero: number;
+  serie: SerieFeita | null;
+  atual: boolean;
+  previa: string;
+  ultima: boolean;
+  onApagar?: () => void;
+}) {
+  return (
+    <Pressable
+      disabled={!onApagar}
+      onLongPress={onApagar}
+      accessibilityHint={onApagar ? 'Toque e segure para apagar' : undefined}
+      style={styles.serie}>
+      <View style={styles.serieTrilho}>
+        {serie ? (
+          <Animated.View entering={ZoomIn.duration(260)} style={[styles.serieNo, styles.serieNoFeito]}>
+            <Ionicons name="checkmark" size={15} color={colors.onLime} />
+          </Animated.View>
+        ) : (
+          <View style={[styles.serieNo, atual && styles.serieNoAtual]}>
+            <Text style={[styles.serieNum, atual && styles.serieNumAtual]}>{numero}</Text>
+          </View>
+        )}
+        {!ultima && <View style={[styles.serieLinha, serie && styles.serieLinhaFeita]} />}
+      </View>
+      <View style={[styles.serieCorpo, atual && styles.serieCorpoAtual]}>
+        <Text style={[styles.serieValor, !serie && !atual && styles.serieValorFutura]}>{serie ? `${formatDecimal(serie.cargaKg)} kg × ${serie.reps}` : previa}</Text>
+        <Text style={styles.serieNota}>{serie ? `série ${numero} · ${hora(serie.concluidaEm)}` : atual ? `série ${numero} · agora` : `série ${numero}`}</Text>
+      </View>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: colors.ground,
+  },
+  content: {
+    paddingHorizontal: spacing.lg,
+    gap: spacing.md,
+  },
   top: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: spacing.md,
   },
   clock: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: 10,
     height: 42,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: 16,
     borderRadius: 21,
     backgroundColor: colors.glassFill,
     borderWidth: 1,
     borderColor: colors.line,
+    borderTopColor: colors.frostCardEdgeTop,
   },
   clockPausado: {
-    borderColor: colors.limeEdge,
+    borderColor: colors.line2,
+  },
+  liveDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: colors.lime,
+  },
+  liveDotOff: {
+    backgroundColor: colors.ink3,
   },
   clockText: {
     fontFamily: fonts.display.semibold,
-    fontSize: 15,
+    fontSize: 16,
     fontVariant: ['tabular-nums'],
+  },
+  clockTextOff: {
+    color: colors.ink3,
   },
   progress: {
     flexDirection: 'row',
-    gap: 4,
+    gap: 5,
     marginTop: spacing.xs,
   },
   seg: {
     flex: 1,
-    height: 5,
+    height: 6,
     borderRadius: 3,
     backgroundColor: colors.track,
+    overflow: 'hidden',
   },
-  segOn: {
+  segAtual: {
+    height: 6,
+    borderWidth: 1,
+    borderColor: colors.line2,
+  },
+  segFill: {
+    height: '100%',
+    borderRadius: 3,
     backgroundColor: colors.lime,
   },
-  titleBlock: {
-    marginTop: spacing.sm,
-    gap: 6,
+  titulo: {
+    gap: 4,
+    marginTop: spacing.xs,
   },
-  anim: {
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
-    borderRadius: radius.xl,
-    backgroundColor: colors.glassSubtle,
+  eyebrow: {
+    fontFamily: fonts.body.bold,
+    fontSize: 11.5,
+    letterSpacing: 1.6,
+    textTransform: 'uppercase',
+    color: colors.ink3,
   },
   exName: {
     fontFamily: fonts.display.bold,
     fontSize: 28,
-    lineHeight: 30,
-    letterSpacing: -1.1,
+    lineHeight: 32,
+    letterSpacing: -1,
   },
-  stage: {
-    padding: spacing.lg,
-    gap: 10,
+  palcoGlass: {
+    borderRadius: radius.xl,
   },
-  info: {
-    flexDirection: 'row',
+  palco: {
+    height: PALCO,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  corpo: {
     alignItems: 'center',
     gap: spacing.sm,
   },
-  infoText: {
-    flex: 1,
-  },
-  inputs: {
+  musculos: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 6,
   },
-  motivo: {
+  musculo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: radius.lg,
+    gap: 6,
+    height: 26,
+    paddingHorizontal: 10,
+    borderRadius: 13,
+    backgroundColor: colors.glassFill,
+    borderWidth: 1,
+    borderColor: colors.lineSoft,
+  },
+  musculoPrincipal: {
+    borderColor: colors.line,
+  },
+  musculoCor: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
+  musculoText: {
+    fontFamily: fonts.body.bold,
+    fontSize: 11.5,
+    color: colors.ink2,
+  },
+  descanso: {
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  anel: {
+    width: ANEL,
+    height: ANEL,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  anelCentro: {
+    position: 'absolute',
+    alignItems: 'center',
+  },
+  anelRotulo: {
+    fontFamily: fonts.body.bold,
+    fontSize: 11,
+    letterSpacing: 2,
+    color: colors.ink3,
+  },
+  anelTempo: {
+    fontFamily: fonts.display.bold,
+    fontSize: 46,
+    lineHeight: 52,
+    letterSpacing: -2,
+    fontVariant: ['tabular-nums'],
+  },
+  descansoBtns: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  pill: {
+    height: 36,
+    paddingHorizontal: 16,
+    borderRadius: 18,
+    justifyContent: 'center',
     backgroundColor: colors.glassFill,
     borderWidth: 1,
     borderColor: colors.line,
   },
-  motivoSobe: {
-    backgroundColor: colors.limeWash,
-    borderColor: colors.limeEdge,
+  pillForte: {
+    backgroundColor: colors.glassFillStrong,
+    borderColor: colors.line2,
   },
-  motivoText: {
-    flex: 1,
-    fontFamily: fonts.body.semibold,
+  pillText: {
+    fontFamily: fonts.body.bold,
+    fontSize: 13,
+    color: colors.ink2,
+  },
+  pillTextForte: {
     color: colors.ink,
   },
-  inputCard: {
-    flex: 1,
-  },
-  input: {
-    padding: 14,
-    alignItems: 'center',
-  },
-  inputValue: {
-    marginTop: 6,
-    marginBottom: 10,
-    fontFamily: fonts.display.bold,
-    fontSize: 40,
-    lineHeight: 44,
-    letterSpacing: -2,
-    fontVariant: ['tabular-nums'],
-  },
-  sets: {
-    gap: 6,
-  },
-  setRow: {
+  fatos: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    height: 46,
-    paddingHorizontal: 14,
-    borderRadius: radius.md + 2,
+    gap: 8,
+  },
+  fato: {
+    flex: 1,
+    gap: 4,
+    padding: 12,
+    borderRadius: radius.lg,
     backgroundColor: colors.glassSubtle,
     borderWidth: 1,
     borderColor: colors.lineSoft,
   },
-  setCurrent: {
-    borderColor: colors.limeEdge,
-    backgroundColor: colors.limeWash,
+  fatoTopo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
   },
-  setNum: {
-    width: 20,
-    fontFamily: fonts.display.semibold,
+  fatoRotulo: {
+    fontFamily: fonts.body.bold,
+    fontSize: 10.5,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
     color: colors.ink3,
   },
-  setValue: {
-    flex: 1,
-    fontSize: 14,
+  fatoValor: {
+    fontFamily: fonts.body.bold,
+    fontSize: 13,
+    lineHeight: 17,
+    fontVariant: ['tabular-nums'],
   },
-  check: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+  sugestao: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  sugestaoText: {
+    flex: 1,
+    fontFamily: fonts.body.semibold,
+    color: colors.ink,
+  },
+  entrada: {
+    paddingVertical: 6,
+  },
+  entradaLinha: {
+    height: 1,
+    marginHorizontal: 16,
+    backgroundColor: colors.lineSoft,
+  },
+  ajuste: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  ajusteMeio: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  ajusteRotulo: {
+    fontFamily: fonts.body.bold,
+    fontSize: 10.5,
+    letterSpacing: 1.6,
+    textTransform: 'uppercase',
+    color: colors.ink3,
+  },
+  ajusteValor: {
+    fontFamily: fonts.display.bold,
+    fontSize: 44,
+    lineHeight: 50,
+    letterSpacing: -1.8,
+    fontVariant: ['tabular-nums'],
+  },
+  ajusteUnidade: {
+    fontFamily: fonts.body.semibold,
+    fontSize: 12,
+    color: colors.ink3,
+  },
+  round: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.glassFillStrong,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderTopColor: colors.frostCardEdgeTop,
+  },
+  series: {
+    marginTop: spacing.xs,
+  },
+  serie: {
+    flexDirection: 'row',
+    gap: 14,
+  },
+  serieTrilho: {
+    width: 32,
+    alignItems: 'center',
+  },
+  serieNo: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginTop: 10,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
+    borderColor: colors.line,
+  },
+  serieNoFeito: {
+    backgroundColor: colors.lime,
+    borderColor: colors.lime,
+  },
+  serieNoAtual: {
+    borderColor: colors.lime,
     borderStyle: 'dashed',
-    borderColor: colors.handle,
+    borderWidth: 2,
   },
-  checkDone: {
-    borderWidth: 0,
-    backgroundColor: colors.okFill,
-  },
-  rest: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    padding: spacing.md,
-    paddingHorizontal: 14,
-    borderRadius: radius.lg,
-    backgroundColor: colors.irisTint,
-    borderWidth: 1,
-    borderColor: colors.irisEdge,
-  },
-  restTime: {
+  serieNum: {
     fontFamily: fonts.display.semibold,
-    fontSize: 22,
-    lineHeight: 26,
+    fontSize: 12,
+    color: colors.ink3,
+  },
+  serieNumAtual: {
+    color: colors.lime,
+  },
+  serieLinha: {
+    flex: 1,
+    width: 2,
+    minHeight: 10,
+    marginVertical: 4,
+    borderRadius: 1,
+    backgroundColor: colors.lineSoft,
+  },
+  serieLinhaFeita: {
+    backgroundColor: colors.limeEdge,
+  },
+  serieCorpo: {
+    flex: 1,
+    marginVertical: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: radius.lg,
+  },
+  serieCorpoAtual: {
+    backgroundColor: colors.glassFill,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  serieValor: {
+    fontFamily: fonts.display.semibold,
+    fontSize: 17,
+    lineHeight: 22,
     fontVariant: ['tabular-nums'],
   },
-  skip: {
-    marginLeft: 'auto',
-    height: 32,
-    paddingHorizontal: 14,
-    borderRadius: 16,
-    justifyContent: 'center',
-    backgroundColor: colors.navActive,
+  serieValorFutura: {
+    color: colors.ink3,
   },
-  skipText: {
-    fontFamily: fonts.body.bold,
+  serieNota: {
+    fontFamily: fonts.body.medium,
+    fontSize: 12,
+    color: colors.ink3,
   },
-  main: {
-    height: 58,
-    marginTop: spacing.xs,
+  rodape: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+  },
+  pressed: {
+    opacity: 0.7,
   },
 });

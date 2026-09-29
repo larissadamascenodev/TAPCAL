@@ -115,13 +115,15 @@ Mockup interativo em `v4.html`; `v4.png` mostra as seis telas.
 
 Escolha feita entre as opções em `opcoes-treino/` (A, B e C): o topo da C e a linha do tempo da B, sem cartões.
 
-- `treino-v4-hoje.png` — biblioteca (livro) e Meus treinos no topo; semana com o anel de hoje; corpo grande com os músculos do dia; nome do treino em até 2 linhas; "Iniciar treino" no botão de vidro com as marcas de luz girando (só o verde do app).
-- `treino-v4-em-andamento.png` — o destaque vira o exercício atual (séries feitas, a atual e as que faltam) e o tempo de treino fica ao lado de "Abrir exercício", com pausar/continuar. Vendo outro dia, a cápsula com o tempo aparece no topo.
-- `treino-v4-linha-do-tempo.png` — linha do tempo sem cartões: bolinhas de séries concluídas em cada exercício; o exercício concluído fica com o nó de vidro e o ✓ no verde do app.
-- `treino-v4-registrar-serie.png` — tocar numa série (treino em andamento) abre o modal com carga e repetições; "Concluir série" registra e o modal passa para a próxima com animação; a bolinha da série feita aparece com animação na lista.
+- `treino-v4-hoje.png` — biblioteca (livro) e Meus treinos no topo; semana com o anel de hoje; "HOJE · TERÇA-FEIRA · N EXERCÍCIOS", o nome do treino e o corpo grande com os músculos do dia. Sem minutos/kcal e sem tempo antes de começar; só o "Iniciar treino".
+- `treino-v4-em-andamento.png` — depois de "Iniciar treino", o botão sai do destaque e aparece o card "Treino em andamento" logo abaixo: ponto ao vivo, tempo grande com pausar/continuar, exercício atual com a série da vez (2/4) e a barra de séries. Tocar no card abre o treino ao vivo. Vendo outro dia, o card mostra também o nome do treino.
+- `treino-v4-linha-do-tempo.png` — linha do tempo refeita: pontos maiores (40); o exercício atual é um círculo aberto e tracejado que vai fechando em verde a cada série; ao terminar, vira o selo verde com o ✓ (entra com um "pop" quando a pessoa volta para a lista) e a linha verde desce até o próximo. Tocar numa série abre o treino ao vivo nesse exercício (não há mais registro pela lista).
 - `treino-v4-semana-mapa.png` — aba Semana: esta semana ou 30 dias; treinos, tempo e kcal; mapa de calor do corpo (frente e costas) e músculos mais trabalhados; treinos mais feitos; volume por dia.
 - `treino-v4-semana-listas.png` — próximos e concluídos abrem na própria aba (exercícios planejados; séries feitas com carga × repetições).
 - `treino-v4-adicionar.png` — "+ Adicionar exercício" no fim da linha do tempo (abre a biblioteca; vale para qualquer plano, inclusive o da IA).
 - `treino-v4-editar.png` — segurar um exercício (ou tocar em "Editar") abre o modo de edição: remover (−) e mudar a ordem (setas). Arrastar o exercício para o lado também mostra "Remover". As mudanças ficam no plano.
 - `treino-v4-semana-radar.png` — "Por grupos musculares": radar com as séries de Costas, Ombros, Abdômen, Braços, Peito e Pernas (referência enviada). Abaixo, "Por exercício" com a maior carga e as séries de cada um.
+- `treino-sessao-v5.png` — treino ao vivo: traços de progresso por exercício (enchem conforme as séries), palco de vidro com o corpo e os músculos, "Última vez / Recorde / Meta", a sugestão de carga e os ajustes grandes de carga e repetições.
+- `treino-sessao-v5-descanso.png` — ao concluir uma série, o descanso aparece no lugar do corpo: anel em contagem regressiva, a próxima série (carga × repetições) e −15 s / Pular / +15 s.
+- `treino-sessao-v5-series.png` — séries feitas em linha do tempo (nós verdes com ✓, carga × repetições e a hora); segurar uma série apaga.
 - Tom: escuro e vidro; verde só em detalhes.

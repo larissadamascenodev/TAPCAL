@@ -7,10 +7,9 @@ import { TabPage } from '@/components/navigation/TabPage';
 import { SheetBadge } from '@/components/nutrition/PlateSheet';
 import { confirmDestructive, EmptyState, Glass, GlassModal, IconButton, NeonButton, Text, toast } from '@/components/ui';
 import { SegmentedTabs } from '@/components/ui/SegmentedTabs';
-import { CapsulaAoVivo, HeroDescanso, HeroEmAndamento, HeroTreino } from '@/components/workout/HeroDoDia';
+import { CardEmAndamento, HeroDescanso, HeroTreino } from '@/components/workout/HeroDoDia';
 import { ExerciseLibrary } from '@/components/workout/ExerciseLibrary';
 import { ListaExerciciosDoDia } from '@/components/workout/ListaExerciciosDoDia';
-import { RegistrarSerieSheet } from '@/components/workout/RegistrarSerieSheet';
 import { RelatorioSemana } from '@/components/workout/RelatorioSemana';
 import { SemanaTreino } from '@/components/workout/SemanaTreino';
 import { daysBetween, fromDateKey } from '@/lib/dates';
@@ -18,10 +17,9 @@ import { formatDayMonth, formatInt, WEEKDAY_SHORT } from '@/lib/format';
 import { exercicioPorId } from '@/lib/exercicios';
 import { adicionarExercicios, moverExercicio, removerExercicio, tirarDaBiblioteca } from '@/lib/treino/editor';
 import { minutosDaSessao } from '@/lib/treino/met';
-import { kcalEstimadas, minutosEstimados, proximosTreinos } from '@/lib/treino/plano';
+import { proximosTreinos } from '@/lib/treino/plano';
 import { ehSemanaDeAlivio, horaDaProximaFase, semanaDoBloco, seriesNaSemana } from '@/lib/treino/progressao';
 import { datasDaSemana, DIA_NOME, DIAS, diaDaData, estadoDoDia, notaFeitoEm, planoAtivo, type EstadoDoDia } from '@/lib/treino/semana';
-import { currentWeightKg } from '@/store/selectors';
 import { useAppStore } from '@/store/useAppStore';
 import { colors, fonts, radius, spacing } from '@/theme/theme';
 import type { DateKey } from '@/types';
@@ -68,7 +66,7 @@ function naSemana(t: TreinoDoDia, plano: PlanoDeTreino | undefined, data: DateKe
  * Central de treino (layout "Foco no dia"): Meus treinos e a biblioteca no
  * topo, a semana, o corpo grande com os músculos do dia e o botão de iniciar,
  * e as abas Exercícios (linha do tempo), Cardio e Semana. Com o treino
- * rodando, aparece a cápsula com o tempo e o destaque vira o exercício atual.
+ * rodando, o botão sai do destaque e aparece o card "Treino em andamento".
  * O calendário nunca muda sozinho: o treino de segunda feito na terça continua
  * na segunda, marcado como "feito na terça".
  */
@@ -77,11 +75,8 @@ export default function TreinoScreen() {
   const { today: day, planos, sessoes, sessaoAtiva, comecarTreino, pausarTreino, retomarTreino, atualizarPlano } = state;
   const sexo = state.profile?.sex;
   const today = day.date;
-  const peso = currentWeightKg(state) ?? 70;
   const [dia, setDia] = useState<DiaSemana>(() => diaDaData(today));
   const [aba, setAba] = useState<Aba>('exercicios');
-  /** Exercício cuja série está sendo registrada pelo modal (treino em andamento). */
-  const [registrando, setRegistrando] = useState<string | null>(null);
   const [adicionando, setAdicionando] = useState(false);
 
   const plano = planoAtivo(planos);
@@ -133,7 +128,7 @@ export default function TreinoScreen() {
   const alivio = ehSemanaDeAlivio(plano, today);
   const t = e.treino && naSemana(e.treino, plano, today);
   const data = semana[DIAS.indexOf(dia)];
-  const kicker = e.hoje ? 'Hoje' : maiuscula(DIA_NOME[dia]);
+  const kicker = e.hoje ? `Hoje · ${diaCompleto(dia)}` : maiuscula(diaCompleto(dia));
 
   // Treino em andamento: aparece em hoje e no dia a que o treino pertence.
   const planoDaSessao = sessaoAtiva ? planos.find((p) => p.id === sessaoAtiva.planoId) : undefined;
@@ -168,10 +163,6 @@ export default function TreinoScreen() {
     <TabPage brilho={BRILHO_TREINO}>
       {header}
 
-      {sessaoAtiva && treinoAtivo && !mostraAtivo && (
-        <CapsulaAoVivo treino={treinoAtivo} sessao={sessaoAtiva} onAbrir={() => abrirSessao()} onPausar={pausarTreino} onContinuar={retomarTreino} />
-      )}
-
       <SemanaTreino hoje={today} estados={estados} selecionado={dia} onSelect={setDia} />
 
       {alivio && (
@@ -198,15 +189,14 @@ export default function TreinoScreen() {
         </Glass>
       )}
 
-      {/* Destaque do dia: corpo grande com os músculos e o botão */}
+      {/* Destaque do dia: corpo grande com os músculos do treino */}
       {mostraAtivo && sessaoAtiva && treinoAtivo ? (
-        <HeroEmAndamento
+        <HeroTreino
+          kicker={sessaoAtiva.data === today ? `Hoje · ${diaCompleto(sessaoAtiva.diaPlanejado)}` : maiuscula(diaCompleto(sessaoAtiva.diaPlanejado))}
           treino={treinoAtivo}
-          sessao={sessaoAtiva}
           sexo={sexo}
-          onAbrir={() => abrirSessao()}
-          onPausar={pausarTreino}
-          onContinuar={retomarTreino}
+          emAndamento
+          onIniciar={() => abrirSessao()}
         />
       ) : !t ? (
         <HeroDescanso kicker={kicker} proximo={upcoming[0] && `${dayLabel(upcoming[0].data, today).toLowerCase()} · ${upcoming[0].treino.nome}`} />
@@ -215,7 +205,6 @@ export default function TreinoScreen() {
           kicker={kicker}
           treino={t}
           sexo={sexo}
-          resumo={[`~${minutosEstimados(t)} min`, `~${formatInt(kcalEstimadas(t, peso))} kcal`]}
           feito={
             e.tipo === 'feito' && e.sessao
               ? `Concluído${e.feitoEm ? ` · ${notaFeitoEm(e.feitoEm)}` : ''} · ${minutosLabel(e.sessao)} · ${formatInt(e.sessao.kcal)} kcal`
@@ -228,6 +217,19 @@ export default function TreinoScreen() {
               : undefined
           }
           onIniciar={() => start(t)}
+        />
+      )}
+
+      {/* Com o treino rodando: tempo, exercício atual e progresso; tocar abre o treino ao vivo */}
+      {sessaoAtiva && treinoAtivo && (
+        <CardEmAndamento
+          treino={treinoAtivo}
+          sessao={sessaoAtiva}
+          sexo={sexo}
+          mostrarNome={!mostraAtivo}
+          onAbrir={() => abrirSessao()}
+          onPausar={pausarTreino}
+          onContinuar={retomarTreino}
         />
       )}
 
@@ -244,7 +246,6 @@ export default function TreinoScreen() {
             historico={sessoes}
             sexo={sexo}
             onAbrir={modo === 'andamento' ? abrirSessao : modo === 'planejado' && !sessaoAtiva && t ? (ex) => start(t, ex) : undefined}
-            onSerie={modo === 'andamento' ? setRegistrando : undefined}
             edicao={
               modo === 'feito' || !planoDaLista
                 ? undefined
@@ -318,11 +319,6 @@ export default function TreinoScreen() {
           </GlassModal>
         </Modal>
       )}
-
-      <RegistrarSerieSheet
-        item={registrando && treinoAtivo ? (treinoAtivo.exercicios.find((x) => x.id === registrando) ?? null) : null}
-        onClose={() => setRegistrando(null)}
-      />
     </TabPage>
   );
 }
