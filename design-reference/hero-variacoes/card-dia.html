@@ -1,0 +1,148 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Card do dia</title><style>
+@font-face{font-family:"SoraL";font-weight:700;src:url("../../node_modules/@expo-google-fonts/sora/700Bold/Sora_700Bold.ttf")}
+@font-face{font-family:"SoraL";font-weight:600;src:url("../../node_modules/@expo-google-fonts/sora/600SemiBold/Sora_600SemiBold.ttf")}
+@font-face{font-family:"ManropeL";font-weight:700;src:url("../../node_modules/@expo-google-fonts/manrope/700Bold/Manrope_700Bold.ttf")}
+@font-face{font-family:"ManropeL";font-weight:600;src:url("../../node_modules/@expo-google-fonts/manrope/600SemiBold/Manrope_600SemiBold.ttf")}
+:root{--ground:#050506;--ink:#F4F5F0;--ink2:rgba(244,245,240,.66);--ink3:rgba(244,245,240,.42);--lime:#D1FB39;--limeTint:rgba(209,251,57,.16);--limeEdge:rgba(209,251,57,.38);--glass:rgba(255,255,255,.035);--glass2:rgba(255,255,255,.06);--edge:rgba(255,255,255,.12);--edgeTop:rgba(255,255,255,.30);--line:rgba(255,255,255,.14);--soft:rgba(255,255,255,.07);--track:rgba(255,255,255,.10);--display:"SoraL",system-ui;--body:"ManropeL",system-ui}
+*{box-sizing:border-box}html,body{margin:0;background:#000;color:var(--ink);font-family:var(--body)}
+.board{display:flex;flex-wrap:wrap;gap:28px;padding:28px;width:1290px}
+.v{width:390px;padding:22px 16px 20px;border-radius:28px;background:var(--ground);position:relative;overflow:hidden;isolation:isolate}
+.v::before{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(90% 50% at 90% 0%,rgba(209,251,57,.07),transparent 70%)}
+.cap{font-size:11px;font-weight:700;letter-spacing:.16em;color:var(--lime);margin-bottom:4px}
+.capn{font-size:13px;color:var(--ink2);margin-bottom:16px;line-height:1.4}
+.kick{font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);margin-bottom:12px}
+.glass{position:relative;background:var(--glass);border:1px solid var(--edge);border-top-color:var(--edgeTop);border-radius:26px;overflow:hidden;margin:0 -6px}
+.glass::before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.10),rgba(255,255,255,.02) 45%,transparent 70%);pointer-events:none}
+.corpo{position:absolute;mix-blend-mode:lighten}
+.rot{display:flex;align-items:center;gap:6px;font-size:10.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3)}
+.rot i{width:6px;height:6px;border-radius:50%;background:var(--ink3)}
+h3{margin:0;font-family:var(--display);font-weight:600;letter-spacing:-.03em;line-height:1.2}
+.tag{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:12px;background:var(--limeTint);border:1px solid var(--limeEdge);color:var(--lime);font-size:11.5px;font-weight:700}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.neon{margin-top:14px;display:flex;align-items:center;justify-content:center;height:56px;border-radius:28px;border:1.5px solid rgba(209,251,57,.7);background:rgba(22,23,26,.78);font-family:var(--display);font-weight:700;font-size:13.5px;letter-spacing:.18em;text-transform:uppercase;box-shadow:0 0 18px -8px rgba(209,251,57,.5)}
+.muted{color:var(--ink3)}.sec{color:var(--ink2)}
+.num{font-family:var(--display);font-weight:700;letter-spacing:-.04em;line-height:1}
+.ico{width:14px;height:14px;display:inline-block;vertical-align:-2px}
+</style></head><body><div class="board">
+
+<!-- A: atual refinado -->
+<div class="v" id="A">
+  <div class="cap">A · ATUAL, REFINADO</div>
+  <div class="capn">Mesmo formato, com o tempo previsto junto do resumo e as etiquetas numa só fileira.</div>
+  <div class="kick">Sexta-feira</div>
+  <div class="glass" style="height:190px">
+    <img class="corpo" src="corpo-costas-bicep.png" style="right:-14px;top:-8px;height:214px;opacity:.9">
+    <div style="position:relative;padding:20px;max-width:68%">
+      <div class="rot"><i></i>Hoje · Treino B</div>
+      <h3 style="font-size:21px;margin-top:8px">Costas, bíceps e trapézio</h3>
+      <div style="display:flex;gap:14px;margin-top:10px;font-size:12.5px;font-weight:700" class="sec">
+        <span>4 exercícios</span><span>13 séries</span><span>~45 min</span>
+      </div>
+      <div class="tags" style="margin-top:14px;flex-wrap:nowrap"><span class="tag">Costas</span><span class="tag">Bíceps</span><span class="tag">Trapézio</span></div>
+    </div>
+  </div>
+  <div class="neon">Iniciar treino</div>
+</div>
+
+<!-- B: números grandes -->
+<div class="v" id="B">
+  <div class="cap">B · NÚMEROS GRANDES</div>
+  <div class="capn">O resumo vira três números grandes; os músculos ficam só no corpo, que ganha mais espaço.</div>
+  <div class="kick">Sexta-feira</div>
+  <div class="glass" style="height:212px">
+    <img class="corpo" src="corpo-costas-bicep.png" style="right:-4px;top:6px;height:200px">
+    <div style="position:relative;padding:20px;max-width:66%">
+      <div class="rot"><i></i>Costas · bíceps · trapézio</div>
+      <h3 style="font-size:21px;margin-top:8px">Puxar pesado</h3>
+      <div style="display:flex;gap:18px;margin-top:22px">
+        <div><div class="num" style="font-size:30px">4</div><div class="muted" style="font-size:11px;font-weight:700;margin-top:4px">exercícios</div></div>
+        <div style="width:1px;background:var(--soft)"></div>
+        <div><div class="num" style="font-size:30px">13</div><div class="muted" style="font-size:11px;font-weight:700;margin-top:4px">séries</div></div>
+        <div style="width:1px;background:var(--soft)"></div>
+        <div><div class="num" style="font-size:30px">45<small style="font-size:14px;color:var(--ink3)">min</small></div><div class="muted" style="font-size:11px;font-weight:700;margin-top:4px">previsto</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="neon">Iniciar treino</div>
+</div>
+
+<!-- C: barras por músculo -->
+<div class="v" id="C">
+  <div class="cap">C · SÉRIES POR MÚSCULO</div>
+  <div class="capn">Cada músculo com uma barrinha do volume do dia — o que é principal aparece em verde.</div>
+  <div class="kick">Sexta-feira</div>
+  <div class="glass" style="height:212px">
+    <img class="corpo" src="corpo-costas-bicep.png" style="right:-4px;top:6px;height:200px">
+    <div style="position:relative;padding:20px;max-width:64%">
+      <div class="rot"><i></i>4 exercícios · 13 séries</div>
+      <h3 style="font-size:19px;margin-top:8px">Costas, bíceps e trapézio</h3>
+      <div style="display:grid;gap:10px;margin-top:16px">
+        <div><div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700"><span>Costas</span><span class="muted">7 séries</span></div><div style="height:5px;border-radius:3px;background:var(--track);margin-top:5px"><div style="width:100%;height:100%;border-radius:3px;background:var(--lime)"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700" class="sec"><span>Bíceps</span><span class="muted">4 séries</span></div><div style="height:5px;border-radius:3px;background:var(--track);margin-top:5px"><div style="width:57%;height:100%;border-radius:3px;background:rgba(209,251,57,.45)"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700" class="sec"><span>Trapézio</span><span class="muted">2 séries</span></div><div style="height:5px;border-radius:3px;background:var(--track);margin-top:5px"><div style="width:29%;height:100%;border-radius:3px;background:rgba(209,251,57,.45)"></div></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="neon">Iniciar treino</div>
+</div>
+
+<!-- D: prévia dos exercícios -->
+<div class="v" id="D">
+  <div class="cap">D · PRÉVIA DOS EXERCÍCIOS</div>
+  <div class="capn">Os primeiros exercícios já aparecem no card, com as séries — dá pra saber o que vem sem rolar.</div>
+  <div class="kick">Sexta-feira</div>
+  <div class="glass">
+    <img class="corpo" src="corpo-costas-bicep.png" style="right:-22px;top:-10px;height:170px;opacity:.55">
+    <div style="position:relative;padding:20px">
+      <div class="rot"><i></i>4 exercícios · 13 séries · ~45 min</div>
+      <h3 style="font-size:21px;margin-top:8px;max-width:70%">Costas, bíceps e trapézio</h3>
+      <div style="margin-top:16px;display:grid;gap:0;max-width:78%">
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--soft);font-size:13px;font-weight:700"><span class="muted" style="width:18px">01</span><span style="flex:1">Puxada frontal aberta</span><span class="muted">4×10</span></div>
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--soft);font-size:13px;font-weight:700"><span class="muted" style="width:18px">02</span><span style="flex:1">Remada baixa</span><span class="muted">4×10</span></div>
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--soft);font-size:13px;font-weight:700"><span class="muted" style="width:18px">03</span><span style="flex:1">Rosca direta</span><span class="muted">3×12</span></div>
+        <div style="padding:8px 0 0;border-top:1px solid var(--soft);font-size:12px;font-weight:700;color:var(--lime)">+ 1 exercício</div>
+      </div>
+    </div>
+  </div>
+  <div class="neon">Iniciar treino</div>
+</div>
+
+<!-- E: botão dentro do card -->
+<div class="v" id="E">
+  <div class="cap">E · BOTÃO DENTRO DO CARD</div>
+  <div class="capn">Tudo num bloco só: o card termina no botão de iniciar, colado embaixo, e o corpo sobe atrás.</div>
+  <div class="kick">Sexta-feira</div>
+  <div class="glass">
+    <img class="corpo" src="corpo-costas-bicep.png" style="right:-10px;top:-6px;height:196px">
+    <div style="position:relative;padding:20px 20px 0;max-width:68%;min-height:160px">
+      <div class="rot"><i></i>4 exercícios · 13 séries</div>
+      <h3 style="font-size:21px;margin-top:8px">Costas, bíceps e trapézio</h3>
+      <div class="tags" style="margin-top:12px"><span class="tag">Costas</span><span class="tag">Bíceps</span><span class="tag">Trapézio</span></div>
+    </div>
+    <div style="position:relative;display:flex;align-items:center;justify-content:space-between;margin:14px 8px 8px;height:54px;padding:0 8px 0 18px;border-radius:27px;background:rgba(22,23,26,.85);border:1.5px solid rgba(209,251,57,.7)">
+      <span style="font-family:var(--display);font-weight:700;font-size:13px;letter-spacing:.18em">INICIAR TREINO</span>
+      <span style="width:40px;height:40px;border-radius:50%;background:var(--lime);display:grid;place-items:center"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="#152000"/></svg></span>
+    </div>
+  </div>
+</div>
+
+<!-- F: pôster -->
+<div class="v" id="F">
+  <div class="cap">F · PÔSTER</div>
+  <div class="capn">O corpo grande no centro, com o brilho verde atrás dos músculos do dia; o texto embaixo, centralizado.</div>
+  <div class="kick">Sexta-feira</div>
+  <div class="glass" style="text-align:center">
+    <div style="position:relative;height:190px">
+      <div style="position:absolute;left:50%;top:40px;width:160px;height:110px;transform:translateX(-50%);background:radial-gradient(closest-side,rgba(209,251,57,.16),transparent);"></div>
+      <img class="corpo" src="corpo-costas-bicep.png" style="left:50%;transform:translateX(-50%);top:14px;height:176px">
+      
+    </div>
+    <div style="position:relative;padding:0 20px 20px">
+      <h3 style="font-size:22px">Costas, bíceps e trapézio</h3>
+      <div class="sec" style="font-size:12.5px;font-weight:700;margin-top:8px">4 exercícios · 13 séries · ~45 min</div>
+    </div>
+  </div>
+  <div class="neon">Iniciar treino</div>
+</div>
+
+</div></body></html>
