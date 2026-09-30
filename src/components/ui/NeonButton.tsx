@@ -13,10 +13,10 @@ const R = H / 2;
 /** Espessura do contorno. */
 const EDGE = 1.5;
 /** A luz passa uma vez só, devagar, logo depois que o botão aparece. */
-const PASSAGEM_MS = 1600;
+const PASSAGEM_MS = 1800;
 const ESPERA_MS = 250;
-/** Comprimento do risco de luz (pontos). */
-const RISCO = 70;
+/** Comprimento de cada risco de luz (pontos). */
+const RISCO = 44;
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
@@ -29,10 +29,10 @@ type Props = {
 
 /**
  * Botão principal (CONTINUAR, SALVAR, INICIAR, CONCLUIR SÉRIE): pílula de
- * vidro escuro com o contorno verde fixo. Quando o botão aparece, uma luz
- * clara passa uma vez pela borda de cima (da esquerda para a direita) e pela
- * de baixo (da direita para a esquerda), com um brilho suave, e some. Depois
- * fica parado — só volta a acontecer quando o botão aparecer de novo.
+ * vidro escuro com o contorno verde fixo. Quando o botão aparece, quatro luzes
+ * claras saem do meio (duas em cima, duas embaixo), correm pela linha para os
+ * dois lados e se encontram no meio das pontas, e somem. Depois fica parado —
+ * só volta a acontecer quando o botão aparecer de novo.
  */
 export function NeonButton({ label, onPress, disabled, style }: Props) {
   const reduce = useReducedMotion();
@@ -44,17 +44,24 @@ export function NeonButton({ label, onPress, disabled, style }: Props) {
     if (liga) p.set(withDelay(ESPERA_MS, withTiming(1, { duration: PASSAGEM_MS, easing: Easing.inOut(Easing.cubic) })));
   }, [liga, p]);
 
-  // Bordas retas de cima e de baixo (entre as curvas).
+  // Do meio de cima e do meio de baixo até o meio de cada ponta, seguindo a linha.
   const m = EDGE / 2;
-  const reta = Math.max(0, width - 2 * R);
-  const cima = `M${R} ${m}H${R + reta}`;
-  const baixo = `M${R + reta} ${H - m}H${R}`;
-  const total = reta + RISCO;
+  const r = R - m;
+  const cx = width / 2;
+  const xe = R; // centro da curva da esquerda
+  const xd = width - R; // centro da curva da direita
+  const caminhos = [
+    `M${cx} ${m}H${xd}A${r} ${r} 0 0 1 ${width - m} ${R}`,
+    `M${cx} ${m}H${xe}A${r} ${r} 0 0 0 ${m} ${R}`,
+    `M${cx} ${H - m}H${xd}A${r} ${r} 0 0 0 ${width - m} ${R}`,
+    `M${cx} ${H - m}H${xe}A${r} ${r} 0 0 1 ${m} ${R}`,
+  ];
+  const total = Math.max(0, cx - R) + (Math.PI * r) / 2 + RISCO;
   const luz = useAnimatedProps(() => {
     const t = p.get();
-    // acende no começo, apaga no fim
-    const alfa = t <= 0 ? 0 : t < 0.15 ? t / 0.15 : t > 0.8 ? Math.max(0, (1 - t) / 0.2) : 1;
-    return { strokeDashoffset: RISCO - t * total, strokeOpacity: alfa };
+    // acende no começo, some no encontro
+    const alfa = t <= 0 ? 0 : t < 0.2 ? t / 0.2 : t > 0.75 ? Math.max(0, (1 - t) / 0.25) : 1;
+    return { strokeDashoffset: RISCO - t * total, strokeOpacity: alfa * 0.85 };
   });
 
   return (
@@ -72,15 +79,14 @@ export function NeonButton({ label, onPress, disabled, style }: Props) {
         {width > 0 && (
           <Svg width={width} height={H} style={styles.svg} pointerEvents="none">
             <Rect x={m} y={m} width={width - EDGE} height={H - EDGE} rx={R - m} fill="none" stroke={colors.neonContorno} strokeWidth={EDGE} />
-            {[cima, baixo].map((d) => (
-              <AnimatedPath key={`${d}-halo`} d={d} fill="none" stroke={colors.neonHalo} strokeWidth={10} strokeLinecap="round" strokeDasharray={`${RISCO} ${total * 2}`} animatedProps={luz} />
-            ))}
-            {[cima, baixo].map((d) => (
-              <AnimatedPath key={d} d={d} fill="none" stroke={colors.limeHighlight} strokeWidth={EDGE + 0.5} strokeLinecap="round" strokeDasharray={`${RISCO} ${total * 2}`} animatedProps={luz} />
+            {caminhos.map((d) => (
+              <AnimatedPath key={d} d={d} fill="none" stroke={colors.limeHighlight} strokeWidth={EDGE} strokeLinecap="round" strokeDasharray={`${RISCO} ${total * 2}`} animatedProps={luz} />
             ))}
           </Svg>
         )}
-        <Text style={styles.label}>{label.toUpperCase()}</Text>
+        <Text style={styles.label} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+          {label.toUpperCase()}
+        </Text>
       </Pressable>
     </View>
   );
@@ -118,9 +124,10 @@ const styles = StyleSheet.create({
   },
   label: {
     fontFamily: fonts.display.bold,
-    fontSize: 15,
-    lineHeight: 20,
-    letterSpacing: 3,
+    paddingHorizontal: 24,
+    fontSize: 13.5,
+    lineHeight: 18,
+    letterSpacing: 2.4,
     color: colors.ink,
   },
   pressed: {

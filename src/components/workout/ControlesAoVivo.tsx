@@ -8,7 +8,7 @@ import { Glass, NeonButton, Text, toast } from '@/components/ui';
 import { exercicioPorId } from '@/lib/exercicios';
 import { formatDecimal, formatInt } from '@/lib/format';
 import { bateRecorde, proximoExercicio, repsLabel, seriesFeitas, treinoResolvido } from '@/lib/treino/plano';
-import { PASSO_KG, valoresDaProximaSerie } from '@/lib/treino/progressao';
+import { AJUSTE_KG, valoresDaProximaSerie } from '@/lib/treino/progressao';
 import { useAppStore } from '@/store/useAppStore';
 import { colors, fonts, radius, spacing } from '@/theme/theme';
 import type { ExercicioNoTreino, PlanoDeTreino, SessaoDeTreino, SessaoEmAndamento, TreinoDoDia } from '@/types/treino';
@@ -90,6 +90,7 @@ export function ControlesAoVivo({ treino, sessao, historico, planos }: Props) {
   return (
     <>
       <View style={styles.descanso}>
+        <NeonButton label="Concluir série" onPress={() => setAberto(true)} style={styles.flex} />
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={pausado ? 'Continuar o treino' : 'Pausar o treino'}
@@ -100,19 +101,6 @@ export function ControlesAoVivo({ treino, sessao, historico, planos }: Props) {
           }}
           style={({ pressed }) => [styles.redondo, pausado && styles.redondoOn, pressed && styles.pressed]}>
           <Ionicons name={pausado ? 'play' : 'pause'} size={20} color={pausado ? colors.onLime : colors.ink} />
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Concluir série"
-          onPress={() => {
-            tique();
-            setAberto(true);
-          }}
-          style={({ pressed }) => [styles.pular, pressed && styles.pressed]}>
-          <Ionicons name="checkmark" size={16} color={colors.onInk} />
-          <Text style={styles.pularText} numberOfLines={1}>
-            CONCLUIR SÉRIE
-          </Text>
         </Pressable>
       </View>
       <ConcluirSerieModal
@@ -213,8 +201,8 @@ function ConcluirSerieModal({
               rotulo="Carga"
               valor={formatDecimal(valores.kg)}
               unidade="kg"
-              onMenos={() => setValores((v) => ({ ...v, kg: Math.max(0, v.kg - PASSO_KG) }))}
-              onMais={() => setValores((v) => ({ ...v, kg: v.kg + PASSO_KG }))}
+              onMenos={() => setValores((v) => ({ ...v, kg: Math.max(0, v.kg - AJUSTE_KG) }))}
+              onMais={() => setValores((v) => ({ ...v, kg: v.kg + AJUSTE_KG }))}
             />
             <Ajuste
               rotulo="Repetições"

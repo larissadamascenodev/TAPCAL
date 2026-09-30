@@ -15,10 +15,9 @@ import { RelatorioSemana } from '@/components/workout/RelatorioSemana';
 import { ResumoExercicio } from '@/components/workout/ResumoExercicio';
 import { SemanaTreino } from '@/components/workout/SemanaTreino';
 import { daysBetween, fromDateKey } from '@/lib/dates';
-import { formatDayMonth, formatInt, WEEKDAY_SHORT } from '@/lib/format';
+import { formatDayMonth, WEEKDAY_SHORT } from '@/lib/format';
 import { exercicioPorId } from '@/lib/exercicios';
 import { adicionarExercicios, moverExercicioPara, removerExercicio, tirarDaBiblioteca } from '@/lib/treino/editor';
-import { minutosDaSessao } from '@/lib/treino/met';
 import { proximosTreinos } from '@/lib/treino/plano';
 import { ehSemanaDeAlivio, horaDaProximaFase, semanaDoBloco, seriesNaSemana } from '@/lib/treino/progressao';
 import { datasDaSemana, DIA_NOME, DIAS, diaDaData, estadoDoDia, notaFeitoEm, planoAtivo, type EstadoDoDia } from '@/lib/treino/semana';
@@ -26,7 +25,7 @@ import { currentWeightKg } from '@/store/selectors';
 import { useAppStore } from '@/store/useAppStore';
 import { colors, fonts, radius, spacing } from '@/theme/theme';
 import type { DateKey } from '@/types';
-import type { DiaSemana, PlanoDeTreino, SessaoDeTreino, TreinoDoDia } from '@/types/treino';
+import type { DiaSemana, PlanoDeTreino, TreinoDoDia } from '@/types/treino';
 
 type Aba = 'exercicios' | 'cardio' | 'semana';
 const ABAS: { key: Aba; label: string }[] = [
@@ -52,10 +51,6 @@ function diaCompleto(d: DiaSemana): string {
 
 const maiuscula = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-/** Duração arredondada, sem as pausas ("48 min"; menos de 1 minuto vira "1 min"). */
-function minutosLabel(s: Pick<SessaoDeTreino, 'inicio' | 'fim' | 'pausaMs'>): string {
-  return `${Math.max(1, Math.round(minutosDaSessao(s.inicio, s.fim, s.pausaMs)))} min`;
-}
 
 /** Séries da semana (menos na semana de alívio do plano da IA). */
 function naSemana(t: TreinoDoDia, plano: PlanoDeTreino | undefined, data: DateKey): TreinoDoDia {
@@ -232,11 +227,6 @@ export default function TreinoScreen() {
               kicker={kicker}
               treino={t}
               sexo={sexo}
-              feito={
-                e.tipo === 'feito' && e.sessao
-                  ? `Concluído${e.feitoEm ? ` · ${notaFeitoEm(e.feitoEm)}` : ''} · ${minutosLabel(e.sessao)} · ${formatInt(e.sessao.kcal)} kcal`
-                  : undefined
-              }
               bloqueado={!!sessaoAtiva}
               dica={
                 data !== today

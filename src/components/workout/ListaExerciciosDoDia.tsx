@@ -357,11 +357,11 @@ function Item({
       {estado === 'feito' ? (
         selo ? (
           <Animated.View entering={ZoomIn.springify().damping(11).stiffness(180)} style={styles.ok}>
-            <Ionicons name="checkmark" size={15} color={colors.onLime} />
+            <Ionicons name="checkmark" size={15} color={colors.lime} />
           </Animated.View>
         ) : (
           <View style={styles.ok}>
-            <Ionicons name="checkmark" size={15} color={colors.onLime} />
+            <Ionicons name="checkmark" size={15} color={colors.lime} />
           </View>
         )
       ) : (
@@ -425,7 +425,9 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.lime,
+    backgroundColor: colors.limeTint,
+    borderWidth: 1,
+    borderColor: colors.limeEdge,
   },
   cardioIcone: {
     width: 44,

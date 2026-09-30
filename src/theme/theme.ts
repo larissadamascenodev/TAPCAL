@@ -122,7 +122,7 @@ export const colors = {
   // Selo verde (completo, recorde): neon um pouco translúcido, com a letra escura
   // Ponto "gravando" do tempo de treino
   gravando: '#FF453A',
-  seloVerde: 'rgba(209,251,57,0.86)',
+  seloVerde: 'rgba(209,251,57,0.16)',
 } as const;
 
 /** Cor de cada macro, igual em todas as telas. */

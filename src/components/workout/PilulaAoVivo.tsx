@@ -59,9 +59,9 @@ const styles = StyleSheet.create({
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    height: 36,
-    paddingHorizontal: 14,
+    gap: 6,
+    height: 34,
+    paddingHorizontal: 11,
     borderRadius: 18,
     backgroundColor: colors.glassFillStrong,
     borderWidth: 1,
@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
   },
   tempo: {
     fontFamily: fonts.display.semibold,
-    fontSize: 15,
+    fontSize: 14,
     fontVariant: ['tabular-nums'],
   },
   tempoOff: {

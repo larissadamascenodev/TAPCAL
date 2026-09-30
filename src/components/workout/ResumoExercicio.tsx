@@ -79,7 +79,7 @@ export function ResumoExercicio({ item, sessao, aoVivo, historico, pesoKg, sexo,
                 <View style={styles.thumb}>{ex && <MapaMuscular principal={ex.musculoPrincipal} secundarios={ex.musculosSecundarios} altura={64} podeVirar={false} sexo={sexo} />}</View>
                 <View style={styles.flex}>
                   <View style={[styles.selo, completo && styles.seloOk]}>
-                    {completo && <Ionicons name="checkmark" size={11} color={colors.onLime} />}
+                    {completo && <Ionicons name="checkmark" size={11} color={colors.lime} />}
                     <Text style={[styles.seloText, completo && styles.seloTextOk]}>
                       {completo ? 'COMPLETO' : feitas ? `FALTAM ${item.series - feitas}` : 'AINDA NÃO COMEÇOU'}
                     </Text>
@@ -125,7 +125,7 @@ export function ResumoExercicio({ item, sessao, aoVivo, historico, pesoKg, sexo,
                       <View style={styles.trilho}>
                         {s ? (
                           <View style={[styles.no, styles.noFeito]}>
-                            <Ionicons name="checkmark" size={13} color={colors.onLime} />
+                            <Ionicons name="checkmark" size={13} color={colors.lime} />
                           </View>
                         ) : (
                           <View style={[styles.no, agora && styles.noAgora]}>
@@ -253,6 +253,8 @@ const styles = StyleSheet.create({
   // Completo: verde neon translúcido, letra escura para destacar.
   seloOk: {
     backgroundColor: colors.seloVerde,
+    borderWidth: 1,
+    borderColor: colors.limeEdge,
   },
   seloText: {
     fontFamily: fonts.body.bold,
@@ -261,7 +263,7 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   seloTextOk: {
-    color: colors.onLime,
+    color: colors.lime,
   },
   nome: {
     marginTop: 6,
@@ -350,8 +352,8 @@ const styles = StyleSheet.create({
     borderColor: colors.line2,
   },
   noFeito: {
-    backgroundColor: colors.lime,
-    borderColor: colors.lime,
+    backgroundColor: colors.limeTint,
+    borderColor: colors.limeEdge,
   },
   noAgora: {
     borderColor: colors.lime,
@@ -397,12 +399,14 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     justifyContent: 'center',
     backgroundColor: colors.seloVerde,
+    borderWidth: 1,
+    borderColor: colors.limeEdge,
   },
   prText: {
     fontFamily: fonts.body.bold,
     fontSize: 9.5,
     letterSpacing: 0.8,
-    color: colors.onLime,
+    color: colors.lime,
   },
   tempos: {
     alignItems: 'flex-end',

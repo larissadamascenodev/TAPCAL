@@ -15,6 +15,8 @@ type Props = {
   comprimento?: number;
   /** Espessura dos traços. */
   espessura?: number;
+  /** Cor dos traços acesos (padrão: branco). */
+  cor?: string;
   children?: ReactNode;
   style?: StyleProp<ViewStyle>;
 };
@@ -24,7 +26,7 @@ type Props = {
  * traços acesos em branco, os que faltam apagados e o traço da vez maior, no
  * verde do app — o único verde do mostrador.
  */
-export function Mostrador({ tamanho, tracos, aceso, comprimento, espessura = 2.4, children, style }: Props) {
+export function Mostrador({ tamanho, tracos, aceso, comprimento, espessura = 2.4, cor = colors.tracoAceso, children, style }: Props) {
   const c = tamanho / 2;
   const len = comprimento ?? tamanho * 0.07;
   const rFora = c - espessura * 2;
@@ -46,7 +48,7 @@ export function Mostrador({ tamanho, tracos, aceso, comprimento, espessura = 2.4
       <Svg width={tamanho} height={tamanho} style={StyleSheet.absoluteFill}>
         {linhas.map((l) =>
           l.daVez ? null : (
-            <Line key={l.i} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} stroke={l.on ? colors.tracoAceso : colors.tracoApagado} strokeWidth={espessura} strokeLinecap="round" />
+            <Line key={l.i} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} stroke={l.on ? cor : colors.tracoApagado} strokeWidth={espessura} strokeLinecap="round" />
           ),
         )}
         {linhas

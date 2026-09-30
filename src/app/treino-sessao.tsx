@@ -15,14 +15,16 @@ import { exercicioPorId, MUSCULO_LABELS } from '@/lib/exercicios';
 import { formatDecimal, formatDuration, formatInt } from '@/lib/format';
 import { tempoDeTreinoMs } from '@/lib/treino/met';
 import { bateRecorde, proximoExercicio, recorde, repsLabel, seriesFeitas, ultimasSeries } from '@/lib/treino/plano';
-import { PASSO_KG, seriesNaSemana, sugestaoDoExercicio, valoresDaProximaSerie } from '@/lib/treino/progressao';
+import { AJUSTE_KG, seriesNaSemana, sugestaoDoExercicio, valoresDaProximaSerie } from '@/lib/treino/progressao';
 import { useAppStore } from '@/store/useAppStore';
 import { colors, fonts, gradients, radius, spacing } from '@/theme/theme';
 import type { SerieFeita } from '@/types/treino';
 
 /** Palco (o corpo ou o descanso): mesma altura nos dois, para nada pular. */
-const PALCO = 260;
-const MOSTRADOR = 240;
+const MOSTRADOR = 216;
+
+/** Traços do mostrador no descanso: um por segundo até 2 min; acima disso, um a cada poucos segundos. */
+const tracosDoDescanso = (total: number) => (total <= 120 ? Math.max(1, total) : Math.round(total / Math.ceil(total / 120)));
 
 /** Relógio que atualiza a cada segundo. */
 function useNow() {
@@ -196,27 +198,38 @@ export default function TreinoSessaoScreen() {
           )}
         </View>
 
-        {/* Palco: o corpo solto no fundo, ou o mostrador do descanso */}
+        {/* Palco: o mostrador (série da vez, ou o descanso contando) e o corpo ao lado */}
         <View style={styles.palco}>
           {descansando && descanso ? (
-            <Animated.View key="descanso" entering={FadeIn.duration(220)} exiting={FadeOut.duration(160)} style={styles.descanso}>
-              <Mostrador tamanho={MOSTRADOR} tracos={60} aceso={restante / descanso.total}>
+            <Animated.View key="descanso" entering={FadeIn.duration(220)} exiting={FadeOut.duration(160)}>
+              {/* Os traços acendem no sentido do relógio conforme o descanso passa; o número desce. */}
+              <Mostrador tamanho={MOSTRADOR} tracos={tracosDoDescanso(descanso.total)} aceso={1 - restante / descanso.total} cor={colors.tracoAceso}>
                 <Text style={styles.descRotulo}>DESCANSO</Text>
                 <Text style={styles.descTempo} accessibilityLiveRegion="polite">
                   {formatDuration(restante)}
                 </Text>
-                <View style={styles.proxima}>
-                  <Text style={styles.proximaText}>
-                    Próxima · {formatDecimal(input.kg)} kg × {input.reps}
-                  </Text>
-                </View>
+                <Text style={styles.proximaText}>
+                  Próxima · {formatDecimal(input.kg)} kg × {input.reps}
+                </Text>
               </Mostrador>
             </Animated.View>
           ) : (
-            <Animated.View key="corpo" entering={FadeIn.duration(220)} exiting={FadeOut.duration(160)} style={styles.corpo}>
-              <View style={styles.circulo} />
-              {info && <MapaMuscular principal={info.musculoPrincipal} secundarios={info.musculosSecundarios} sexo={sexo} altura={PALCO - 24} />}
+            <Animated.View key="serie" entering={FadeIn.duration(220)} exiting={FadeOut.duration(160)}>
+              {/* Um traço por segundo, no sentido do relógio, como o card da aba. */}
+              <Mostrador tamanho={MOSTRADOR} tracos={60} aceso={(Math.floor(elapsed) % 60) / 60}>
+                <Text style={styles.descRotulo}>{exerciseDone ? 'FEITO' : 'SÉRIE'}</Text>
+                <Text style={styles.serieGrande}>
+                  {Math.min(done + (exerciseDone ? 0 : 1), exercise.series)}
+                  <Text style={styles.serieGrandeDe}>/{exercise.series}</Text>
+                </Text>
+                <Text style={styles.proximaText}>{exerciseDone ? 'todas as séries' : `${formatDecimal(input.kg)} kg × ${input.reps}`}</Text>
+              </Mostrador>
             </Animated.View>
+          )}
+          {info && (
+            <View style={styles.corpoLado}>
+              <MapaMuscular principal={info.musculoPrincipal} secundarios={info.musculosSecundarios} sexo={sexo} altura={MOSTRADOR - 20} />
+            </View>
           )}
         </View>
         {descansando && descanso ? (
@@ -260,8 +273,8 @@ export default function TreinoSessaoScreen() {
               valor={formatDecimal(input.kg)}
               unidade="kg"
               dica={difUltima === null ? 'primeira vez' : difUltima === 0 ? 'igual à última' : `${difUltima > 0 ? '+' : ''}${formatDecimal(difUltima)} kg da última`}
-              onMenos={() => setInput((v) => ({ ...v, kg: Math.max(0, v.kg - PASSO_KG) }))}
-              onMais={() => setInput((v) => ({ ...v, kg: v.kg + PASSO_KG }))}
+              onMenos={() => setInput((v) => ({ ...v, kg: Math.max(0, v.kg - AJUSTE_KG) }))}
+              onMais={() => setInput((v) => ({ ...v, kg: v.kg + AJUSTE_KG }))}
             />
             <Ajuste
               rotulo="Repetições"
@@ -391,7 +404,7 @@ function LinhaSerie({
       <View style={styles.serieTrilho}>
         {serie ? (
           <Animated.View entering={ZoomIn.duration(260)} style={[styles.serieNo, styles.serieNoFeito]}>
-            <Ionicons name="checkmark" size={13} color={colors.onInk} />
+            <Ionicons name="checkmark" size={13} color={colors.lime} />
           </Animated.View>
         ) : (
           <View style={[styles.serieNo, atual && styles.serieNoAtual]}>
@@ -514,25 +527,27 @@ const styles = StyleSheet.create({
     color: colors.ink2,
   },
   palco: {
-    height: PALCO,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
+    marginVertical: spacing.sm,
   },
-  corpo: {
+  corpoLado: {
+    flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
+    marginRight: -spacing.sm,
   },
-  circulo: {
-    position: 'absolute',
-    width: PALCO - 20,
-    height: PALCO - 20,
-    borderRadius: (PALCO - 20) / 2,
-    borderWidth: 1,
-    borderColor: colors.lineSoft,
+  serieGrande: {
+    fontFamily: fonts.display.bold,
+    fontSize: 54,
+    lineHeight: 60,
+    letterSpacing: -2.4,
+    fontVariant: ['tabular-nums'],
   },
-  descanso: {
-    alignItems: 'center',
-    justifyContent: 'center',
+  serieGrandeDe: {
+    fontSize: 26,
+    color: colors.ink3,
+    letterSpacing: -1,
   },
   descRotulo: {
     fontFamily: fonts.body.bold,
@@ -542,8 +557,8 @@ const styles = StyleSheet.create({
   },
   descTempo: {
     fontFamily: fonts.display.bold,
-    fontSize: 56,
-    lineHeight: 62,
+    fontSize: 48,
+    lineHeight: 54,
     letterSpacing: -2.4,
     fontVariant: ['tabular-nums'],
   },
@@ -730,11 +745,11 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
   },
   serieNoFeito: {
-    backgroundColor: colors.ink,
-    borderColor: colors.ink,
+    backgroundColor: colors.limeTint,
+    borderColor: colors.limeEdge,
   },
   serieNoAtual: {
-    borderColor: colors.ink2,
+    borderColor: colors.lime,
     borderStyle: 'dashed',
     borderWidth: 2,
   },
@@ -744,7 +759,7 @@ const styles = StyleSheet.create({
     color: colors.ink3,
   },
   serieNumAtual: {
-    color: colors.ink,
+    color: colors.lime,
   },
   serieLinha: {
     flex: 1,
@@ -755,7 +770,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.lineSoft,
   },
   serieLinhaFeita: {
-    backgroundColor: colors.line2,
+    backgroundColor: colors.limeEdge,
   },
   serieCorpo: {
     flex: 1,

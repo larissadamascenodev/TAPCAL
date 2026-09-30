@@ -2,13 +2,15 @@ import { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors, radius, spacing } from '@/theme/theme';
+import Ionicons from '@expo/vector-icons/Ionicons';
+
+import { colors, radius, spacing, tabBar } from '@/theme/theme';
 
 import { Text } from './Text';
 
 let show: ((message: string) => void) | null = null;
 
-/** Mostra um aviso curto no topo da tela (ex.: "+250 ml registrados"). */
+/** Mostra um aviso curto embaixo, logo acima da barra (ex.: "+250 ml registrados"). */
 export function toast(message: string) {
   show?.(message);
 }
@@ -40,17 +42,20 @@ export function ToastHost() {
   if (!message) return null;
 
   return (
-    <View pointerEvents="none" style={[styles.wrap, { top: insets.top + spacing.sm }]}>
+    <View pointerEvents="none" style={[styles.wrap, { bottom: insets.bottom + tabBar.bottomGap + tabBar.height + spacing.md }]}>
       <Animated.View
         accessibilityLiveRegion="polite"
         style={[
           styles.toast,
           {
             opacity: anim,
-            transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }],
+            transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }],
           },
         ]}>
-        <Text variant="bodyStrong" style={styles.text}>
+        <View style={styles.icone}>
+          <Ionicons name="checkmark" size={13} color={colors.lime} />
+        </View>
+        <Text variant="bodyStrong" style={styles.text} numberOfLines={2}>
           {message}
         </Text>
       </Animated.View>
@@ -67,14 +72,33 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   toast: {
-    paddingHorizontal: spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    maxWidth: '88%',
+    paddingLeft: 10,
+    paddingRight: spacing.lg,
     paddingVertical: 10,
-    borderRadius: radius.lg,
+    borderRadius: radius.pill,
     backgroundColor: colors.toastFill,
     borderWidth: 1,
-    borderColor: colors.line2,
+    borderColor: colors.line,
+    borderTopColor: colors.frostCardEdgeTop,
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.45,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+  },
+  icone: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.limeTint,
   },
   text: {
-    fontSize: 13,
+    flexShrink: 1,
+    fontSize: 13.5,
   },
 });

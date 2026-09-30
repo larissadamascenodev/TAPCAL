@@ -67,19 +67,18 @@ export function AppHeader({ name, streakDays, scrolled, below, belowHeight = 0, 
           </View>
         </LinearGradient>
 
-        <Animated.View
-          accessibilityElementsHidden={!scrolled}
-          style={[styles.nameWrap, { opacity: scrolled && !centro ? 1 : 0, transform: [{ translateY: scrolled ? 0 : 6 }] }, FADE_IN]}>
-          <Text style={styles.name} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
-            {name}
-          </Text>
-        </Animated.View>
-
         {centro ? (
-          <View pointerEvents="box-none" style={styles.centro}>
-            {centro}
-          </View>
-        ) : null}
+          // Treino aberto: a pílula do tempo no lugar do nome, no espaço entre o avatar e as ações.
+          <View style={styles.centro}>{centro}</View>
+        ) : (
+          <Animated.View
+            accessibilityElementsHidden={!scrolled}
+            style={[styles.nameWrap, { opacity: scrolled ? 1 : 0, transform: [{ translateY: scrolled ? 0 : 6 }] }, FADE_IN]}>
+            <Text style={styles.name} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+              {name}
+            </Text>
+          </Animated.View>
+        )}
 
         <View style={styles.actions}>
           <StreakBadge days={streakDays} />
@@ -146,13 +145,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   centro: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
+    flex: 1,
+    minWidth: 0,
     alignItems: 'center',
-    justifyContent: 'center',
   },
   nameWrap: {
     flex: 1,

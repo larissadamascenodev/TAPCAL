@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { cancelAnimation, Easing, useAnimatedProps, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
@@ -40,74 +40,18 @@ export function musculosDoTreino(t: TreinoDoDia): Musculo[] {
   return [...conta.entries()].sort((a, b) => b[1] - a[1]).map(([m]) => m);
 }
 
+
+
 /**
- * Topo do Treino: dia, nome do treino (até 2 linhas) e, embaixo, à esquerda o
- * que muda (músculos e exercícios, ou o mostrador do treino rodando) e à
- * direita o corpo com os músculos do dia.
+ * Treino do dia antes de começar: o mesmo cartão do treino em andamento — à
+ * esquerda o nome, os exercícios e os músculos em etiquetas verdes
+ * translúcidas; à direita o corpo, cortado e sumindo na borda. Embaixo, o
+ * botão de iniciar (ou o aviso, se outro treino já está aberto).
  */
-function Topo({
-  kicker,
-  treino,
-  sexo,
-  esquerda,
-  children,
-}: {
-  kicker: string;
-  treino: TreinoDoDia;
-  sexo?: 'feminino' | 'masculino';
-  esquerda: ReactNode;
-  children?: ReactNode;
-}) {
-  const musculos = musculosDoTreino(treino);
-  return (
-    <View style={styles.hero}>
-      <Text style={styles.kicker}>{kicker}</Text>
-      <Text style={styles.titulo} numberOfLines={2}>
-        {treino.nome}
-      </Text>
-      <View style={styles.area}>
-        <View style={styles.esquerda}>{esquerda}</View>
-        {musculos.length > 0 && (
-          <View style={styles.corpo} pointerEvents="none">
-            <MapaMuscular principal={musculos[0]} secundarios={musculos.slice(1, 4)} sexo={sexo} altura={AREA} podeVirar={false} />
-          </View>
-        )}
-      </View>
-      {children}
-    </View>
-  );
-}
-
-/** Legenda dos músculos (com as cores do corpo) e o número de exercícios. */
-function Resumo({ treino }: { treino: TreinoDoDia }) {
-  const musculos = musculosDoTreino(treino).slice(0, 4);
-  const n = treino.exercicios.length;
-  return (
-    <View style={styles.resumo}>
-      <View style={styles.legenda}>
-        {musculos.map((m, i) => (
-          <View key={m} style={styles.legendaItem}>
-            <View style={[styles.legendaPonto, { backgroundColor: i === 0 ? colors.musclePrimary : colors.muscleSecondary }]} />
-            <Text style={styles.legendaText} numberOfLines={1}>
-              {MUSCULO_LABELS[m]}
-            </Text>
-          </View>
-        ))}
-      </View>
-      <View style={styles.qtd}>
-        <Text style={styles.qtdNum}>{n}</Text>
-        <Text style={styles.qtdRotulo}>{n === 1 ? 'exercício' : 'exercícios'}</Text>
-      </View>
-    </View>
-  );
-}
-
-/** Treino do dia antes de começar (ou já feito). */
 export function HeroTreino({
   kicker,
   treino,
   sexo,
-  feito,
   bloqueado,
   dica,
   onIniciar,
@@ -115,21 +59,46 @@ export function HeroTreino({
   kicker: string;
   treino: TreinoDoDia;
   sexo?: 'feminino' | 'masculino';
-  feito?: string;
   bloqueado?: boolean;
   dica?: string;
   onIniciar: () => void;
 }) {
+  const musculos = musculosDoTreino(treino);
+  const n = treino.exercicios.length;
+  const series = treino.exercicios.reduce((t, e) => t + e.series, 0);
   return (
-    <Topo kicker={kicker} treino={treino} sexo={sexo} esquerda={<Resumo treino={treino} />}>
-      {feito ? (
-        <View style={styles.feito}>
-          <Ionicons name="checkmark-circle" size={17} color={colors.ink2} />
-          <Text variant="caption" style={styles.feitoText}>
-            {feito}
-          </Text>
-        </View>
-      ) : bloqueado ? (
+    <View style={styles.hero}>
+      <Text style={styles.kicker} numberOfLines={1}>
+        {kicker}
+      </Text>
+      <View style={styles.cartaoWrap}>
+        <Glass rounded={RAIO} flush contentStyle={styles.cartaoHoje}>
+          {musculos.length > 0 && (
+            <View style={styles.corpoCorte} pointerEvents="none">
+              <MapaMuscular principal={musculos[0]} secundarios={musculos.slice(1, 4)} sexo={sexo} altura={210} podeVirar={false} />
+            </View>
+          )}
+          <View style={styles.cartaoHojeTexto}>
+            <View style={styles.aoVivo}>
+              <View style={[styles.ponto, styles.pontoOff]} />
+              <Text style={styles.rotulo}>
+                {n} {n === 1 ? 'exercício' : 'exercícios'} · {series} séries
+              </Text>
+            </View>
+            <Text style={styles.cartaoNome} numberOfLines={2}>
+              {treino.nome}
+            </Text>
+            <View style={styles.etiquetas}>
+              {musculos.slice(0, 3).map((m) => (
+                <View key={m} style={styles.etiqueta}>
+                  <Text style={styles.etiquetaText}>{MUSCULO_LABELS[m]}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        </Glass>
+      </View>
+      {bloqueado ? (
         <Text variant="caption" tone="secondary">
           Termine o treino em andamento para começar este.
         </Text>
@@ -143,7 +112,7 @@ export function HeroTreino({
           ) : null}
         </>
       )}
-    </Topo>
+    </View>
   );
 }
 
@@ -314,7 +283,7 @@ export function CardConcluido({ treino, sessao, nota }: { treino: TreinoDoDia; s
         <View style={styles.cartaoEsq}>
           <View style={styles.aoVivo}>
             <View style={styles.selo}>
-              <Ionicons name="checkmark" size={11} color={colors.onLime} />
+              <Ionicons name="checkmark" size={11} color={colors.lime} />
             </View>
             <Text style={styles.rotulo} numberOfLines={1}>
               Treino concluído{nota ? ` · ${nota}` : ''}
@@ -343,10 +312,6 @@ export function CardConcluido({ treino, sessao, nota }: { treino: TreinoDoDia; s
 }
 
 const styles = StyleSheet.create({
-  flex: {
-    flex: 1,
-    minWidth: 0,
-  },
   hero: {
     gap: spacing.md,
     marginTop: spacing.sm,
@@ -365,66 +330,10 @@ const styles = StyleSheet.create({
     lineHeight: 27,
     letterSpacing: -0.6,
   },
-  area: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: AREA,
-  },
-  esquerda: {
-    flex: 1,
-    justifyContent: 'center',
-  },
   corpo: {
     width: AREA / 2,
     height: AREA,
     marginRight: -spacing.xs,
-  },
-  resumo: {
-    gap: spacing.lg,
-  },
-  legenda: {
-    gap: 9,
-  },
-  legendaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 9,
-  },
-  legendaPonto: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  legendaText: {
-    fontFamily: fonts.body.semibold,
-    fontSize: 13.5,
-    color: colors.ink2,
-  },
-  qtd: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 8,
-  },
-  qtdNum: {
-    fontFamily: fonts.display.bold,
-    fontSize: 40,
-    lineHeight: 44,
-    letterSpacing: -1.8,
-  },
-  qtdRotulo: {
-    fontFamily: fonts.body.bold,
-    fontSize: 13,
-    color: colors.ink3,
-  },
-  feito: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  feitoText: {
-    flex: 1,
-    fontFamily: fonts.body.bold,
-    color: colors.ink2,
   },
   descanso: {
     gap: spacing.sm,
@@ -434,6 +343,42 @@ const styles = StyleSheet.create({
   // Um pouco mais largo que a coluna da tela.
   cartaoWrap: {
     marginHorizontal: -6,
+  },
+  cartaoHoje: {
+    minHeight: 170,
+    overflow: 'hidden',
+  },
+  cartaoHojeTexto: {
+    maxWidth: '66%',
+    padding: 20,
+    gap: 2,
+  },
+  // O corpo à direita, ampliado e cortado, sumindo na borda do cartão.
+  corpoCorte: {
+    position: 'absolute',
+    right: -18,
+    top: -12,
+    opacity: 0.9,
+  },
+  etiquetas: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 12,
+  },
+  etiqueta: {
+    height: 24,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    justifyContent: 'center',
+    backgroundColor: colors.limeTint,
+    borderWidth: 1,
+    borderColor: colors.limeEdge,
+  },
+  etiquetaText: {
+    fontFamily: fonts.body.bold,
+    fontSize: 11.5,
+    color: colors.lime,
   },
   cartaoEsq: {
     flex: 1,
@@ -445,7 +390,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.lime,
+    backgroundColor: colors.limeTint,
+    borderWidth: 1,
+    borderColor: colors.limeEdge,
   },
   cartao: {
     flexDirection: 'row',

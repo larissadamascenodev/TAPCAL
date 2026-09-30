@@ -43,6 +43,9 @@ export type Sugestao = {
 
 type ExercicioInfo = Pick<Exercicio, 'equipamentos' | 'tipo' | 'musculoPrincipal'>;
 
+/** Ajuste de carga na tela (− / +): de 1 em 1 kg. */
+export const AJUSTE_KG = 1;
+
 /** Passo em que a carga anda (e com que a redução arredonda): 2 kg. */
 export const PASSO_KG = 2;
 
