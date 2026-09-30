@@ -2,35 +2,43 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import Animated, { Easing, FadeOut, Keyframe, ZoomIn } from 'react-native-reanimated';
+import Animated, { Easing, Keyframe, useReducedMotion, ZoomIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { BackdropGlow } from '@/components/ui/BackdropGlow';
 import { confirmDestructive, Glass, IconButton, NeonButton, Text, toast } from '@/components/ui';
-import { Mostrador } from '@/components/workout/Mostrador';
+import { LinhaAoVivo } from '@/components/workout/LinhaAoVivo';
+import { PISCA } from '@/components/workout/PilulaAoVivo';
 import { MapaMuscular } from '@/components/workout/MapaMuscular';
 import { exercicioPorId, MUSCULO_LABELS } from '@/lib/exercicios';
 import { formatDecimal, formatDuration, formatInt } from '@/lib/format';
-import { tempoDaSerieMs, tempoDeTreinoMs } from '@/lib/treino/met';
-import { bateRecorde, proximoExercicio, recorde, repsLabel, seriesFeitas, treinoResolvido, ultimasSeries } from '@/lib/treino/plano';
+import { tempoDeTreinoMs } from '@/lib/treino/met';
+import { bateRecorde, proximoExercicio, repsLabel, seriesFeitas, treinoResolvido, ultimasSeries } from '@/lib/treino/plano';
 import { AJUSTE_KG, seriesNaSemana, sugestaoDoExercicio, valoresDaProximaSerie } from '@/lib/treino/progressao';
 import { useAppStore } from '@/store/useAppStore';
 import { colors, fonts, gradients, radius, spacing } from '@/theme/theme';
-import type { SerieFeita } from '@/types/treino';
+import type { Equipamento, SerieFeita } from '@/types/treino';
 
-/** Palco (o corpo ou o descanso): mesma altura nos dois, para nada pular. */
-const MOSTRADOR = 216;
+/** Altura do card do corpo. */
+const PALCO = 272;
 
-/** Traços do mostrador no descanso: um por segundo até 2 min; acima disso, um a cada poucos segundos. */
-// Troca série ↔ descanso: o mostrador novo cresce de leve enquanto aparece e os traços varrem até a posição.
+type IconeNome = React.ComponentProps<typeof Ionicons>['name'];
+
+// Troca série ↔ descanso no card: o conteúdo novo cresce de leve enquanto aparece.
 const ENTRA = new Keyframe({
-  0: { opacity: 0, transform: [{ scale: 0.92 }] },
+  0: { opacity: 0, transform: [{ scale: 0.94 }] },
   100: { opacity: 1, transform: [{ scale: 1 }], easing: Easing.out(Easing.cubic) },
-}).duration(420);
-const SAI = FadeOut.duration(180);
-const tracosDoDescanso = (total: number) => (total <= 120 ? Math.max(1, total) : Math.round(total / Math.ceil(total / 120)));
+}).duration(380);
+
+/** O que a carga quer dizer, pelo equipamento do exercício. */
+function subDaCarga(equipamentos: readonly Equipamento[] | undefined): string {
+  if (equipamentos?.includes('halteres')) return 'em cada halter';
+  if (equipamentos?.includes('barra')) return 'total na barra';
+  if (equipamentos?.includes('peso-corporal')) return 'peso extra';
+  return 'no aparelho';
+}
 
 /** Relógio que atualiza a cada segundo. */
 function useNow() {
@@ -87,7 +95,6 @@ export default function TreinoSessaoScreen() {
   const restante = descanso ? Math.max(0, Math.ceil((descanso.ate - now) / 1000)) : 0;
   const descansando = restante > 0 && !exerciseDone;
   const lastTime = ultimasSeries(past, exercise.exercicioId)?.series ?? [];
-  const record = recorde(past, exercise.exercicioId);
   const sugestao = done === 0 ? sugestaoDoExercicio(exercise, past, planos) : null;
   const reps = repsLabel(exercise);
 
@@ -149,50 +156,42 @@ export default function TreinoSessaoScreen() {
   const mainLabel = !exerciseDone ? `Concluir série ${done + 1}` : !isLast ? 'Próximo exercício' : 'Finalizar treino';
 
   const melhorUltima = lastTime.reduce<SerieFeita | null>((m, s) => (!m || s.cargaKg > m.cargaKg || (s.cargaKg === m.cargaKg && s.reps > m.reps) ? s : m), null);
-  const difUltima = melhorUltima ? input.kg - melhorUltima.cargaKg : null;
 
   return (
     <View style={styles.root}>
       <BackdropGlow />
       <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.sm, paddingBottom: insets.bottom + 120 }]} showsVerticalScrollIndicator={false}>
-        {/* Topo: minimizar, tempo de treino (toque pausa) e opções */}
+        {/* Topo: minimizar, "Exercício X de Y" com um tracinho por exercício, opções */}
         <View style={styles.top}>
-          <IconButton icon="chevron-down" label="Minimizar" onPress={() => router.back()} />
-          <Pressable
-            style={styles.clock}
-            accessibilityRole="button"
-            accessibilityLabel={`Tempo de treino ${formatDuration(elapsed)}${pausado ? ', pausado' : ''}. Toque para ${pausado ? 'continuar' : 'pausar'}`}
-            onPress={pausado ? retomarTreino : pausarTreino}>
-            <View style={[styles.liveDot, pausado && styles.liveDotOff]} />
-            <Text style={[styles.clockText, pausado && styles.clockTextOff]}>{formatDuration(elapsed)}</Text>
-            <Ionicons name={pausado ? 'play' : 'pause'} size={12} color={colors.ink3} />
-          </Pressable>
+          <IconButton icon="chevron-back" label="Minimizar" onPress={() => router.back()} />
+          <View style={styles.topoMeio}>
+            <Text style={styles.eyebrow}>
+              Exercício {index + 1} de {treino.exercicios.length}
+            </Text>
+            <View style={styles.progress} accessibilityLabel={`Exercício ${index + 1} de ${treino.exercicios.length}`}>
+              {treino.exercicios.map((ex, i) => {
+                const feito = seriesFeitas(session, ex.id) >= ex.series;
+                return (
+                  <Pressable
+                    key={ex.id}
+                    onPress={() => goTo(i)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Ir para ${exercicioPorId(ex.exercicioId)?.nome ?? `exercício ${i + 1}`}`}
+                    hitSlop={{ top: 12, bottom: 12, left: 2, right: 2 }}
+                    style={[styles.seg, feito && styles.segFeito, i === index && styles.segAtual]}
+                  />
+                );
+              })}
+            </View>
+          </View>
           <IconButton icon="ellipsis-horizontal" label="Opções do treino" onPress={openOptions} />
         </View>
 
-        {/* Tracinhos: um por exercício, enchendo conforme as séries */}
-        <View style={styles.progress} accessibilityLabel={`Exercício ${index + 1} de ${treino.exercicios.length}`}>
-          {treino.exercicios.map((ex, i) => {
-            const f = Math.min(1, seriesFeitas(session, ex.id) / ex.series);
-            return (
-              <Pressable
-                key={ex.id}
-                onPress={() => goTo(i)}
-                accessibilityRole="button"
-                accessibilityLabel={`Ir para ${exercicioPorId(ex.exercicioId)?.nome ?? `exercício ${i + 1}`}`}
-                hitSlop={{ top: 12, bottom: 12 }}
-                style={styles.seg}>
-                <View style={[styles.segFill, i === index && styles.segFillAtual, { width: `${Math.max(f, i === index ? 0.12 : 0) * 100}%` }]} />
-              </Pressable>
-            );
-          })}
-        </View>
+        {/* Tempo do treino numa pílula com a linha correndo em volta (verde no treino, branca no descanso), como o card da aba */}
+        <PilulaTempo sessao={session} descansando={descansando} tempo={formatDuration(elapsed)} pausado={pausado} onPausar={pausado ? retomarTreino : pausarTreino} />
 
-        {/* Nome do exercício e os músculos */}
+        {/* Nome do exercício no centro e os músculos que ele trabalha */}
         <View style={styles.titulo}>
-          <Text style={styles.eyebrow}>
-            Exercício {index + 1} de {treino.exercicios.length}
-          </Text>
           <Text style={styles.exName} numberOfLines={2}>
             {info?.nome ?? 'Exercício'}
           </Text>
@@ -208,43 +207,45 @@ export default function TreinoSessaoScreen() {
           )}
         </View>
 
-        {/* Palco: o mostrador (série da vez, ou o descanso contando) e o corpo ao lado */}
-        <View style={styles.palco}>
-          {/* Lugar fixo do mostrador: a troca anima por cima, sem mexer no corpo ao lado */}
-          <View style={styles.mostradorLugar}>
-            {descansando && descanso ? (
-              <Animated.View key="descanso" entering={ENTRA} exiting={SAI} style={StyleSheet.absoluteFill}>
-                {/* Contagem regressiva: começa cheio e os traços vão apagando no sentido anti-horário, junto com o número. */}
-                <Mostrador tamanho={MOSTRADOR} tracos={tracosDoDescanso(descanso.total)} aceso={restante / descanso.total} cor={colors.tracoAceso}>
-                  <Text style={styles.descRotulo}>DESCANSO</Text>
-                  <Text style={styles.descTempo} accessibilityLiveRegion="polite">
-                    {formatDuration(restante)}
-                  </Text>
-                  <Text style={styles.proximaText}>
-                    Próxima · {formatDecimal(input.kg)} kg × {input.reps}
-                  </Text>
-                </Mostrador>
-              </Animated.View>
-            ) : (
-              <Animated.View key="serie" entering={ENTRA} exiting={SAI} style={StyleSheet.absoluteFill}>
-                {/* Um traço por segundo da série da vez (zera quando o descanso acaba), no sentido do relógio, como o card da aba. */}
-                <Mostrador tamanho={MOSTRADOR} tracos={60} aceso={(Math.floor(tempoDaSerieMs(session, now) / 1000) % 60) / 60}>
-                  <Text style={styles.descRotulo}>{exerciseDone ? 'FEITO' : 'SÉRIE'}</Text>
-                  <Text style={styles.serieGrande}>
-                    {Math.min(done + (exerciseDone ? 0 : 1), exercise.series)}
-                    <Text style={styles.serieGrandeDe}>/{exercise.series}</Text>
-                  </Text>
-                  <Text style={styles.proximaText}>{exerciseDone ? 'todas as séries' : `${formatDecimal(input.kg)} kg × ${input.reps}`}</Text>
-                </Mostrador>
-              </Animated.View>
-            )}
-          </View>
+        {/* Card: o corpo à esquerda; à direita a série da vez (ou o descanso), a meta e a última vez */}
+        <Glass flush rounded={radius.xl} contentStyle={styles.palco}>
           {info && (
             <View style={styles.corpoLado}>
-              <MapaMuscular principal={info.musculoPrincipal} secundarios={info.musculosSecundarios} sexo={sexo} altura={MOSTRADOR - 20} />
+              <MapaMuscular principal={info.musculoPrincipal} secundarios={info.musculosSecundarios} sexo={sexo} altura={PALCO - 24} />
             </View>
           )}
-        </View>
+          <View style={styles.palcoDiv} />
+          <View style={styles.palcoDir}>
+            {/* Lugar de altura fixa: a troca série ↔ descanso anima por cima, sem mexer nas linhas de baixo */}
+            <View style={styles.palcoTopo}>
+              <Animated.View key={descansando ? 'descanso' : exerciseDone ? 'feito' : 'serie'} entering={ENTRA} style={styles.palcoTopoConteudo}>
+                {descansando && descanso ? (
+                  <>
+                    <Text style={styles.descRotulo}>Descanso</Text>
+                    <Text style={styles.descTempo} accessibilityLiveRegion="polite">
+                      {formatDuration(restante)}
+                    </Text>
+                    <Text style={styles.proximaText} numberOfLines={1}>
+                      Próxima · {formatDecimal(input.kg)} kg × {input.reps}
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <Text style={styles.descRotulo}>{exerciseDone ? 'Feito' : 'Série atual'}</Text>
+                    <Text style={styles.serieGrande}>
+                      {Math.min(done + (exerciseDone ? 0 : 1), exercise.series)}
+                      <Text style={styles.serieGrandeDe}>/{exercise.series}</Text>
+                    </Text>
+                  </>
+                )}
+              </Animated.View>
+            </View>
+            <View style={styles.palcoLinha} />
+            <InfoLinha icone="locate-outline" rotulo="Meta" valor={`${exercise.series} × ${reps}`} />
+            <View style={styles.palcoLinha} />
+            <InfoLinha icone="sync-outline" rotulo="Última vez" valor={melhorUltima ? `${formatDecimal(melhorUltima.cargaKg)} kg × ${melhorUltima.reps}` : 'primeira vez'} />
+          </View>
+        </Glass>
         {descansando && descanso ? (
           <View style={styles.descansoBtns}>
             <Redondo label="−15" sub="s" onPress={() => ajustarDescanso(-15)} />
@@ -258,12 +259,6 @@ export default function TreinoSessaoScreen() {
           </View>
         ) : null}
 
-        {/* Última vez, recorde e meta: uma faixa fina */}
-        <View style={styles.fatos}>
-          <Fato primeiro rotulo="Última vez" valor={melhorUltima ? `${formatDecimal(melhorUltima.cargaKg)} × ${melhorUltima.reps}` : 'primeira'} />
-          <Fato rotulo="Recorde" valor={record ? `${formatDecimal(record.cargaKg)} kg` : '—'} />
-          <Fato rotulo="Meta" valor={`${exercise.series} × ${reps}`} />
-        </View>
         {sugestao && (
           <View style={styles.sugestao}>
             <Ionicons name={sugestao.tipo === 'reduzir' ? 'trending-down' : sugestao.tipo === 'manter' ? 'repeat' : 'trending-up'} size={15} color={colors.ink2} />
@@ -282,17 +277,19 @@ export default function TreinoSessaoScreen() {
         {!exerciseDone && (
           <View style={styles.ajustes}>
             <Ajuste
+              icone="barbell-outline"
               rotulo="Carga"
+              sub={subDaCarga(info?.equipamentos)}
               valor={formatDecimal(input.kg)}
               unidade="kg"
-              dica={difUltima === null ? 'primeira vez' : difUltima === 0 ? 'igual à última' : `${difUltima > 0 ? '+' : ''}${formatDecimal(difUltima)} kg da última`}
               onMenos={() => setInput((v) => ({ ...v, kg: Math.max(0, v.kg - AJUSTE_KG) }))}
               onMais={() => setInput((v) => ({ ...v, kg: v.kg + AJUSTE_KG }))}
             />
             <Ajuste
+              icone="repeat-outline"
               rotulo="Repetições"
+              sub="nesta série"
               valor={String(input.reps)}
-              dica={`meta ${reps}`}
               onMenos={() => setInput((v) => ({ ...v, reps: Math.max(1, v.reps - 1) }))}
               onMais={() => setInput((v) => ({ ...v, reps: v.reps + 1 }))}
             />
@@ -344,29 +341,100 @@ function Redondo({ label, sub, onPress }: { label: string; sub: string; onPress:
   );
 }
 
-function Fato({ rotulo, valor, primeiro }: { rotulo: string; valor: string; primeiro?: boolean }) {
+/** Linha do card: ícone num círculo, o rótulo pequeno e o valor. */
+function InfoLinha({ icone, rotulo, valor }: { icone: IconeNome; rotulo: string; valor: string }) {
   return (
-    <View style={[styles.fato, primeiro && styles.fatoPrimeiro]}>
-      <Text style={styles.fatoRotulo}>{rotulo}</Text>
-      <Text style={styles.fatoValor} numberOfLines={1}>
-        {valor}
-      </Text>
+    <View style={styles.info}>
+      <View style={styles.infoIcone}>
+        <Ionicons name={icone} size={17} color={colors.ink2} />
+      </View>
+      <View style={styles.flex}>
+        <Text style={styles.infoRotulo}>{rotulo}</Text>
+        <Text style={styles.infoValor} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+          {valor}
+        </Text>
+      </View>
     </View>
   );
 }
 
-/** Carga ou repetições: número grande, a dica embaixo e − | + numa pílula. */
-function Ajuste({ rotulo, valor, unidade, dica, onMenos, onMais }: { rotulo: string; valor: string; unidade?: string; dica: string; onMenos: () => void; onMais: () => void }) {
+/**
+ * Pílula do tempo no topo: à esquerda o ponto (pisca vermelho gravando,
+ * branco no descanso, cinza pausado), o tempo do treino no meio e pausar à
+ * direita. A linha em volta é a mesma do card da aba Treino.
+ */
+function PilulaTempo({
+  sessao,
+  descansando,
+  tempo,
+  pausado,
+  onPausar,
+}: {
+  sessao: NonNullable<ReturnType<typeof useAppStore.getState>['sessaoAtiva']>;
+  descansando: boolean;
+  tempo: string;
+  pausado: boolean;
+  onPausar: () => void;
+}) {
+  const [tam, setTam] = useState({ w: 0, h: 0 });
+  const reduce = useReducedMotion();
+  return (
+    <View style={styles.pilulaWrap}>
+      <View style={styles.pilula} onLayout={(e) => setTam({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
+        {tam.w > 0 && <LinhaAoVivo sessao={sessao} descansando={descansando} largura={tam.w} altura={tam.h} raio={tam.h / 2} />}
+        <View style={styles.pilulaPonto}>
+          <Animated.View style={[styles.ponto, descansando && styles.pontoDescanso, pausado && styles.pontoOff, !pausado && !descansando && !reduce && PISCA]} />
+        </View>
+        <Text style={[styles.pilulaTempo, pausado && styles.clockTextOff]} accessibilityLabel={`Tempo de treino ${tempo}${pausado ? ', pausado' : ''}`}>
+          {tempo}
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={pausado ? 'Continuar o treino' : 'Pausar o treino'}
+          onPress={onPausar}
+          style={({ pressed }) => [styles.pilulaBtn, pausado && styles.pilulaBtnOn, pressed && styles.pressed]}>
+          <Ionicons name={pausado ? 'play' : 'pause'} size={18} color={pausado ? colors.onLime : colors.ink} />
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+/** Carga ou repetições: ícone e rótulo em cima, o número grande e − | + numa pílula. */
+function Ajuste({
+  icone,
+  rotulo,
+  sub,
+  valor,
+  unidade,
+  onMenos,
+  onMais,
+}: {
+  icone: IconeNome;
+  rotulo: string;
+  sub: string;
+  valor: string;
+  unidade?: string;
+  onMenos: () => void;
+  onMais: () => void;
+}) {
   return (
     <Glass flush rounded={radius.xl} style={styles.flex} contentStyle={styles.ajuste}>
-      <Text style={styles.ajusteRotulo}>{rotulo}</Text>
+      <View style={styles.ajusteCab}>
+        <View style={styles.ajusteIcone}>
+          <Ionicons name={icone} size={18} color={colors.lime} />
+        </View>
+        <View style={styles.flex}>
+          <Text style={styles.ajusteRotulo}>{rotulo}</Text>
+          <Text style={styles.ajusteSub} numberOfLines={1}>
+            {sub}
+          </Text>
+        </View>
+      </View>
       <View style={styles.ajusteValorLinha}>
         <Text style={styles.ajusteValor}>{valor}</Text>
         {unidade ? <Text style={styles.ajusteUnidade}>{unidade}</Text> : null}
       </View>
-      <Text style={styles.ajusteDica} numberOfLines={1}>
-        {dica}
-      </Text>
       <View style={styles.pm}>
         <Pressable
           accessibilityRole="button"
@@ -428,10 +496,6 @@ function LinhaSerie({
 }
 
 const styles = StyleSheet.create({
-  mostradorLugar: {
-    width: MOSTRADOR,
-    height: MOSTRADOR,
-  },
   root: {
     flex: 1,
     backgroundColor: colors.ground,
@@ -449,57 +513,23 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  clock: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    height: 42,
-    paddingHorizontal: 16,
-    borderRadius: 21,
-    backgroundColor: colors.glassFill,
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderTopColor: colors.frostCardEdgeTop,
-  },
-  liveDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: colors.lime,
-  },
-  liveDotOff: {
-    backgroundColor: colors.ink3,
-  },
-  clockText: {
-    fontFamily: fonts.display.semibold,
-    fontSize: 16,
-    fontVariant: ['tabular-nums'],
-  },
   clockTextOff: {
     color: colors.ink3,
   },
   progress: {
     flexDirection: 'row',
-    gap: 5,
-    marginTop: spacing.xs,
+    gap: 6,
+    marginTop: 8,
   },
   seg: {
-    flex: 1,
+    width: 22,
     height: 4,
     borderRadius: 2,
     backgroundColor: colors.track,
-    overflow: 'hidden',
-  },
-  segFill: {
-    height: '100%',
-    borderRadius: 2,
-    backgroundColor: colors.ink,
-  },
-  segFillAtual: {
-    backgroundColor: colors.lime,
   },
   titulo: {
-    gap: 6,
+    alignItems: 'center',
+    gap: 10,
     marginTop: spacing.xs,
   },
   eyebrow: {
@@ -510,20 +540,29 @@ const styles = StyleSheet.create({
     color: colors.ink3,
   },
   exName: {
-    fontFamily: fonts.display.semibold,
-    fontSize: 24,
-    lineHeight: 29,
-    letterSpacing: -0.7,
+    fontFamily: fonts.display.bold,
+    fontSize: 30,
+    lineHeight: 35,
+    letterSpacing: -1,
+    textAlign: 'center',
   },
   musculos: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 14,
+    justifyContent: 'center',
+    gap: 8,
   },
   musculo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 7,
+    height: 32,
+    paddingHorizontal: 13,
+    borderRadius: radius.pill,
+    backgroundColor: colors.glassFill,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderTopColor: colors.frostCardEdgeTop,
   },
   musculoCor: {
     width: 7,
@@ -532,52 +571,165 @@ const styles = StyleSheet.create({
   },
   musculoText: {
     fontFamily: fonts.body.semibold,
-    fontSize: 12.5,
-    color: colors.ink2,
+    fontSize: 13,
+    color: colors.ink,
+  },
+  topoMeio: {
+    alignItems: 'center',
+  },
+  segFeito: {
+    backgroundColor: colors.ink,
+  },
+  segAtual: {
+    backgroundColor: colors.lime,
+  },
+  pilulaWrap: {
+    alignItems: 'center',
+  },
+  pilula: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    height: 68,
+    paddingHorizontal: 10,
+    borderRadius: 34,
+    backgroundColor: colors.glassFillStrong,
+  },
+  pilulaPonto: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.glassFill,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  ponto: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.gravando,
+  },
+  pontoDescanso: {
+    backgroundColor: colors.ink,
+  },
+  pontoOff: {
+    backgroundColor: colors.ink3,
+  },
+  pilulaTempo: {
+    minWidth: 104,
+    textAlign: 'center',
+    fontFamily: fonts.display.bold,
+    fontSize: 30,
+    letterSpacing: -1.2,
+    fontVariant: ['tabular-nums'],
+  },
+  pilulaBtn: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.glassFill,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  pilulaBtnOn: {
+    backgroundColor: colors.lime,
+    borderColor: colors.lime,
+  },
+  palcoDiv: {
+    width: 1,
+    alignSelf: 'stretch',
+    marginVertical: 6,
+    backgroundColor: colors.lineSoft,
+  },
+  palcoDir: {
+    flex: 1,
+    minWidth: 0,
+    paddingLeft: 16,
+    justifyContent: 'center',
+  },
+  palcoTopo: {
+    height: 100,
+  },
+  palcoTopoConteudo: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    justifyContent: 'center',
+  },
+  palcoLinha: {
+    height: 1,
+    marginVertical: 12,
+    backgroundColor: colors.lineSoft,
+  },
+  info: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  infoIcone: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.glassFill,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  infoRotulo: {
+    fontFamily: fonts.body.bold,
+    fontSize: 10,
+    letterSpacing: 1.6,
+    textTransform: 'uppercase',
+    color: colors.ink3,
+  },
+  infoValor: {
+    fontFamily: fonts.display.semibold,
+    fontSize: 16,
+    marginTop: 2,
   },
   palco: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginVertical: spacing.sm,
+    height: PALCO,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
   },
   corpoLado: {
-    flex: 1,
+    width: (PALCO - 24) / 2 + 20,
     alignItems: 'center',
-    marginRight: -spacing.sm,
   },
   serieGrande: {
     fontFamily: fonts.display.bold,
-    fontSize: 54,
-    lineHeight: 60,
-    letterSpacing: -2.4,
+    fontSize: 58,
+    lineHeight: 64,
+    letterSpacing: -2.6,
     fontVariant: ['tabular-nums'],
   },
   serieGrandeDe: {
-    fontSize: 26,
+    fontSize: 28,
     color: colors.ink3,
     letterSpacing: -1,
   },
   descRotulo: {
     fontFamily: fonts.body.bold,
     fontSize: 10.5,
-    letterSpacing: 2.2,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
     color: colors.ink3,
   },
   descTempo: {
     fontFamily: fonts.display.bold,
-    fontSize: 48,
+    fontSize: 46,
     lineHeight: 54,
-    letterSpacing: -2.4,
+    letterSpacing: -2.2,
     fontVariant: ['tabular-nums'],
-  },
-  proxima: {
-    marginTop: 4,
-    height: 28,
-    paddingHorizontal: 12,
-    borderRadius: 14,
-    justifyContent: 'center',
-    backgroundColor: colors.glassFill,
   },
   proximaText: {
     fontFamily: fonts.body.bold,
@@ -624,36 +776,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
     color: colors.onInk,
   },
-  fatos: {
-    flexDirection: 'row',
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: colors.lineSoft,
-  },
-  fato: {
-    flex: 1,
-    gap: 3,
-    paddingHorizontal: 12,
-    borderLeftWidth: 1,
-    borderLeftColor: colors.lineSoft,
-  },
-  fatoPrimeiro: {
-    borderLeftWidth: 0,
-    paddingLeft: 0,
-  },
-  fatoRotulo: {
-    fontFamily: fonts.body.bold,
-    fontSize: 10,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    color: colors.ink3,
-  },
-  fatoValor: {
-    fontFamily: fonts.display.semibold,
-    fontSize: 15,
-    fontVariant: ['tabular-nums'],
-  },
   sugestao: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -669,10 +791,30 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   ajuste: {
-    alignItems: 'center',
     paddingTop: 14,
     paddingBottom: 12,
     paddingHorizontal: 12,
+  },
+  ajusteCab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  ajusteIcone: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.limeTint,
+    borderWidth: 1,
+    borderColor: colors.limeEdge,
+  },
+  ajusteSub: {
+    fontFamily: fonts.body.semibold,
+    fontSize: 12,
+    color: colors.ink3,
+    marginTop: 1,
   },
   ajusteRotulo: {
     fontFamily: fonts.body.bold,
@@ -684,8 +826,9 @@ const styles = StyleSheet.create({
   ajusteValorLinha: {
     flexDirection: 'row',
     alignItems: 'baseline',
+    justifyContent: 'center',
     gap: 4,
-    marginTop: 4,
+    marginTop: 10,
   },
   ajusteValor: {
     fontFamily: fonts.display.bold,
@@ -697,11 +840,6 @@ const styles = StyleSheet.create({
   ajusteUnidade: {
     fontFamily: fonts.body.bold,
     fontSize: 13,
-    color: colors.ink3,
-  },
-  ajusteDica: {
-    fontFamily: fonts.body.semibold,
-    fontSize: 11.5,
     color: colors.ink3,
   },
   pm: {

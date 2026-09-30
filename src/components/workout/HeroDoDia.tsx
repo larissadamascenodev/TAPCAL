@@ -1,24 +1,23 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import Animated, { cancelAnimation, Easing, FadeIn, useAnimatedProps, useReducedMotion, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 
 import { Glass, NeonButton, Text } from '@/components/ui';
 import { exercicioPorId, MUSCULO_LABELS } from '@/lib/exercicios';
 import { formatDecimal, formatDuration, formatInt } from '@/lib/format';
-import { tempoDaSerieMs, tempoDeTreinoMs } from '@/lib/treino/met';
+import { tempoDeTreinoMs } from '@/lib/treino/met';
 import { proximoExercicio, seriesFeitas, treinoResolvido } from '@/lib/treino/plano';
 import { valoresDaProximaSerie } from '@/lib/treino/progressao';
 import { colors, fonts, radius, spacing } from '@/theme/theme';
 import type { Musculo, PlanoDeTreino, SessaoDeTreino, SessaoEmAndamento, TreinoDoDia } from '@/types/treino';
 
+import { contorno, LinhaAoVivo, TROCA_MS } from './LinhaAoVivo';
 import { MapaMuscular } from './MapaMuscular';
 
 /** Altura da área do corpo (o desenho tem metade disso de largura). */
 const AREA = 236;
-
-const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 /** Relógio que atualiza a cada segundo. */
 export function useAgora() {
@@ -136,93 +135,8 @@ export function HeroDescanso({ kicker, proximo }: { kicker: string; proximo?: st
   );
 }
 
-/** Caminho do contorno do cartão: começa no canto de cima à esquerda (depois da curva) e segue no sentido do relógio até voltar a ele. */
-function contorno(w: number, h: number, r: number, m: number) {
-  const x0 = m;
-  const y0 = m;
-  const x1 = w - m;
-  const y1 = h - m;
-  const d = `M${x0 + r} ${y0}H${x1 - r}A${r} ${r} 0 0 1 ${x1} ${y0 + r}V${y1 - r}A${r} ${r} 0 0 1 ${x1 - r} ${y1}H${x0 + r}A${r} ${r} 0 0 1 ${x0} ${y1 - r}V${y0 + r}A${r} ${r} 0 0 1 ${x0 + r} ${y0}Z`;
-  const perimetro = 2 * (x1 - x0 + (y1 - y0)) - 8 * r + 2 * Math.PI * r;
-  return { d, perimetro };
-}
-
 const RAIO = radius.xl;
 const TRACO = 2.5;
-
-/** Quanto dura a troca treino ↔ descanso na linha (cor e posição). */
-const TROCA_MS = 800;
-const SAI_DA_TROCA = Easing.out(Easing.cubic);
-
-/**
- * A linha em volta do cartão, deslizando sem pulos: no treino dá uma volta a
- * cada minuto (pelo tempo de treino); no descanso vai do que falta até zero.
- * Pausado, fica parada.
- *
- * Na troca, nada pula: ao entrar no descanso a linha enche o cartão enquanto
- * fica branca e só então começa a esvaziar; ao voltar ao treino ela cresce do
- * canto até o ponto do minuto enquanto fica verde, com um brilho que acende e
- * apaga. Ao aparecer, a linha também cresce do canto.
- */
-function useVolta({ sessao, descansando, perimetro }: { sessao: SessaoEmAndamento; descansando: boolean; perimetro: number }) {
-  const reduce = useReducedMotion();
-  const p = useSharedValue(0);
-  const modo = useSharedValue(descansando ? 1 : 0);
-  const brilho = useSharedValue(0);
-  const pausado = !!sessao.pausadoEm;
-  // Modo da última passada (null = acabou de aparecer): a animação de troca só roda quando o modo muda.
-  const modoAnterior = useRef<boolean | null>(null);
-  useEffect(() => {
-    const agora = Date.now();
-    const mudou = modoAnterior.current !== descansando;
-    modoAnterior.current = descansando;
-    const troca = reduce || !mudou ? 0 : TROCA_MS;
-    if (mudou) {
-      modo.set(withTiming(descansando ? 1 : 0, { duration: troca, easing: SAI_DA_TROCA }));
-      if (troca) brilho.set(withSequence(withTiming(1, { duration: troca * 0.4 }), withTiming(0, { duration: troca * 0.9 })));
-    }
-    cancelAnimation(p);
-    if (descansando && sessao.descansoAte) {
-      // O descanso corre no relógio (mesmo com o treino pausado): enche até onde ele vai estar e esvazia dali.
-      const falta = Math.max(0, Date.parse(sessao.descansoAte) - agora);
-      const total = Math.max(1, sessao.descansoSeg ?? 1) * 1000;
-      const ajuste = troca || 300; // ±15 s: desliza até a nova posição em vez de pular
-      const depois = Math.max(0, falta - ajuste);
-      p.set(
-        withSequence(
-          withTiming(Math.min(1, depois / total), { duration: Math.min(ajuste, falta), easing: SAI_DA_TROCA }),
-          withTiming(0, { duration: depois, easing: Easing.linear }),
-        ),
-      );
-      return;
-    }
-    // Uma volta por minuto da série da vez: começa do zero quando o descanso acaba.
-    const ms = tempoDaSerieMs(sessao, agora);
-    if (pausado) {
-      // Pausado: a linha para onde está (só se ajeita se o card acabou de aparecer).
-      if (mudou) p.set((ms % 60_000) / 60_000);
-      return;
-    }
-    const base = ((ms + troca) % 60_000) / 60_000;
-    const ciclo = withSequence(
-      withTiming(1, { duration: (1 - base) * 60_000, easing: Easing.linear }),
-      withRepeat(withSequence(withTiming(0, { duration: 0 }), withTiming(1, { duration: 60_000, easing: Easing.linear })), -1),
-    );
-    // Na troca (ou ao aparecer) cresce do canto até o ponto; ao voltar da pausa segue de onde parou.
-    p.set(troca ? withSequence(withTiming(0, { duration: 0 }), withTiming(base, { duration: troca, easing: SAI_DA_TROCA }), ciclo) : ciclo);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [descansando, pausado, sessao.descansoAte, sessao.descansoSeg, sessao.inicio, sessao.pausaMs, sessao.serieDesdeMs]);
-  // Cada linha lê `p` direto: o Reanimated só acompanha os valores que aparecem no próprio updater
-  // (lidos por uma função auxiliar, a linha só andava quando a tela redesenhava, a cada segundo).
-  const verde = useAnimatedProps(() => ({ strokeDashoffset: perimetro * (1 - Math.max(0.0005, p.get())), strokeOpacity: 1 - modo.get() }));
-  const branca = useAnimatedProps(() => ({ strokeDashoffset: perimetro * (1 - Math.max(0.0005, p.get())), strokeOpacity: modo.get() }));
-  const brilhoVerde = useAnimatedProps(() => ({
-    strokeDashoffset: perimetro * (1 - Math.max(0.0005, p.get())),
-    strokeOpacity: brilho.get() * (1 - modo.get()),
-  }));
-  const brilhoBranco = useAnimatedProps(() => ({ strokeDashoffset: perimetro * (1 - Math.max(0.0005, p.get())), strokeOpacity: brilho.get() * modo.get() }));
-  return { verde, branca, brilhoVerde, brilhoBranco };
-}
 
 /**
  * Treino rodando (no lugar do topo): à esquerda o exercício da vez, a série e
@@ -256,8 +170,6 @@ export function CardAoVivo({
   const feitas = atual ? seriesFeitas(sessao, atual.id) : 0;
   const restante = sessao.descansoAte ? Math.max(0, Math.ceil((Date.parse(sessao.descansoAte) - agora) / 1000)) : 0;
   const descansando = restante > 0 && !!atual;
-  const { d, perimetro } = contorno(tam.w, tam.h, RAIO, TRACO / 2);
-  const volta = useVolta({ sessao, descansando, perimetro });
   const rotulo = acabou ? 'Tudo feito' : pausado ? 'Pausado' : descansando ? 'Descanso' : 'Agora';
   const prox = atual ? valoresDaProximaSerie(atual, sessao, historico, planos) : null;
   const carga = prox ? `${formatDecimal(prox.kg)} kg × ${prox.reps}` : '';
@@ -266,28 +178,7 @@ export function CardAoVivo({
   return (
     <View style={styles.cartaoWrap} onLayout={(e) => setTam({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
       <Glass rounded={RAIO} flush contentStyle={styles.cartao}>
-        {tam.w > 0 && (
-          <Svg width={tam.w} height={tam.h} style={styles.volta} pointerEvents="none">
-            {/* Brilho largo da troca, embaixo, e as duas linhas (verde do treino, branca do descanso) trocando de cor */}
-            {[
-              { cor: colors.tracoBrilho, largura: TRACO * 4, props: volta.brilhoVerde, k: 'bv' },
-              { cor: colors.tracoBrilhoBranco, largura: TRACO * 4, props: volta.brilhoBranco, k: 'bb' },
-              { cor: colors.lime, largura: TRACO, props: volta.verde, k: 'v' },
-              { cor: colors.ink, largura: TRACO, props: volta.branca, k: 'b' },
-            ].map((l) => (
-              <AnimatedPath
-                key={l.k}
-                d={d}
-                fill="none"
-                stroke={l.cor}
-                strokeWidth={l.largura}
-                strokeLinecap="round"
-                strokeDasharray={`${perimetro} ${perimetro}`}
-                animatedProps={l.props}
-              />
-            ))}
-          </Svg>
-        )}
+        {tam.w > 0 && <LinhaAoVivo sessao={sessao} descansando={descansando} largura={tam.w} altura={tam.h} raio={RAIO} traco={TRACO} />}
         {/* Esquerda: abre o exercício no treino ao vivo */}
         <Pressable
           accessibilityRole="button"
