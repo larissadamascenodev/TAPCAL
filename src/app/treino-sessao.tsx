@@ -151,14 +151,13 @@ export default function TreinoSessaoScreen() {
     ]);
   };
 
-  // Séries do exercício: mudam no treino salvo (de 1 a 10, nunca menos que as já feitas hoje).
+  // Mais uma série: muda no treino salvo (até 10).
   const noPlano = doPlano?.exercicios.find((e) => e.id === exercise.id);
-  const podeTirar = exercise.series > Math.max(1, done);
   const podeSomar = !!noPlano && noPlano.series < 10;
-  const mudarQtdSeries = (delta: 1 | -1) => {
+  const adicionarSerie = () => {
     if (!plano || !doPlano) return;
-    atualizarPlano({ ...plano, treinos: plano.treinos.map((t) => (t.id === doPlano.id ? mudarSeries(t, exercise.id, delta, done) : t)) });
-    toast(delta > 0 ? 'Série adicionada' : 'Série removida');
+    atualizarPlano({ ...plano, treinos: plano.treinos.map((t) => (t.id === doPlano.id ? mudarSeries(t, exercise.id, 1, done) : t)) });
+    toast('Série adicionada');
   };
 
   const exSets = session.series.filter((s) => s.exercicioNoTreinoId === exercise.id);
@@ -326,27 +325,15 @@ export default function TreinoSessaoScreen() {
             />
           ))}
         </View>
-        {/* Mais ou menos séries neste exercício (fica salvo no treino, como adicionar exercício) */}
-        <View style={styles.seriesBtns}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Remover uma série"
-            disabled={!podeTirar}
-            onPress={() => mudarQtdSeries(-1)}
-            style={({ pressed }) => [styles.seriesBtn, !podeTirar && styles.seriesBtnOff, pressed && styles.pressed]}>
-            <Ionicons name="remove" size={18} color={colors.ink2} />
-            <Text style={styles.seriesBtnText}>Remover série</Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Adicionar uma série"
-            disabled={!podeSomar}
-            onPress={() => mudarQtdSeries(1)}
-            style={({ pressed }) => [styles.seriesBtn, !podeSomar && styles.seriesBtnOff, pressed && styles.pressed]}>
-            <Ionicons name="add" size={18} color={colors.ink2} />
-            <Text style={styles.seriesBtnText}>Adicionar série</Text>
-          </Pressable>
-        </View>
+        {/* Mais uma série neste exercício (fica salvo no treino, como adicionar exercício); tirar é no editar exercício */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Adicionar uma série"
+          disabled={!podeSomar}
+          onPress={adicionarSerie}
+          style={({ pressed }) => [styles.seriesBtn, !podeSomar && styles.seriesBtnOff, pressed && styles.pressed]}>
+          <Ionicons name="add" size={22} color={colors.ink2} />
+        </Pressable>
       </ScrollView>
 
       {/* Botão fixo embaixo */}
@@ -865,13 +852,8 @@ const styles = StyleSheet.create({
     width: 1,
     backgroundColor: colors.line,
   },
-  seriesBtns: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 4,
-  },
   seriesBtn: {
-    flex: 1,
+    marginTop: 4,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -884,11 +866,6 @@ const styles = StyleSheet.create({
   },
   seriesBtnOff: {
     opacity: 0.35,
-  },
-  seriesBtnText: {
-    fontFamily: fonts.body.bold,
-    fontSize: 14,
-    color: colors.ink2,
   },
   seriesCab: {
     flexDirection: 'row',
