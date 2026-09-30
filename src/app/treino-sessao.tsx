@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import Animated, { Easing, Keyframe, useReducedMotion, ZoomIn } from 'react-native-reanimated';
+import Animated, { Easing, Keyframe, ZoomIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,7 +10,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BackdropGlow } from '@/components/ui/BackdropGlow';
 import { confirmDestructive, Glass, IconButton, NeonButton, Text, toast } from '@/components/ui';
 import { LinhaAoVivo } from '@/components/workout/LinhaAoVivo';
-import { PISCA } from '@/components/workout/PilulaAoVivo';
 import { MapaMuscular } from '@/components/workout/MapaMuscular';
 import { exercicioPorId, MUSCULO_LABELS } from '@/lib/exercicios';
 import { formatDecimal, formatDuration, formatInt } from '@/lib/format';
@@ -188,7 +187,7 @@ export default function TreinoSessaoScreen() {
         </View>
 
         {/* Tempo do treino numa pílula com a linha correndo em volta (verde no treino, branca no descanso), como o card da aba */}
-        <PilulaTempo sessao={session} descansando={descansando} tempo={formatDuration(elapsed)} pausado={pausado} onPausar={pausado ? retomarTreino : pausarTreino} />
+        <PilulaTempo sessao={session} descansando={descansando} tempo={formatDuration(elapsed)} descanso={descansando ? formatDuration(restante) : undefined} pausado={pausado} onPausar={pausado ? retomarTreino : pausarTreino} />
 
         {/* Nome do exercício no centro e os músculos que ele trabalha */}
         <View style={styles.titulo}>
@@ -277,7 +276,6 @@ export default function TreinoSessaoScreen() {
         {!exerciseDone && (
           <View style={styles.ajustes}>
             <Ajuste
-              icone="barbell-outline"
               rotulo="Carga"
               sub={subDaCarga(info?.equipamentos)}
               valor={formatDecimal(input.kg)}
@@ -286,7 +284,6 @@ export default function TreinoSessaoScreen() {
               onMais={() => setInput((v) => ({ ...v, kg: v.kg + AJUSTE_KG }))}
             />
             <Ajuste
-              icone="repeat-outline"
               rotulo="Repetições"
               sub="nesta série"
               valor={String(input.reps)}
@@ -359,35 +356,37 @@ function InfoLinha({ icone, rotulo, valor }: { icone: IconeNome; rotulo: string;
 }
 
 /**
- * Pílula do tempo no topo: à esquerda o ponto (pisca vermelho gravando,
- * branco no descanso, cinza pausado), o tempo do treino no meio e pausar à
- * direita. A linha em volta é a mesma do card da aba Treino.
+ * Pílula do tempo no topo: o estado (tempo de treino, descanso com o que
+ * falta, pausado) em cima do tempo do treino, e pausar à direita. A linha em
+ * volta é a mesma do card da aba Treino.
  */
 function PilulaTempo({
   sessao,
   descansando,
   tempo,
+  descanso,
   pausado,
   onPausar,
 }: {
   sessao: NonNullable<ReturnType<typeof useAppStore.getState>['sessaoAtiva']>;
   descansando: boolean;
   tempo: string;
+  /** Quanto falta do descanso ("1:29"), se estiver descansando. */
+  descanso?: string;
   pausado: boolean;
   onPausar: () => void;
 }) {
   const [tam, setTam] = useState({ w: 0, h: 0 });
-  const reduce = useReducedMotion();
   return (
     <View style={styles.pilulaWrap}>
       <View style={styles.pilula} onLayout={(e) => setTam({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
         {tam.w > 0 && <LinhaAoVivo sessao={sessao} descansando={descansando} largura={tam.w} altura={tam.h} raio={tam.h / 2} />}
-        <View style={styles.pilulaPonto}>
-          <Animated.View style={[styles.ponto, descansando && styles.pontoDescanso, pausado && styles.pontoOff, !pausado && !descansando && !reduce && PISCA]} />
+        <View style={styles.pilulaMeio} accessible accessibilityLabel={`Tempo de treino ${tempo}${pausado ? ', pausado' : descanso ? `, descanso ${descanso}` : ''}`}>
+          <Text style={[styles.pilulaRotulo, descanso && !pausado && styles.pilulaRotuloDescanso]} numberOfLines={1}>
+            {pausado ? 'Pausado' : descanso ? `Descanso · ${descanso}` : 'Tempo de treino'}
+          </Text>
+          <Text style={[styles.pilulaTempo, pausado && styles.clockTextOff]}>{tempo}</Text>
         </View>
-        <Text style={[styles.pilulaTempo, pausado && styles.clockTextOff]} accessibilityLabel={`Tempo de treino ${tempo}${pausado ? ', pausado' : ''}`}>
-          {tempo}
-        </Text>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={pausado ? 'Continuar o treino' : 'Pausar o treino'}
@@ -400,9 +399,8 @@ function PilulaTempo({
   );
 }
 
-/** Carga ou repetições: ícone e rótulo em cima, o número grande e − | + numa pílula. */
+/** Carga ou repetições: o rótulo e o que ele quer dizer em cima, o número grande e − | + numa pílula. */
 function Ajuste({
-  icone,
   rotulo,
   sub,
   valor,
@@ -410,7 +408,6 @@ function Ajuste({
   onMenos,
   onMais,
 }: {
-  icone: IconeNome;
   rotulo: string;
   sub: string;
   valor: string;
@@ -420,17 +417,10 @@ function Ajuste({
 }) {
   return (
     <Glass flush rounded={radius.xl} style={styles.flex} contentStyle={styles.ajuste}>
-      <View style={styles.ajusteCab}>
-        <View style={styles.ajusteIcone}>
-          <Ionicons name={icone} size={18} color={colors.lime} />
-        </View>
-        <View style={styles.flex}>
-          <Text style={styles.ajusteRotulo}>{rotulo}</Text>
-          <Text style={styles.ajusteSub} numberOfLines={1}>
-            {sub}
-          </Text>
-        </View>
-      </View>
+      <Text style={styles.ajusteRotulo}>{rotulo}</Text>
+      <Text style={styles.ajusteSub} numberOfLines={1}>
+        {sub}
+      </Text>
       <View style={styles.ajusteValorLinha}>
         <Text style={styles.ajusteValor}>{valor}</Text>
         {unidade ? <Text style={styles.ajusteUnidade}>{unidade}</Text> : null}
@@ -590,45 +580,38 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    height: 68,
-    paddingHorizontal: 10,
-    borderRadius: 34,
+    height: 72,
+    paddingLeft: 30,
+    paddingRight: 11,
+    borderRadius: 36,
     backgroundColor: colors.glassFillStrong,
   },
-  pilulaPonto: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.glassFill,
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  ponto: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: colors.gravando,
-  },
-  pontoDescanso: {
-    backgroundColor: colors.ink,
-  },
-  pontoOff: {
-    backgroundColor: colors.ink3,
-  },
   pilulaTempo: {
-    minWidth: 104,
-    textAlign: 'center',
     fontFamily: fonts.display.bold,
-    fontSize: 30,
+    fontSize: 32,
+    lineHeight: 38,
     letterSpacing: -1.2,
     fontVariant: ['tabular-nums'],
   },
+  pilulaMeio: {
+    minWidth: 128,
+    alignItems: 'center',
+  },
+  pilulaRotulo: {
+    fontFamily: fonts.body.bold,
+    fontSize: 10,
+    lineHeight: 13,
+    letterSpacing: 1.6,
+    textTransform: 'uppercase',
+    color: colors.ink3,
+  },
+  pilulaRotuloDescanso: {
+    color: colors.ink,
+  },
   pilulaBtn: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.glassFill,
@@ -791,30 +774,17 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   ajuste: {
+    alignItems: 'center',
     paddingTop: 14,
     paddingBottom: 12,
     paddingHorizontal: 12,
   },
-  ajusteCab: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  ajusteIcone: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.limeTint,
-    borderWidth: 1,
-    borderColor: colors.limeEdge,
-  },
   ajusteSub: {
     fontFamily: fonts.body.semibold,
     fontSize: 12,
+    lineHeight: 16,
     color: colors.ink3,
-    marginTop: 1,
+    marginTop: 2,
   },
   ajusteRotulo: {
     fontFamily: fonts.body.bold,
@@ -828,7 +798,7 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
     justifyContent: 'center',
     gap: 4,
-    marginTop: 10,
+    marginTop: 6,
   },
   ajusteValor: {
     fontFamily: fonts.display.bold,

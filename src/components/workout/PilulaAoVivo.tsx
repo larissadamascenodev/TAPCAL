@@ -12,7 +12,7 @@ import { colors, fonts } from '@/theme/theme';
 import { useAgora } from './HeroDoDia';
 
 /** O ponto pisca devagar, como quem está gravando. */
-export const PISCA = {
+const PISCA = {
   animationName: { '0%': { opacity: 1 }, '50%': { opacity: 0.25 }, '100%': { opacity: 1 } },
   animationDuration: 1400,
   animationIterationCount: 'infinite' as const,
