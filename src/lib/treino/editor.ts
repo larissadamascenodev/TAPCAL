@@ -135,6 +135,19 @@ export function editarExercicio(t: TreinoDoDia, id: string, mudanca: Partial<Omi
 }
 
 /**
+ * Mais uma série ou uma a menos no exercício (no meio do treino também): de 1
+ * a 10, e nunca menos que as séries já feitas hoje.
+ */
+export function mudarSeries(t: TreinoDoDia, id: string, delta: 1 | -1, feitas = 0): TreinoDoDia {
+  return {
+    ...t,
+    exercicios: t.exercicios.map((e) =>
+      e.id === id ? { ...e, series: limitar(e.series + delta, Math.max(LIMITES.seriesMin, feitas), LIMITES.seriesMax) } : e,
+    ),
+  };
+}
+
+/**
  * Copia o treino de um dia para outro (com ids novos). Se o destino ainda for
  * descanso, ele passa a ser dia de treino; se já tiver treino, é substituído.
  */

@@ -12,6 +12,7 @@ import {
   limparDia,
   moverExercicio,
   moverExercicioPara,
+  mudarSeries,
   planoDoRascunho,
   problemasDoRascunho,
   rascunhoDoPlano,
@@ -143,5 +144,21 @@ describe('exercício criado pela pessoa', () => {
     expect(buscarExercicios({ busca: 'banco agach' }).map((e) => e.id)).toContain(ex.id);
     registrarExerciciosDoUsuario([]);
     expect(buscarExercicios({ busca: 'agachamento no banco' }).map((e) => e.id)).not.toContain(ex.id);
+  });
+});
+
+describe('mudar séries no meio do treino', () => {
+  it('soma e tira uma série, de 1 a 10, sem ficar abaixo das já feitas', () => {
+    const t = treino([agachamento]);
+    const id = t.exercicios[0].id;
+    const base = t.exercicios[0].series;
+    expect(mudarSeries(t, id, 1).exercicios[0].series).toBe(base + 1);
+    expect(mudarSeries(t, id, -1).exercicios[0].series).toBe(base - 1);
+    // já fez todas: não dá para tirar
+    expect(mudarSeries(t, id, -1, base).exercicios[0].series).toBe(base);
+    const dez = editarExercicio(t, id, { series: 10 });
+    expect(mudarSeries(dez, id, 1).exercicios[0].series).toBe(10);
+    const uma = editarExercicio(t, id, { series: 1 });
+    expect(mudarSeries(uma, id, -1).exercicios[0].series).toBe(1);
   });
 });
