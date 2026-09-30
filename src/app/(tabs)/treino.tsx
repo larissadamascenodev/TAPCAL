@@ -76,7 +76,14 @@ export default function TreinoScreen() {
   const { today: day, planos, sessoes, sessaoAtiva, comecarTreino, atualizarPlano } = state;
   const sexo = state.profile?.sex;
   const today = day.date;
-  const [dia, setDia] = useState<DiaSemana>(() => diaDaData(today));
+  // Com um treino aberto, a aba abre no dia dele (é o único lugar onde o card do tempo aparece).
+  const [dia, setDia] = useState<DiaSemana>(() => sessaoAtiva?.diaPlanejado ?? diaDaData(today));
+  // Treino começou (por aqui, pela Início ou pelo atalho): vai para o dia dele.
+  const [sessaoVista, setSessaoVista] = useState(sessaoAtiva?.id);
+  if (sessaoVista !== sessaoAtiva?.id) {
+    setSessaoVista(sessaoAtiva?.id);
+    if (sessaoAtiva) setDia(sessaoAtiva.diaPlanejado);
+  }
   const [aba, setAba] = useState<Aba>('exercicios');
   const [adicionando, setAdicionando] = useState(false);
   /** Exercício com o resumo aberto (modal no meio da tela). */
@@ -130,11 +137,11 @@ export default function TreinoScreen() {
   const data = semana[DIAS.indexOf(dia)];
   const kicker = e.hoje ? `Hoje · ${diaCompleto(dia)}` : maiuscula(diaCompleto(dia));
 
-  // Treino em andamento: aparece em hoje e no dia a que o treino pertence.
+  // Treino em andamento: o card do tempo aparece só no dia a que o treino pertence; nos outros dias, só a pílula do topo.
   const planoDaSessao = sessaoAtiva ? planos.find((p) => p.id === sessaoAtiva.planoId) : undefined;
   const doAtivo = sessaoAtiva && planoDaSessao?.treinos.find((x) => x.id === sessaoAtiva.treinoDoDiaId);
   const treinoAtivo = doAtivo && sessaoAtiva ? naSemana(doAtivo, planoDaSessao, sessaoAtiva.data) : null;
-  const mostraAtivo = !!(sessaoAtiva && treinoAtivo && (e.hoje || sessaoAtiva.diaPlanejado === dia));
+  const mostraAtivo = !!(sessaoAtiva && treinoAtivo && sessaoAtiva.diaPlanejado === dia);
   const lista = mostraAtivo ? treinoAtivo : t;
   const modo = mostraAtivo ? 'andamento' : e.tipo === 'feito' ? 'feito' : 'planejado';
   const seriesDaLista = mostraAtivo && sessaoAtiva ? sessaoAtiva.series : e.tipo === 'feito' && e.sessao ? e.sessao.series : [];
@@ -212,7 +219,6 @@ export default function TreinoScreen() {
         </View>
       ) : (
         <>
-          {sessaoAtiva && treinoAtivo && <CardAoVivo treino={treinoAtivo} sessao={sessaoAtiva} historico={sessoes} planos={planos} onAbrir={() => abrirSessao()} />}
           {!t ? (
             <HeroDescanso kicker={kicker} proximo={upcoming[0] && `${dayLabel(upcoming[0].data, today).toLowerCase()} · ${upcoming[0].treino.nome}`} />
           ) : e.tipo === 'feito' && e.sessao ? (
@@ -228,6 +234,7 @@ export default function TreinoScreen() {
               treino={t}
               sexo={sexo}
               bloqueado={!!sessaoAtiva}
+              onVerAtivo={sessaoAtiva ? () => setDia(sessaoAtiva.diaPlanejado) : undefined}
               dica={
                 data !== today
                   ? `${data < today ? 'Ficou para trás? Pode fazer hoje' : 'Quer adiantar? Pode fazer hoje'}: ele fica marcado ${dia === 'sab' || dia === 'dom' ? 'no' : 'na'} ${DIA_NOME[dia]} e as calorias entram no seu dia de hoje.`

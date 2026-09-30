@@ -55,6 +55,7 @@ export function HeroTreino({
   bloqueado,
   dica,
   onIniciar,
+  onVerAtivo,
 }: {
   kicker: string;
   treino: TreinoDoDia;
@@ -62,6 +63,8 @@ export function HeroTreino({
   bloqueado?: boolean;
   dica?: string;
   onIniciar: () => void;
+  /** Com outro treino aberto: leva ao dia dele. */
+  onVerAtivo?: () => void;
 }) {
   const musculos = musculosDoTreino(treino);
   const n = treino.exercicios.length;
@@ -99,8 +102,14 @@ export function HeroTreino({
         </Glass>
       </View>
       {bloqueado ? (
+        // Um treino por vez: com outro aberto, este não começa.
         <Text variant="caption" tone="secondary">
-          Termine o treino em andamento para começar este.
+          Você já tem um treino em andamento. Termine ele para começar este.{' '}
+          {onVerAtivo ? (
+            <Text variant="caption" style={styles.link} onPress={onVerAtivo} accessibilityRole="link">
+              Ver treino em andamento
+            </Text>
+          ) : null}
         </Text>
       ) : (
         <>
@@ -194,14 +203,15 @@ function useVolta({ sessao, descansando, perimetro }: { sessao: SessaoEmAndament
     p.set(troca ? withSequence(withTiming(0, { duration: 0 }), withTiming(base, { duration: troca, easing: SAI_DA_TROCA }), ciclo) : ciclo);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [descansando, pausado, sessao.descansoAte, sessao.inicio, sessao.pausaMs]);
-  const offset = () => {
-    'worklet';
-    return perimetro * (1 - Math.max(0.0005, p.get()));
-  };
-  const verde = useAnimatedProps(() => ({ strokeDashoffset: offset(), strokeOpacity: 1 - modo.get() }));
-  const branca = useAnimatedProps(() => ({ strokeDashoffset: offset(), strokeOpacity: modo.get() }));
-  const brilhoVerde = useAnimatedProps(() => ({ strokeDashoffset: offset(), strokeOpacity: brilho.get() * (1 - modo.get()) }));
-  const brilhoBranco = useAnimatedProps(() => ({ strokeDashoffset: offset(), strokeOpacity: brilho.get() * modo.get() }));
+  // Cada linha lê `p` direto: o Reanimated só acompanha os valores que aparecem no próprio updater
+  // (lidos por uma função auxiliar, a linha só andava quando a tela redesenhava, a cada segundo).
+  const verde = useAnimatedProps(() => ({ strokeDashoffset: perimetro * (1 - Math.max(0.0005, p.get())), strokeOpacity: 1 - modo.get() }));
+  const branca = useAnimatedProps(() => ({ strokeDashoffset: perimetro * (1 - Math.max(0.0005, p.get())), strokeOpacity: modo.get() }));
+  const brilhoVerde = useAnimatedProps(() => ({
+    strokeDashoffset: perimetro * (1 - Math.max(0.0005, p.get())),
+    strokeOpacity: brilho.get() * (1 - modo.get()),
+  }));
+  const brilhoBranco = useAnimatedProps(() => ({ strokeDashoffset: perimetro * (1 - Math.max(0.0005, p.get())), strokeOpacity: brilho.get() * modo.get() }));
   return { verde, branca, brilhoVerde, brilhoBranco };
 }
 
@@ -528,5 +538,9 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.8,
+  },
+  link: {
+    color: colors.lime,
+    fontFamily: fonts.body.bold,
   },
 });
