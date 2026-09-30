@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { cancelAnimation, Easing, FadeIn, useAnimatedProps, useReducedMotion, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
@@ -7,7 +7,7 @@ import Svg, { Path } from 'react-native-svg';
 import { Glass, NeonButton, Text } from '@/components/ui';
 import { exercicioPorId, MUSCULO_LABELS } from '@/lib/exercicios';
 import { formatDecimal, formatDuration, formatInt } from '@/lib/format';
-import { tempoDeTreinoMs } from '@/lib/treino/met';
+import { tempoDaSerieMs, tempoDeTreinoMs } from '@/lib/treino/met';
 import { proximoExercicio, seriesFeitas, treinoResolvido } from '@/lib/treino/plano';
 import { valoresDaProximaSerie } from '@/lib/treino/progressao';
 import { colors, fonts, radius, spacing } from '@/theme/theme';
@@ -170,39 +170,48 @@ function useVolta({ sessao, descansando, perimetro }: { sessao: SessaoEmAndament
   const modo = useSharedValue(descansando ? 1 : 0);
   const brilho = useSharedValue(0);
   const pausado = !!sessao.pausadoEm;
+  // Modo da última passada (null = acabou de aparecer): a animação de troca só roda quando o modo muda.
+  const modoAnterior = useRef<boolean | null>(null);
   useEffect(() => {
     const agora = Date.now();
-    const troca = reduce ? 0 : TROCA_MS;
+    const mudou = modoAnterior.current !== descansando;
+    modoAnterior.current = descansando;
+    const troca = reduce || !mudou ? 0 : TROCA_MS;
+    if (mudou) {
+      modo.set(withTiming(descansando ? 1 : 0, { duration: troca, easing: SAI_DA_TROCA }));
+      if (troca) brilho.set(withSequence(withTiming(1, { duration: troca * 0.4 }), withTiming(0, { duration: troca * 0.9 })));
+    }
     cancelAnimation(p);
-    modo.set(withTiming(descansando ? 1 : 0, { duration: troca, easing: SAI_DA_TROCA }));
-    if (troca) brilho.set(withSequence(withTiming(1, { duration: troca * 0.4 }), withTiming(0, { duration: troca * 0.9 })));
     if (descansando && sessao.descansoAte) {
+      // O descanso corre no relógio (mesmo com o treino pausado): enche até onde ele vai estar e esvazia dali.
       const falta = Math.max(0, Date.parse(sessao.descansoAte) - agora);
       const total = Math.max(1, sessao.descansoSeg ?? 1) * 1000;
-      const alvo = Math.min(1, falta / total);
-      if (pausado) return p.set(alvo);
-      // Enche até onde o descanso vai estar no fim da troca e esvazia dali, no ritmo do relógio.
-      const depois = Math.max(0, falta - troca);
+      const ajuste = troca || 300; // ±15 s: desliza até a nova posição em vez de pular
+      const depois = Math.max(0, falta - ajuste);
       p.set(
         withSequence(
-          withTiming(Math.min(1, depois / total), { duration: Math.min(troca, falta), easing: SAI_DA_TROCA }),
+          withTiming(Math.min(1, depois / total), { duration: Math.min(ajuste, falta), easing: SAI_DA_TROCA }),
           withTiming(0, { duration: depois, easing: Easing.linear }),
         ),
       );
       return;
     }
-    const seg = tempoDeTreinoMs(sessao, agora) / 1000;
-    if (pausado) return p.set((seg % 60) / 60);
-    // Onde a volta vai estar quando a troca acabar: cresce até lá e segue o minuto.
-    const base = (((seg * 1000 + troca) / 1000) % 60) / 60;
-    const minuto = { duration: 60_000, easing: Easing.linear };
+    // Uma volta por minuto da série da vez: começa do zero quando o descanso acaba.
+    const ms = tempoDaSerieMs(sessao, agora);
+    if (pausado) {
+      // Pausado: a linha para onde está (só se ajeita se o card acabou de aparecer).
+      if (mudou) p.set((ms % 60_000) / 60_000);
+      return;
+    }
+    const base = ((ms + troca) % 60_000) / 60_000;
     const ciclo = withSequence(
       withTiming(1, { duration: (1 - base) * 60_000, easing: Easing.linear }),
-      withRepeat(withSequence(withTiming(0, { duration: 0 }), withTiming(1, minuto)), -1),
+      withRepeat(withSequence(withTiming(0, { duration: 0 }), withTiming(1, { duration: 60_000, easing: Easing.linear })), -1),
     );
+    // Na troca (ou ao aparecer) cresce do canto até o ponto; ao voltar da pausa segue de onde parou.
     p.set(troca ? withSequence(withTiming(0, { duration: 0 }), withTiming(base, { duration: troca, easing: SAI_DA_TROCA }), ciclo) : ciclo);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [descansando, pausado, sessao.descansoAte, sessao.inicio, sessao.pausaMs]);
+  }, [descansando, pausado, sessao.descansoAte, sessao.descansoSeg, sessao.inicio, sessao.pausaMs, sessao.serieDesdeMs]);
   // Cada linha lê `p` direto: o Reanimated só acompanha os valores que aparecem no próprio updater
   // (lidos por uma função auxiliar, a linha só andava quando a tela redesenhava, a cada segundo).
   const verde = useAnimatedProps(() => ({ strokeDashoffset: perimetro * (1 - Math.max(0.0005, p.get())), strokeOpacity: 1 - modo.get() }));

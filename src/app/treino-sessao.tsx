@@ -13,7 +13,7 @@ import { Mostrador } from '@/components/workout/Mostrador';
 import { MapaMuscular } from '@/components/workout/MapaMuscular';
 import { exercicioPorId, MUSCULO_LABELS } from '@/lib/exercicios';
 import { formatDecimal, formatDuration, formatInt } from '@/lib/format';
-import { tempoDeTreinoMs } from '@/lib/treino/met';
+import { tempoDaSerieMs, tempoDeTreinoMs } from '@/lib/treino/met';
 import { bateRecorde, proximoExercicio, recorde, repsLabel, seriesFeitas, treinoResolvido, ultimasSeries } from '@/lib/treino/plano';
 import { AJUSTE_KG, seriesNaSemana, sugestaoDoExercicio, valoresDaProximaSerie } from '@/lib/treino/progressao';
 import { useAppStore } from '@/store/useAppStore';
@@ -227,8 +227,8 @@ export default function TreinoSessaoScreen() {
               </Animated.View>
             ) : (
               <Animated.View key="serie" entering={ENTRA} exiting={SAI} style={StyleSheet.absoluteFill}>
-                {/* Um traço por segundo, no sentido do relógio, como o card da aba. */}
-                <Mostrador tamanho={MOSTRADOR} tracos={60} aceso={(Math.floor(elapsed) % 60) / 60}>
+                {/* Um traço por segundo da série da vez (zera quando o descanso acaba), no sentido do relógio, como o card da aba. */}
+                <Mostrador tamanho={MOSTRADOR} tracos={60} aceso={(Math.floor(tempoDaSerieMs(session, now) / 1000) % 60) / 60}>
                   <Text style={styles.descRotulo}>{exerciseDone ? 'FEITO' : 'SÉRIE'}</Text>
                   <Text style={styles.serieGrande}>
                     {Math.min(done + (exerciseDone ? 0 : 1), exercise.series)}

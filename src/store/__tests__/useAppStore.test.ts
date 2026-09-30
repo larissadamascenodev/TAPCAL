@@ -3,6 +3,7 @@ import mockAsyncStorage from '@react-native-async-storage/async-storage/jest/asy
 
 import { exercicioPorId } from '@/lib/exercicios';
 import { historicoQueConta, sugerirCarga } from '@/lib/treino/progressao';
+import { tempoDaSerieMs } from '@/lib/treino/met';
 import { SAMPLE_PROFILE, SAMPLE_WORKOUT_PLANS, sampleSessions } from '@/data/sample';
 import { burnedOn, goalPlan, remainingToday, workoutToday } from '@/store/selectors';
 import { migrarStore, useAppStore } from '@/store/useAppStore';
@@ -266,6 +267,54 @@ describe('treino', () => {
     expect(c).toMatchObject({ duracaoSeg: 40, descansoSeg: 30 });
     store().finalizarTreino();
     expect('proximaDesde' in store().sessoes[0]).toBe(false);
+  });
+
+  it('tempo da série: começa do zero quando o descanso acaba e não conta a pausa', () => {
+    store().salvarPlano(planoTeste());
+    store().comecarTreino('t-seg');
+    jest.advanceTimersByTime(40_000);
+    expect(tempoDaSerieMs(store().sessaoAtiva!, Date.now())).toBe(40_000);
+    store().registrarSerie('e1', 60, 12);
+    store().iniciarDescanso(90);
+    jest.advanceTimersByTime(30_000);
+    expect(tempoDaSerieMs(store().sessaoAtiva!, Date.now())).toBe(0); // descansando
+    jest.advanceTimersByTime(60_000 + 25_000); // descanso acabou há 25 s
+    expect(tempoDaSerieMs(store().sessaoAtiva!, Date.now())).toBe(25_000);
+    store().pausarTreino();
+    jest.advanceTimersByTime(5 * 60_000);
+    expect(tempoDaSerieMs(store().sessaoAtiva!, Date.now())).toBe(25_000); // parado
+    store().retomarTreino();
+    jest.advanceTimersByTime(5_000);
+    expect(tempoDaSerieMs(store().sessaoAtiva!, Date.now())).toBe(30_000); // segue de onde parou
+  });
+
+  it('pausa no meio do descanso: a série seguinte começa quando o descanso acaba de verdade', () => {
+    store().salvarPlano(planoTeste());
+    store().comecarTreino('t-seg');
+    store().registrarSerie('e1', 60, 12);
+    store().iniciarDescanso(60);
+    jest.advanceTimersByTime(20_000);
+    store().pausarTreino();
+    jest.advanceTimersByTime(20_000); // o descanso segue correndo no relógio
+    store().retomarTreino();
+    jest.advanceTimersByTime(20_000); // descanso acabou agora
+    expect(tempoDaSerieMs(store().sessaoAtiva!, Date.now())).toBe(0);
+    jest.advanceTimersByTime(10_000);
+    expect(tempoDaSerieMs(store().sessaoAtiva!, Date.now())).toBe(10_000);
+  });
+
+  it('concluir série com o tempo pausado faz o tempo voltar a correr', () => {
+    store().salvarPlano(planoTeste());
+    store().comecarTreino('t-seg');
+    jest.advanceTimersByTime(60_000);
+    store().pausarTreino();
+    jest.advanceTimersByTime(30_000);
+    store().registrarSerie('e1', 60, 12);
+    const s = store().sessaoAtiva!;
+    expect('pausadoEm' in s).toBe(false);
+    expect(s.pausaMs).toBe(30_000);
+    store().iniciarDescanso(90);
+    expect(Date.parse(store().sessaoAtiva!.descansoAte!)).toBe(Date.now() + 90_000);
   });
 
   it('apagar série renumera as seguintes', () => {

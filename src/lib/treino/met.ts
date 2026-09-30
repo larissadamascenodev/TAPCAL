@@ -45,6 +45,31 @@ export function tempoDeTreinoMs(s: Pick<SessaoEmAndamento, 'inicio' | 'pausaMs' 
 }
 
 /**
+ * Tempo da série da vez (ms): o tempo de treino desde que ela começou (o fim do
+ * descanso). Começa em zero a cada série; as pausas ficam de fora; durante o
+ * descanso fica em zero.
+ */
+export function tempoDaSerieMs(s: Pick<SessaoEmAndamento, 'inicio' | 'pausaMs' | 'pausadoEm' | 'serieDesdeMs'>, agora: number): number {
+  return Math.max(0, tempoDeTreinoMs(s, agora) - (s.serieDesdeMs ?? 0));
+}
+
+/**
+ * O treino voltando a correr (tira a pausa e soma o tempo parado em `pausaMs`).
+ * Se a pausa foi no meio do descanso, o descanso continuou correndo no
+ * relógio: a série seguinte passa a começar quando ele acabar de verdade.
+ */
+export function sessaoRodando<T extends SessaoEmAndamento | null | undefined>(s: T, agora: number): T {
+  if (!s?.pausadoEm) return s;
+  const { pausadoEm, ...resto } = s;
+  const retomada: SessaoEmAndamento = { ...resto, pausaMs: (s.pausaMs ?? 0) + Math.max(0, agora - Date.parse(pausadoEm)) };
+  if (retomada.descansoAte && retomada.serieDesdeMs !== undefined) {
+    const fimDoDescanso = tempoDeTreinoMs(retomada, agora) + Math.max(0, Date.parse(retomada.descansoAte) - agora);
+    retomada.serieDesdeMs = Math.min(retomada.serieDesdeMs, fimDoDescanso);
+  }
+  return retomada as T;
+}
+
+/**
  * kcal da sessão: o tempo todo como musculação, trocando os minutos de cardio
  * (se houver) pelo MET do cardio. Arredondado.
  */

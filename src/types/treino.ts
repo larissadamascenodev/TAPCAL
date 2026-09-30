@@ -167,6 +167,8 @@ export type SessaoEmAndamento = Omit<SessaoDeTreino, 'fim' | 'kcal'> & {
   descansoSeg?: number;
   /** A partir de quando a próxima série pode começar (fim do descanso ou pulo dele). */
   proximaDesde?: string;
+  /** Tempo de treino (ms, sem as pausas) em que a série da vez começa: fim do descanso, pulo dele ou do exercício. Ausente = 0. */
+  serieDesdeMs?: number;
   /** Exercícios do treino que a pessoa pulou hoje (ids do exercício no treino). */
   pulados?: string[];
 };
