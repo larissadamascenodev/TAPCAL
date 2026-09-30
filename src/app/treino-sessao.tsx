@@ -157,13 +157,6 @@ export default function TreinoSessaoScreen() {
   const adicionarSerie = () => {
     if (!plano || !doPlano) return;
     atualizarPlano({ ...plano, treinos: plano.treinos.map((t) => (t.id === doPlano.id ? mudarSeries(t, exercise.id, 1, done) : t)) });
-    const total = exercise.series + 1;
-    toast.card({
-      titulo: `Série ${total} adicionada`,
-      detalhe: `${formatDecimal(input.kg)} kg × ${input.reps} · no padrão das anteriores`,
-      icone: 'add',
-      tracos: { total, feitos: done },
-    });
   };
 
   const exSets = session.series.filter((s) => s.exercicioNoTreinoId === exercise.id);
