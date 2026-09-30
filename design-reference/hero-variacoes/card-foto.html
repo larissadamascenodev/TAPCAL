@@ -1,0 +1,115 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Card com foto</title><style>
+@font-face{font-family:"SoraL";font-weight:700;src:url("../../node_modules/@expo-google-fonts/sora/700Bold/Sora_700Bold.ttf")}
+@font-face{font-family:"SoraL";font-weight:600;src:url("../../node_modules/@expo-google-fonts/sora/600SemiBold/Sora_600SemiBold.ttf")}
+@font-face{font-family:"ManropeL";font-weight:700;src:url("../../node_modules/@expo-google-fonts/manrope/700Bold/Manrope_700Bold.ttf")}
+@font-face{font-family:"ManropeL";font-weight:600;src:url("../../node_modules/@expo-google-fonts/manrope/600SemiBold/Manrope_600SemiBold.ttf")}
+:root{--ground:#050506;--ink:#F4F5F0;--ink2:rgba(244,245,240,.66);--ink3:rgba(244,245,240,.42);--lime:#D1FB39;--limeTint:rgba(209,251,57,.16);--limeEdge:rgba(209,251,57,.38);--glass:rgba(255,255,255,.035);--glass2:rgba(255,255,255,.06);--edge:rgba(255,255,255,.12);--edgeTop:rgba(255,255,255,.30);--line:rgba(255,255,255,.14);--soft:rgba(255,255,255,.07);--track:rgba(255,255,255,.10);--display:"SoraL",system-ui;--body:"ManropeL",system-ui}
+*{box-sizing:border-box}html,body{margin:0;background:#000;color:var(--ink);font-family:var(--body)}
+.ph{width:390px;height:700px;background:var(--ground);position:relative;overflow:hidden;isolation:isolate}
+.ph::before{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(95% 42% at 85% 8%,rgba(209,251,57,.08),transparent 70%)}
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:54px 16px 0}
+.av{width:44px;height:44px;border-radius:50%;padding:2px;background:linear-gradient(135deg,var(--lime),#2ED3A0)}.av b{display:grid;place-items:center;width:100%;height:100%;border-radius:50%;background:#0b0c0a;font-family:var(--display)}
+.acts{display:flex;gap:8px}.acts span{height:40px;min-width:40px;padding:0 12px;border-radius:20px;background:var(--glass2);border:1px solid var(--line);display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:14px}
+.tt{padding:14px 16px 0}.tt h2{margin:0;font-family:var(--display);font-weight:600;font-size:30px;letter-spacing:-.035em}.tt small{font-size:13px;color:var(--ink3)}
+.wk{display:grid;grid-template-columns:repeat(7,1fr);padding:12px 12px 0}.wk div{display:grid;justify-items:center;gap:6px;font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--ink3)}.wk b{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;font-family:var(--display);font-size:14px;color:var(--ink2)}.wk .h{color:var(--ink)}.wk .h b{box-shadow:inset 0 0 0 2px var(--lime);color:var(--ink)}
+.kick{font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3)}
+.zona{position:relative;margin:0 10px}
+/* cartão */
+.card{position:absolute;left:0;right:0;border-radius:28px;background:linear-gradient(135deg,rgba(255,255,255,.09),rgba(255,255,255,.02) 45%,rgba(255,255,255,.015)),rgba(14,14,17,.92);border:1px solid var(--edge);border-top-color:var(--edgeTop)}
+.luz{position:absolute;inset:-1px;pointer-events:none;overflow:visible}
+.corpo{position:absolute;pointer-events:none;mix-blend-mode:lighten;-webkit-mask-image:linear-gradient(180deg,#000 72%,transparent 97%);mask-image:linear-gradient(180deg,#000 72%,transparent 97%);background:url(ref-corpo-3d.png) no-repeat center top/contain}
+.halo{position:absolute;border-radius:50%;background:radial-gradient(closest-side,rgba(209,251,57,.22),rgba(209,251,57,.06) 55%,transparent);pointer-events:none}
+.aneis{position:absolute;border-radius:50%;border:1px solid rgba(209,251,57,.10);pointer-events:none}
+.rot{display:flex;align-items:center;gap:7px;font-size:10.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--ink2)}
+.rot i{width:7px;height:7px;border-radius:50%;background:var(--lime);box-shadow:0 0 8px rgba(209,251,57,.8)}
+h3{margin:0;font-family:var(--display);font-weight:700;letter-spacing:-.035em;line-height:1.08}
+.verde{background:linear-gradient(180deg,#E6FF7A,#B8EC1E);-webkit-background-clip:text;background-clip:text;color:transparent}
+.tag{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 11px 0 8px;border-radius:14px;background:var(--limeTint);border:1px solid var(--limeEdge);color:var(--lime);font-size:12px;font-weight:700}
+.tag svg{width:15px;height:15px}
+.btn{display:inline-flex;align-items:center;gap:9px;height:44px;padding:0 18px 0 7px;border-radius:22px;background:rgba(22,23,26,.9);border:1.5px solid rgba(209,251,57,.75);box-shadow:0 0 18px -6px rgba(209,251,57,.55);font-family:var(--display);font-weight:700;font-size:12px;letter-spacing:.16em}
+.btn span{width:30px;height:30px;border-radius:50%;background:var(--lime);display:grid;place-items:center}
+/* card do timer */
+.t-rot{display:flex;align-items:center;gap:6px;font-size:10.5px;font-weight:700;letter-spacing:.16em;color:var(--ink3)}
+.t-rot i{width:6px;height:6px;border-radius:3px;background:var(--lime)}
+.tracos{display:flex;gap:5px;margin-top:12px}.tracos i{flex:1;height:5px;border-radius:3px;background:var(--track)}
+.neon{display:flex;align-items:center;justify-content:center;height:54px;border-radius:27px;border:1.5px solid rgba(209,251,57,.7);background:rgba(22,23,26,.78);font-family:var(--display);font-weight:700;font-size:13px;letter-spacing:.18em;box-shadow:0 0 18px -8px rgba(209,251,57,.5)}
+.redondo{width:54px;height:54px;border-radius:50%;border:1px solid var(--line);background:var(--glass2);display:grid;place-items:center}
+.seg{display:flex;margin:0 16px;padding:4px;border-radius:22px;background:rgba(20,20,23,.8);border:1px solid rgba(255,255,255,.1)}.seg span{flex:1;height:34px;border-radius:17px;display:grid;place-items:center;font-size:13px;font-weight:700}.seg span.on{background:var(--ink);color:#101113}
+</style></head><style>
+.foto{position:absolute;top:0;right:0;height:170px;width:74%;border-radius:0 28px 28px 0;overflow:hidden}
+.foto div{position:absolute;inset:0;background:url(foto-supino-provisoria.jpg) center top/cover;filter:hue-rotate(78deg) saturate(1.25) brightness(1.05)}
+.foto::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(14,14,17,1) 0%,rgba(14,14,17,.55) 32%,rgba(14,14,17,0) 65%),linear-gradient(180deg,rgba(14,14,17,.2),rgba(14,14,17,0) 40%,rgba(14,14,17,.85) 92%)}
+.ttl{font-family:var(--display);font-weight:700;font-style:italic;text-transform:uppercase;letter-spacing:-.02em;line-height:1.02;font-size:30px}
+.iniciar{display:flex;align-items:center;justify-content:center;gap:10px;height:52px;border-radius:26px;background:rgba(12,12,14,.82);border:1.5px solid var(--lime);font-family:var(--display);font-weight:700;font-size:13px;letter-spacing:.2em}
+.card2{position:absolute;left:0;right:0;border-radius:28px;background:#0E0E11;border:1px solid var(--edge);border-top-color:var(--edgeTop);overflow:hidden}
+</style><body>
+<div class="ph" id="tela">
+  <div class="hdr"><div class="av"><b>L</b></div><div class="acts"><span>🔥 3</span><span>🔔</span></div></div>
+  <div class="tt"><h2>Treino</h2><small>Meu treino · 5 dias por semana</small></div>
+  <div class="wk"><div class="h">SEG<b>29</b></div><div>TER<b>30</b></div><div>QUA<b>01</b></div><div>QUI<b>02</b></div><div>SEX<b>03</b></div><div>SÁB<b>04</b></div><div>DOM<b>05</b></div></div>
+  <div class="zona" id="zona" style="height:300px;margin-top:22px">
+    <div class="card2" id="card" style="top:0;height:236px">
+      <div class="foto" id="foto"><div id="fotoImg"></div></div>
+      <div id="hoje" style="position:absolute;inset:0">
+        <div style="position:relative;padding:22px 0 0 20px;width:70%">
+          <div class="rot" style="color:var(--ink3)">Segunda · 4 exercícios</div>
+          <div class="ttl" style="margin-top:10px">Peito e<br>tríceps</div>
+          <div style="display:flex;gap:6px;margin-top:12px"><span class="tag" style="height:24px;font-size:11px;padding:0 10px">Peito</span><span class="tag" style="height:24px;font-size:11px;padding:0 10px">Tríceps</span><span class="tag" style="height:24px;font-size:11px;padding:0 10px">Ombros</span></div>
+        </div>
+        <div style="position:absolute;left:14px;right:14px;bottom:14px" id="btn"><div class="iniciar"><svg width="13" height="13" viewBox="0 0 24 24"><path d="M7 4v16l13-8z" fill="#F4F5F0"/></svg>INICIAR TREINO</div></div>
+      </div>
+      <div id="timer" style="position:absolute;inset:0;display:flex;align-items:center;gap:12px;padding:0 20px;opacity:0">
+        <div style="flex:1;min-width:0">
+          <div class="t-rot"><i></i>AGORA</div>
+          <div style="font-family:var(--display);font-weight:600;font-size:18px;letter-spacing:-.02em;margin-top:6px">Supino reto com barra</div>
+          <div style="font-size:12px;font-weight:600;color:var(--ink3);margin-top:3px">Série 1 de 4 · 40 kg × 12</div>
+          <div class="tracos"><i style="background:var(--lime)"></i><i></i><i></i><i></i></div>
+        </div>
+        <div style="width:1px;align-self:stretch;margin:18px 0;background:var(--soft)"></div>
+        <div style="font-family:var(--display);font-weight:700;font-size:32px;letter-spacing:-.05em" id="relogio">0:00</div>
+      </div>
+      <svg class="luz" id="luz" style="position:absolute;left:0;top:0"></svg>
+    </div>
+    <div id="controles" style="position:absolute;left:6px;right:6px;display:flex;gap:10px;opacity:0">
+      <div class="neon" style="flex:1;box-shadow:none">CONCLUIR SÉRIE</div><div class="redondo"><svg width="18" height="18" viewBox="0 0 24 24"><path d="M7 5h3v14H7zM14 5h3v14h-3z" fill="#F4F5F0"/></svg></div>
+    </div>
+  </div>
+  <div class="seg" id="seg" style="margin-top:14px"><span class="on">Exercícios</span><span>Cardio</span><span>Semana</span></div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
+const ease=x=>1-Math.pow(1-clamp(x),3);
+const mix=(a,b,k)=>a+(b-a)*k;
+const W=370,H0=236,H1=112;
+function contorno(w,h,r,m){const x0=m,y0=m,x1=w-m,y1=h-m;return {d:`M${x0+r} ${y0}H${x1-r}A${r} ${r} 0 0 1 ${x1} ${y0+r}V${y1-r}A${r} ${r} 0 0 1 ${x1-r} ${y1}H${x0+r}A${r} ${r} 0 0 1 ${x0} ${y1-r}V${y0+r}A${r} ${r} 0 0 1 ${x0+r} ${y0}Z`,p:2*(x1-x0+y1-y0)-8*r+2*Math.PI*r};}
+// Quatro luzes nítidas (sem desfoque) saindo do meio de cima e de baixo até o meio das laterais — uma vez, devagar.
+function luzes(w,h,k,forca){
+  const r=27,m=1,cx=w/2;
+  const caminhos=[`M${cx} ${m}H${w-m-r}A${r} ${r} 0 0 1 ${w-m} ${m+r}V${h/2}`,`M${cx} ${m}H${m+r}A${r} ${r} 0 0 0 ${m} ${m+r}V${h/2}`,`M${cx} ${h-m}H${w-m-r}A${r} ${r} 0 0 0 ${w-m} ${h-m-r}V${h/2}`,`M${cx} ${h-m}H${m+r}A${r} ${r} 0 0 1 ${m} ${h-m-r}V${h/2}`];
+  const L=(w/2-r)+Math.PI*r/2+(h/2-r),cauda=L*0.3,cab=k*(L+cauda);
+  const a=forca*Math.sin(Math.PI*clamp(k));
+  return caminhos.map(d=>`<path d="${d}" fill="none" stroke="url(#gl)" stroke-width="2" stroke-linecap="round" stroke-dasharray="${cauda} ${L*3}" stroke-dashoffset="${-(cab-cauda)}" opacity="${a}"/>`).join('');
+}
+function render(t){
+  const luzK=clamp((t-200)/2200);
+  const toque=t>=2600&&t<2750;
+  const sai=ease((t-2650)/450), encolhe=ease((t-2950)/520), entra=ease((t-3350)/480);
+  const H=mix(H0,H1,encolhe);
+  const card=$('card');card.style.height=H+'px';card.style.transform=`scale(${toque?0.985:1})`;
+  const c=contorno(W,H,27,1);
+  $('luz').setAttribute('width',W);$('luz').setAttribute('height',H);
+  $('luz').innerHTML=`<defs><linearGradient id="gl" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="${W}" y2="0"><stop offset="0" stop-color="#F4FFB8"/><stop offset=".5" stop-color="#D1FB39"/><stop offset="1" stop-color="#F4FFB8"/></linearGradient></defs>`+
+    `<path d="${c.d}" fill="none" stroke="rgba(209,251,57,${0.42*(1-sai)})" stroke-width="1"/>`+(t<2950?luzes(W,H,luzK,1-sai):'')+
+    (entra>0?`<path d="${c.d}" fill="none" stroke="#D1FB39" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="${c.p} ${c.p}" stroke-dashoffset="${c.p*(1-Math.max(.002,entra*0.35))}" opacity="${entra}"/>`:'');
+  $('hoje').style.opacity=1-sai;$('hoje').style.transform=`translateX(${-24*sai}px)`;
+  $('btn').style.transform=`scale(${toque?0.96:1})`;
+  $('foto').style.opacity=1-ease((t-2650)/520);
+  $('fotoImg').style.transform=`scale(${1.04+0.02*Math.sin(t/1400)+0.12*ease((t-2650)/600)})`;
+  $('timer').style.opacity=entra;$('timer').style.transform=`translateY(${10*(1-entra)}px)`;
+  $('relogio').textContent='0:0'+Math.floor(clamp((t-3350)/1000)*3);
+  const k=ease((t-3500)/420);const ctl=$('controles');ctl.style.top=(H+14)+'px';ctl.style.opacity=k;ctl.style.transform=`translateY(${16*(1-k)}px)`;
+  $('seg').style.transform=`translateY(${mix(0,-(H0-H1),encolhe)+mix(0,68,k)-64}px)`;
+}
+window.render=render;render(Number(new URLSearchParams(location.search).get('t')||1400));
+</script></body></html>
