@@ -303,7 +303,7 @@ export default function TreinoSessaoScreen() {
           </View>
         )}
 
-        {/* Séries em linha do tempo */}
+        {/* Séries em linha do tempo: as que faltam (e as que forem adicionadas) seguem o padrão das anteriores */}
         <View style={styles.seriesCab}>
           <Text style={styles.seriesTitulo}>Séries</Text>
           <Text variant="caption" tone="muted">
@@ -317,7 +317,7 @@ export default function TreinoSessaoScreen() {
               numero={i + 1}
               serie={set}
               atual={!set && i === done}
-              previa={!set && i === done ? `${formatDecimal(input.kg)} kg × ${input.reps}` : `${reps} repetições`}
+              previa={`${formatDecimal(input.kg)} kg × ${input.reps}`}
               ultima={i === rows.length - 1}
               onApagar={
                 set ? () => confirmDestructive('Apagar série?', `${formatDecimal(set.cargaKg)} kg × ${set.reps}`, 'Apagar', () => apagarSerie(exercise.id, set.numero)) : undefined
