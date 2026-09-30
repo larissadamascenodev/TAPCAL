@@ -111,12 +111,12 @@ export function ControlesAoVivo({ treino, sessao, historico, planos }: Props) {
         planos={planos}
         onClose={() => setAberto(false)}
         onConcluir={(kg, reps) => {
-          const feitas = seriesFeitas(sessao, atual.id);
           const recorde = bateRecorde([...historico, sessao], atual.exercicioId, kg, reps);
           registrarSerie(atual.id, kg, reps);
           setAberto(false);
           if (fecharSeAcabou()) return;
-          if (feitas + 1 < atual.series) iniciarDescanso(atual.descansoSeg);
+          // Descansa entre as séries e também antes do próximo exercício.
+          iniciarDescanso(atual.descansoSeg);
           toast(recorde ? `Novo recorde: ${formatDecimal(kg)} kg` : 'Série registrada');
         }}
         onPular={() => {

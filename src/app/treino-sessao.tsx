@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import Animated, { FadeIn, FadeOut, ZoomIn } from 'react-native-reanimated';
+import Animated, { Easing, FadeOut, Keyframe, ZoomIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LinearGradient } from 'expo-linear-gradient';
@@ -14,7 +14,7 @@ import { MapaMuscular } from '@/components/workout/MapaMuscular';
 import { exercicioPorId, MUSCULO_LABELS } from '@/lib/exercicios';
 import { formatDecimal, formatDuration, formatInt } from '@/lib/format';
 import { tempoDeTreinoMs } from '@/lib/treino/met';
-import { bateRecorde, proximoExercicio, recorde, repsLabel, seriesFeitas, ultimasSeries } from '@/lib/treino/plano';
+import { bateRecorde, proximoExercicio, recorde, repsLabel, seriesFeitas, treinoResolvido, ultimasSeries } from '@/lib/treino/plano';
 import { AJUSTE_KG, seriesNaSemana, sugestaoDoExercicio, valoresDaProximaSerie } from '@/lib/treino/progressao';
 import { useAppStore } from '@/store/useAppStore';
 import { colors, fonts, gradients, radius, spacing } from '@/theme/theme';
@@ -24,6 +24,12 @@ import type { SerieFeita } from '@/types/treino';
 const MOSTRADOR = 216;
 
 /** Traços do mostrador no descanso: um por segundo até 2 min; acima disso, um a cada poucos segundos. */
+// Troca série ↔ descanso: o mostrador novo cresce de leve enquanto aparece e os traços varrem até a posição.
+const ENTRA = new Keyframe({
+  0: { opacity: 0, transform: [{ scale: 0.92 }] },
+  100: { opacity: 1, transform: [{ scale: 1 }], easing: Easing.out(Easing.cubic) },
+}).duration(420);
+const SAI = FadeOut.duration(180);
 const tracosDoDescanso = (total: number) => (total <= 120 ? Math.max(1, total) : Math.round(total / Math.ceil(total / 120)));
 
 /** Relógio que atualiza a cada segundo. */
@@ -105,7 +111,14 @@ export default function TreinoSessaoScreen() {
     const isRecord = bateRecorde([...past, session], exercise.exercicioId, input.kg, input.reps);
     registrarSerie(exercise.id, input.kg, input.reps);
     toast(isRecord ? `Novo recorde: ${formatDecimal(input.kg)} kg` : 'Série registrada');
-    if (done + 1 < exercise.series) iniciarDescanso(exercise.descansoSeg);
+    if (done + 1 < exercise.series) return iniciarDescanso(exercise.descansoSeg);
+    // Última série do exercício: descansa e já mostra o próximo (a carga dele aparece no descanso).
+    const depois = useAppStore.getState().sessaoAtiva;
+    if (!depois || treinoResolvido(treino, depois)) return;
+    const prox = proximoExercicio(treino, depois);
+    iniciarDescanso(exercise.descansoSeg);
+    setIndex(prox);
+    setInput(valoresDaProximaSerie(treino.exercicios[prox], depois, past, planos));
   };
 
   const onMain = () => {
@@ -131,7 +144,6 @@ export default function TreinoSessaoScreen() {
     ]);
   };
 
-
   const exSets = session.series.filter((s) => s.exercicioNoTreinoId === exercise.id);
   const rows = Array.from({ length: Math.max(exercise.series, exSets.length) }, (_, i) => exSets[i] ?? null);
   const mainLabel = !exerciseDone ? `Concluir série ${done + 1}` : !isLast ? 'Próximo exercício' : 'Finalizar treino';
@@ -142,9 +154,7 @@ export default function TreinoSessaoScreen() {
   return (
     <View style={styles.root}>
       <BackdropGlow />
-      <ScrollView
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.sm, paddingBottom: insets.bottom + 120 }]}
-        showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.sm, paddingBottom: insets.bottom + 120 }]} showsVerticalScrollIndicator={false}>
         {/* Topo: minimizar, tempo de treino (toque pausa) e opções */}
         <View style={styles.top}>
           <IconButton icon="chevron-down" label="Minimizar" onPress={() => router.back()} />
@@ -200,32 +210,35 @@ export default function TreinoSessaoScreen() {
 
         {/* Palco: o mostrador (série da vez, ou o descanso contando) e o corpo ao lado */}
         <View style={styles.palco}>
-          {descansando && descanso ? (
-            <Animated.View key="descanso" entering={FadeIn.duration(220)} exiting={FadeOut.duration(160)}>
-              {/* Os traços acendem no sentido do relógio conforme o descanso passa; o número desce. */}
-              <Mostrador tamanho={MOSTRADOR} tracos={tracosDoDescanso(descanso.total)} aceso={1 - restante / descanso.total} cor={colors.tracoAceso}>
-                <Text style={styles.descRotulo}>DESCANSO</Text>
-                <Text style={styles.descTempo} accessibilityLiveRegion="polite">
-                  {formatDuration(restante)}
-                </Text>
-                <Text style={styles.proximaText}>
-                  Próxima · {formatDecimal(input.kg)} kg × {input.reps}
-                </Text>
-              </Mostrador>
-            </Animated.View>
-          ) : (
-            <Animated.View key="serie" entering={FadeIn.duration(220)} exiting={FadeOut.duration(160)}>
-              {/* Um traço por segundo, no sentido do relógio, como o card da aba. */}
-              <Mostrador tamanho={MOSTRADOR} tracos={60} aceso={(Math.floor(elapsed) % 60) / 60}>
-                <Text style={styles.descRotulo}>{exerciseDone ? 'FEITO' : 'SÉRIE'}</Text>
-                <Text style={styles.serieGrande}>
-                  {Math.min(done + (exerciseDone ? 0 : 1), exercise.series)}
-                  <Text style={styles.serieGrandeDe}>/{exercise.series}</Text>
-                </Text>
-                <Text style={styles.proximaText}>{exerciseDone ? 'todas as séries' : `${formatDecimal(input.kg)} kg × ${input.reps}`}</Text>
-              </Mostrador>
-            </Animated.View>
-          )}
+          {/* Lugar fixo do mostrador: a troca anima por cima, sem mexer no corpo ao lado */}
+          <View style={styles.mostradorLugar}>
+            {descansando && descanso ? (
+              <Animated.View key="descanso" entering={ENTRA} exiting={SAI} style={StyleSheet.absoluteFill}>
+                {/* Contagem regressiva: começa cheio e os traços vão apagando no sentido anti-horário, junto com o número. */}
+                <Mostrador tamanho={MOSTRADOR} tracos={tracosDoDescanso(descanso.total)} aceso={restante / descanso.total} cor={colors.tracoAceso}>
+                  <Text style={styles.descRotulo}>DESCANSO</Text>
+                  <Text style={styles.descTempo} accessibilityLiveRegion="polite">
+                    {formatDuration(restante)}
+                  </Text>
+                  <Text style={styles.proximaText}>
+                    Próxima · {formatDecimal(input.kg)} kg × {input.reps}
+                  </Text>
+                </Mostrador>
+              </Animated.View>
+            ) : (
+              <Animated.View key="serie" entering={ENTRA} exiting={SAI} style={StyleSheet.absoluteFill}>
+                {/* Um traço por segundo, no sentido do relógio, como o card da aba. */}
+                <Mostrador tamanho={MOSTRADOR} tracos={60} aceso={(Math.floor(elapsed) % 60) / 60}>
+                  <Text style={styles.descRotulo}>{exerciseDone ? 'FEITO' : 'SÉRIE'}</Text>
+                  <Text style={styles.serieGrande}>
+                    {Math.min(done + (exerciseDone ? 0 : 1), exercise.series)}
+                    <Text style={styles.serieGrandeDe}>/{exercise.series}</Text>
+                  </Text>
+                  <Text style={styles.proximaText}>{exerciseDone ? 'todas as séries' : `${formatDecimal(input.kg)} kg × ${input.reps}`}</Text>
+                </Mostrador>
+              </Animated.View>
+            )}
+          </View>
           {info && (
             <View style={styles.corpoLado}>
               <MapaMuscular principal={info.musculoPrincipal} secundarios={info.musculosSecundarios} sexo={sexo} altura={MOSTRADOR - 20} />
@@ -303,9 +316,7 @@ export default function TreinoSessaoScreen() {
               previa={!set && i === done ? `${formatDecimal(input.kg)} kg × ${input.reps}` : `${reps} repetições`}
               ultima={i === rows.length - 1}
               onApagar={
-                set
-                  ? () => confirmDestructive('Apagar série?', `${formatDecimal(set.cargaKg)} kg × ${set.reps}`, 'Apagar', () => apagarSerie(exercise.id, set.numero))
-                  : undefined
+                set ? () => confirmDestructive('Apagar série?', `${formatDecimal(set.cargaKg)} kg × ${set.reps}`, 'Apagar', () => apagarSerie(exercise.id, set.numero)) : undefined
               }
             />
           ))}
@@ -345,21 +356,7 @@ function Fato({ rotulo, valor, primeiro }: { rotulo: string; valor: string; prim
 }
 
 /** Carga ou repetições: número grande, a dica embaixo e − | + numa pílula. */
-function Ajuste({
-  rotulo,
-  valor,
-  unidade,
-  dica,
-  onMenos,
-  onMais,
-}: {
-  rotulo: string;
-  valor: string;
-  unidade?: string;
-  dica: string;
-  onMenos: () => void;
-  onMais: () => void;
-}) {
+function Ajuste({ rotulo, valor, unidade, dica, onMenos, onMais }: { rotulo: string; valor: string; unidade?: string; dica: string; onMenos: () => void; onMais: () => void }) {
   return (
     <Glass flush rounded={radius.xl} style={styles.flex} contentStyle={styles.ajuste}>
       <Text style={styles.ajusteRotulo}>{rotulo}</Text>
@@ -371,11 +368,19 @@ function Ajuste({
         {dica}
       </Text>
       <View style={styles.pm}>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Diminuir ${rotulo.toLowerCase()}`} onPress={onMenos} style={({ pressed }) => [styles.pmBtn, pressed && styles.pressed]}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Diminuir ${rotulo.toLowerCase()}`}
+          onPress={onMenos}
+          style={({ pressed }) => [styles.pmBtn, pressed && styles.pressed]}>
           <Ionicons name="remove" size={22} color={colors.ink} />
         </Pressable>
         <View style={styles.pmDiv} />
-        <Pressable accessibilityRole="button" accessibilityLabel={`Aumentar ${rotulo.toLowerCase()}`} onPress={onMais} style={({ pressed }) => [styles.pmBtn, pressed && styles.pressed]}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Aumentar ${rotulo.toLowerCase()}`}
+          onPress={onMais}
+          style={({ pressed }) => [styles.pmBtn, pressed && styles.pressed]}>
           <Ionicons name="add" size={22} color={colors.ink} />
         </Pressable>
       </View>
@@ -423,6 +428,10 @@ function LinhaSerie({
 }
 
 const styles = StyleSheet.create({
+  mostradorLugar: {
+    width: MOSTRADOR,
+    height: MOSTRADOR,
+  },
   root: {
     flex: 1,
     backgroundColor: colors.ground,

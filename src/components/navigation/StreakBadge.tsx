@@ -8,7 +8,8 @@ import { colors, fonts, gradients, radius } from '@/theme/theme';
 
 const RING = 32;
 const R = 14.6;
-const C = 2 * Math.PI * R;
+/** Menor, com o treino aberto: abre espaço para a pílula do tempo no meio do topo. */
+const ESCALA_COMPACTA = 0.8;
 
 /** A chama balança de leve, a partir da base. */
 const SWAY = {
@@ -27,8 +28,13 @@ const SWAY = {
  * Selo da sequência no topo da Início: pílula de vidro com a chama dentro de
  * um anel que enche até fechar 7 dias seguidos e o número de dias ao lado.
  */
-export function StreakBadge({ days }: { days: number }) {
+export function StreakBadge({ days, compacto }: { days: number; compacto?: boolean }) {
   const reduce = useReducedMotion();
+  const k = compacto ? ESCALA_COMPACTA : 1;
+  const ring = RING * k;
+  const r = R * k;
+  const c = 2 * Math.PI * r;
+  const chama = 16 * k;
   const fraction = streakMilestoneFraction(days);
   const toWeek = days > 0 ? STREAK_MILESTONE - Math.round(fraction * STREAK_MILESTONE) : STREAK_MILESTONE;
   const [o0, o1, o2] = gradients.flameOuter;
@@ -37,39 +43,39 @@ export function StreakBadge({ days }: { days: number }) {
 
   return (
     <View
-      style={styles.pill}
+      style={[styles.pill, compacto && styles.pillCompacta]}
       accessible
       accessibilityRole="text"
       accessibilityLabel={`${days} ${days === 1 ? 'dia seguido' : 'dias seguidos'} registrando${toWeek > 0 ? `; faltam ${toWeek} para fechar a semana` : ''}`}>
 
-      <View style={styles.ring}>
-        <Svg width={RING} height={RING} style={StyleSheet.absoluteFill}>
+      <View style={[styles.ring, { width: ring, height: ring }]}>
+        <Svg width={ring} height={ring} style={StyleSheet.absoluteFill}>
           <Defs>
             <SvgGradient id="stRing" x1="0" y1="0" x2="1" y2="1">
               <Stop offset="0" stopColor={r0} />
               <Stop offset="1" stopColor={r1} />
             </SvgGradient>
           </Defs>
-          <G rotation={-90} origin={`${RING / 2}, ${RING / 2}`}>
-            <Circle cx={RING / 2} cy={RING / 2} r={R} fill="none" stroke={colors.line} strokeWidth={2.2} />
+          <G rotation={-90} origin={`${ring / 2}, ${ring / 2}`}>
+            <Circle cx={ring / 2} cy={ring / 2} r={r} fill="none" stroke={colors.line} strokeWidth={2.2 * k} />
             {fraction > 0 && (
               <Circle
-                cx={RING / 2}
-                cy={RING / 2}
-                r={R}
+                cx={ring / 2}
+                cy={ring / 2}
+                r={r}
                 fill="none"
                 stroke="url(#stRing)"
-                strokeWidth={2.2}
+                strokeWidth={2.2 * k}
                 strokeLinecap="round"
-                strokeDasharray={`${fraction * C} ${C}`}
+                strokeDasharray={`${fraction * c} ${c}`}
               />
             )}
           </G>
         </Svg>
 
         {/* chama limpa, sem brilho em volta: contorno quente e miolo claro */}
-        <Animated.View style={[styles.flame, !reduce && SWAY]}>
-          <Svg width={16} height={16} viewBox="0 0 24 24">
+        <Animated.View style={[styles.flame, { width: chama, height: chama }, !reduce && SWAY]}>
+          <Svg width={chama} height={chama} viewBox="0 0 24 24">
             <Defs>
               <SvgGradient id="stO" x1="0.5" y1="1" x2="0.5" y2="0">
                 <Stop offset="0" stopColor={o0} />
@@ -90,7 +96,7 @@ export function StreakBadge({ days }: { days: number }) {
         </Animated.View>
       </View>
 
-      <Text style={styles.days}>{days}</Text>
+      <Text style={[styles.days, compacto && styles.daysCompacto]}>{days}</Text>
     </View>
   );
 }
@@ -109,15 +115,17 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     borderTopColor: colors.frostCardEdgeTop,
   },
+  pillCompacta: {
+    height: 34,
+    paddingLeft: 3,
+    paddingRight: 10,
+    gap: 5,
+  },
   ring: {
-    width: RING,
-    height: RING,
     alignItems: 'center',
     justifyContent: 'center',
   },
   flame: {
-    width: 16,
-    height: 16,
     transformOrigin: 'bottom',
   },
   days: {
@@ -126,5 +134,9 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     letterSpacing: -0.3,
     fontVariant: ['tabular-nums'],
+  },
+  daysCompacto: {
+    fontSize: 14,
+    lineHeight: 18,
   },
 });

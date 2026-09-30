@@ -68,8 +68,8 @@ export function AppHeader({ name, streakDays, scrolled, below, belowHeight = 0, 
         </LinearGradient>
 
         {centro ? (
-          // Treino aberto: a pílula do tempo no lugar do nome, no espaço entre o avatar e as ações.
-          <View style={styles.centro}>{centro}</View>
+          // Treino aberto: a pílula do tempo no lugar do nome, no meio exato do topo (fica por cima, centrada na linha).
+          <View style={styles.nameWrap} />
         ) : (
           <Animated.View
             accessibilityElementsHidden={!scrolled}
@@ -81,14 +81,20 @@ export function AppHeader({ name, streakDays, scrolled, below, belowHeight = 0, 
         )}
 
         <View style={styles.actions}>
-          <StreakBadge days={streakDays} />
+          <StreakBadge days={streakDays} compacto={!!centro} />
           <IconButton
             icon="notifications-outline"
             label="Notificações"
-            size={40}
+            size={centro ? 36 : 40}
             onPress={() => toast('Em breve as notificações aparecem aqui')}
           />
         </View>
+
+        {centro ? (
+          <View pointerEvents="box-none" style={styles.centro}>
+            {centro}
+          </View>
+        ) : null}
       </View>
       {below}
     </View>
@@ -145,9 +151,13 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   centro: {
-    flex: 1,
-    minWidth: 0,
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   nameWrap: {
     flex: 1,

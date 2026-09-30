@@ -1,5 +1,6 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useReducedMotion } from 'react-native-reanimated';
 import Svg, { Line } from 'react-native-svg';
 
 import { colors } from '@/theme/theme';
@@ -17,6 +18,8 @@ type Props = {
   espessura?: number;
   /** Cor dos traços acesos (padrão: branco). */
   cor?: string;
+  /** Ao aparecer, os traços acendem numa varrida rápida até a posição atual (troca treino ↔ descanso). */
+  varrer?: boolean;
   children?: ReactNode;
   style?: StyleProp<ViewStyle>;
 };
@@ -26,12 +29,13 @@ type Props = {
  * traços acesos em branco, os que faltam apagados e o traço da vez maior, no
  * verde do app — o único verde do mostrador.
  */
-export function Mostrador({ tamanho, tracos, aceso, comprimento, espessura = 2.4, cor = colors.tracoAceso, children, style }: Props) {
+export function Mostrador({ tamanho, tracos, aceso, comprimento, espessura = 2.4, cor = colors.tracoAceso, varrer = true, children, style }: Props) {
+  const entrada = useVarrida(varrer);
   const c = tamanho / 2;
   const len = comprimento ?? tamanho * 0.07;
   const rFora = c - espessura * 2;
   const rDentro = rFora - len;
-  const f = Math.max(0, Math.min(1, aceso));
+  const f = Math.min(Math.max(0, Math.min(1, aceso)), entrada);
   const vez = Math.min(tracos - 1, Math.round(f * tracos));
 
   const linhas = Array.from({ length: tracos }, (_, i) => {
@@ -61,6 +65,28 @@ export function Mostrador({ tamanho, tracos, aceso, comprimento, espessura = 2.4
       <View style={styles.centro}>{children}</View>
     </View>
   );
+}
+
+const VARRIDA_MS = 750;
+
+/** De 0 a 1 em VARRIDA_MS, desacelerando no fim (sem animação se o sistema pede menos movimento). */
+function useVarrida(ligado: boolean) {
+  const reduce = useReducedMotion();
+  const [k, setK] = useState(ligado && !reduce ? 0 : 1);
+  useEffect(() => {
+    if (k >= 1) return;
+    const inicio = Date.now();
+    let id = 0;
+    const passo = () => {
+      const t = Math.min(1, (Date.now() - inicio) / VARRIDA_MS);
+      setK(1 - Math.pow(1 - t, 3));
+      if (t < 1) id = requestAnimationFrame(passo);
+    };
+    id = requestAnimationFrame(passo);
+    return () => cancelAnimationFrame(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return k;
 }
 
 const styles = StyleSheet.create({

@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import Animated, { cancelAnimation, Easing, useAnimatedProps, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
+import Animated, { cancelAnimation, Easing, FadeIn, useAnimatedProps, useReducedMotion, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 
 import { Glass, NeonButton, Text } from '@/components/ui';
@@ -141,36 +141,68 @@ function contorno(w: number, h: number, r: number, m: number) {
 const RAIO = radius.xl;
 const TRACO = 2.5;
 
+/** Quanto dura a troca treino ↔ descanso na linha (cor e posição). */
+const TROCA_MS = 800;
+const SAI_DA_TROCA = Easing.out(Easing.cubic);
+
 /**
  * A linha em volta do cartão, deslizando sem pulos: no treino dá uma volta a
  * cada minuto (pelo tempo de treino); no descanso vai do que falta até zero.
  * Pausado, fica parada.
+ *
+ * Na troca, nada pula: ao entrar no descanso a linha enche o cartão enquanto
+ * fica branca e só então começa a esvaziar; ao voltar ao treino ela cresce do
+ * canto até o ponto do minuto enquanto fica verde, com um brilho que acende e
+ * apaga. Ao aparecer, a linha também cresce do canto.
  */
 function useVolta({ sessao, descansando, perimetro }: { sessao: SessaoEmAndamento; descansando: boolean; perimetro: number }) {
+  const reduce = useReducedMotion();
   const p = useSharedValue(0);
+  const modo = useSharedValue(descansando ? 1 : 0);
+  const brilho = useSharedValue(0);
   const pausado = !!sessao.pausadoEm;
   useEffect(() => {
     const agora = Date.now();
+    const troca = reduce ? 0 : TROCA_MS;
     cancelAnimation(p);
+    modo.set(withTiming(descansando ? 1 : 0, { duration: troca, easing: SAI_DA_TROCA }));
+    if (troca) brilho.set(withSequence(withTiming(1, { duration: troca * 0.4 }), withTiming(0, { duration: troca * 0.9 })));
     if (descansando && sessao.descansoAte) {
       const falta = Math.max(0, Date.parse(sessao.descansoAte) - agora);
-      p.set(Math.min(1, falta / 1000 / Math.max(1, sessao.descansoSeg ?? 1)));
-      if (!pausado) p.set(withTiming(0, { duration: falta, easing: Easing.linear }));
+      const total = Math.max(1, sessao.descansoSeg ?? 1) * 1000;
+      const alvo = Math.min(1, falta / total);
+      if (pausado) return p.set(alvo);
+      // Enche até onde o descanso vai estar no fim da troca e esvazia dali, no ritmo do relógio.
+      const depois = Math.max(0, falta - troca);
+      p.set(
+        withSequence(
+          withTiming(Math.min(1, depois / total), { duration: Math.min(troca, falta), easing: SAI_DA_TROCA }),
+          withTiming(0, { duration: depois, easing: Easing.linear }),
+        ),
+      );
       return;
     }
-    const base = ((tempoDeTreinoMs(sessao, agora) / 1000) % 60) / 60;
-    p.set(base);
-    if (pausado) return;
+    const seg = tempoDeTreinoMs(sessao, agora) / 1000;
+    if (pausado) return p.set((seg % 60) / 60);
+    // Onde a volta vai estar quando a troca acabar: cresce até lá e segue o minuto.
+    const base = (((seg * 1000 + troca) / 1000) % 60) / 60;
     const minuto = { duration: 60_000, easing: Easing.linear };
-    p.set(
-      withSequence(
-        withTiming(1, { duration: (1 - base) * 60_000, easing: Easing.linear }),
-        withRepeat(withSequence(withTiming(0, { duration: 0 }), withTiming(1, minuto)), -1),
-      ),
+    const ciclo = withSequence(
+      withTiming(1, { duration: (1 - base) * 60_000, easing: Easing.linear }),
+      withRepeat(withSequence(withTiming(0, { duration: 0 }), withTiming(1, minuto)), -1),
     );
+    p.set(troca ? withSequence(withTiming(0, { duration: 0 }), withTiming(base, { duration: troca, easing: SAI_DA_TROCA }), ciclo) : ciclo);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [descansando, pausado, sessao.descansoAte, sessao.inicio, sessao.pausaMs]);
-  return useAnimatedProps(() => ({ strokeDashoffset: perimetro * (1 - Math.max(0.0005, p.get())) }));
+  const offset = () => {
+    'worklet';
+    return perimetro * (1 - Math.max(0.0005, p.get()));
+  };
+  const verde = useAnimatedProps(() => ({ strokeDashoffset: offset(), strokeOpacity: 1 - modo.get() }));
+  const branca = useAnimatedProps(() => ({ strokeDashoffset: offset(), strokeOpacity: modo.get() }));
+  const brilhoVerde = useAnimatedProps(() => ({ strokeDashoffset: offset(), strokeOpacity: brilho.get() * (1 - modo.get()) }));
+  const brilhoBranco = useAnimatedProps(() => ({ strokeDashoffset: offset(), strokeOpacity: brilho.get() * modo.get() }));
+  return { verde, branca, brilhoVerde, brilhoBranco };
 }
 
 /**
@@ -217,15 +249,24 @@ export function CardAoVivo({
       <Glass rounded={RAIO} flush contentStyle={styles.cartao}>
         {tam.w > 0 && (
           <Svg width={tam.w} height={tam.h} style={styles.volta} pointerEvents="none">
-            <AnimatedPath
-              d={d}
-              fill="none"
-              stroke={descansando ? colors.ink : colors.lime}
-              strokeWidth={TRACO}
-              strokeLinecap="round"
-              strokeDasharray={`${perimetro} ${perimetro}`}
-              animatedProps={volta}
-            />
+            {/* Brilho largo da troca, embaixo, e as duas linhas (verde do treino, branca do descanso) trocando de cor */}
+            {[
+              { cor: colors.tracoBrilho, largura: TRACO * 4, props: volta.brilhoVerde, k: 'bv' },
+              { cor: colors.tracoBrilhoBranco, largura: TRACO * 4, props: volta.brilhoBranco, k: 'bb' },
+              { cor: colors.lime, largura: TRACO, props: volta.verde, k: 'v' },
+              { cor: colors.ink, largura: TRACO, props: volta.branca, k: 'b' },
+            ].map((l) => (
+              <AnimatedPath
+                key={l.k}
+                d={d}
+                fill="none"
+                stroke={l.cor}
+                strokeWidth={l.largura}
+                strokeLinecap="round"
+                strokeDasharray={`${perimetro} ${perimetro}`}
+                animatedProps={l.props}
+              />
+            ))}
           </Svg>
         )}
         {/* Esquerda: abre o exercício no treino ao vivo */}
@@ -257,10 +298,11 @@ export function CardAoVivo({
           ) : null}
         </Pressable>
         <View style={styles.divisor} />
-        <View style={styles.tempoCol}>
+        {/* O tempo troca junto com a linha: some e volta de leve, sem pular. */}
+        <Animated.View key={descansando ? 'descanso' : 'treino'} entering={FadeIn.duration(TROCA_MS * 0.6)} style={styles.tempoCol}>
           <Text style={[styles.tempo, pausado && styles.tempoPausado]}>{formatDuration(descansando ? restante : seg)}</Text>
           {descansando || pausado ? <Text style={styles.tempoRotulo}>{descansando ? 'DESCANSO' : 'PAUSADO'}</Text> : null}
-        </View>
+        </Animated.View>
       </Glass>
     </View>
   );

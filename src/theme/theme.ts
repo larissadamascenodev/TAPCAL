@@ -119,6 +119,7 @@ export const colors = {
   tracoAceso: 'rgba(255,255,255,0.85)',
   tracoApagado: 'rgba(255,255,255,0.12)',
   tracoBrilho: 'rgba(209,251,57,0.28)',
+  tracoBrilhoBranco: 'rgba(255,255,255,0.22)',
   // Selo verde (completo, recorde): neon um pouco translúcido, com a letra escura
   // Ponto "gravando" do tempo de treino
   gravando: '#FF453A',
