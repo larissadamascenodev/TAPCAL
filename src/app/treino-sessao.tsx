@@ -318,22 +318,26 @@ export default function TreinoSessaoScreen() {
               serie={set}
               atual={!set && i === done}
               previa={`${formatDecimal(input.kg)} kg × ${input.reps}`}
-              ultima={i === rows.length - 1}
+              ultima={i === rows.length - 1 && !podeSomar}
               onApagar={
                 set ? () => confirmDestructive('Apagar série?', `${formatDecimal(set.cargaKg)} kg × ${set.reps}`, 'Apagar', () => apagarSerie(exercise.id, set.numero)) : undefined
               }
             />
           ))}
         </View>
-        {/* Mais uma série neste exercício (fica salvo no treino, como adicionar exercício); tirar é no editar exercício */}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Adicionar uma série"
-          disabled={!podeSomar}
-          onPress={adicionarSerie}
-          style={({ pressed }) => [styles.seriesBtn, !podeSomar && styles.seriesBtnOff, pressed && styles.pressed]}>
-          <Ionicons name="add" size={22} color={colors.ink2} />
-        </Pressable>
+        {/* Mais uma série: um + discreto na sequência da linha do tempo (fica salvo no treino); tirar é no editar exercício */}
+        {podeSomar && (
+          <Pressable accessibilityRole="button" accessibilityLabel="Adicionar uma série" onPress={adicionarSerie} style={({ pressed }) => [styles.serie, pressed && styles.pressed]}>
+            <View style={styles.serieTrilho}>
+              <View style={[styles.serieNo, styles.serieNoMais]}>
+                <Ionicons name="add" size={14} color={colors.ink3} />
+              </View>
+            </View>
+            <View style={styles.serieCorpo}>
+              <Text style={styles.serieMaisText}>Adicionar série</Text>
+            </View>
+          </Pressable>
+        )}
       </ScrollView>
 
       {/* Botão fixo embaixo */}
@@ -852,21 +856,6 @@ const styles = StyleSheet.create({
     width: 1,
     backgroundColor: colors.line,
   },
-  seriesBtn: {
-    marginTop: 4,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    height: 52,
-    borderRadius: radius.lg,
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
-    borderColor: colors.line2,
-  },
-  seriesBtnOff: {
-    opacity: 0.35,
-  },
   seriesCab: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -903,6 +892,16 @@ const styles = StyleSheet.create({
     borderColor: colors.lime,
     borderStyle: 'dashed',
     borderWidth: 2,
+  },
+  serieNoMais: {
+    borderStyle: 'dashed',
+  },
+  serieMaisText: {
+    marginTop: 6,
+    fontFamily: fonts.body.semibold,
+    fontSize: 13,
+    lineHeight: 21,
+    color: colors.ink3,
   },
   serieNum: {
     fontFamily: fonts.display.semibold,
